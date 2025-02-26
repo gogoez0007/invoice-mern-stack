@@ -10,7 +10,7 @@ import useLanguage from '@/locale/useLanguage';
 const SelectAsync = ({
   entity,
   displayLabels = ['name'],
-  outputValue = '_id',
+  outputValue = 'id',
   redirectLabel = '',
   withRedirect = false,
   urlToRedirect = '/',

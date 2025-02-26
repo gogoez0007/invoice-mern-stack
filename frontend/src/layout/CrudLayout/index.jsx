@@ -13,7 +13,6 @@ const ContentBox = ({ children }) => {
   const { state: stateCrud, crudContextAction } = useCrudContext();
   const { state: stateApp } = useAppContext();
   const { isPanelClose } = stateCrud;
-  // const { isNavMenuClose } = stateApp;
   const { panel } = crudContextAction;
 
   const [isSidePanelClose, setSidePanel] = useState(isPanelClose);
@@ -31,22 +30,50 @@ const ContentBox = ({ children }) => {
     return () => clearTimeout(timer);
   }, [isPanelClose]);
 
-  // useEffect(() => {
-  //   if (!isNavMenuClose) {
-  //     panel.close();
-  //   }
-  // }, [isNavMenuClose]);
   return (
     <Content
       className="whiteBox shadow layoutPadding"
       style={{
-        margin: '30px auto',
-        width: '100%',
-        maxWidth: '100%',
+        margin: '20px auto',
+        width: '81vw',
+        maxWidth: '100vw',
         flex: 'none',
+        borderRadius: '16px',
+        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+        backgroundColor: '#fff',
+        padding: '20px',
       }}
     >
-      {children}
+      <div
+        style={{
+          width: '100%',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: '16px',
+        }}
+        className="responsive-content"
+      >
+        {children}
+      </div>
+      <style>{`
+        @media (max-width: 1200px) {
+          .responsive-content {
+            padding: 16px;
+          }
+        }
+        @media (max-width: 768px) {
+          .responsive-content {
+            padding: 12px;
+            width: 80vw;
+          }
+        }
+        @media (max-width: 576px) {
+          .responsive-content {
+            padding: 8px;
+            width: 80vw;
+          }
+        }
+      `}</style>
     </Content>
   );
 };
@@ -68,7 +95,7 @@ export default function CrudLayout({
           fixHeaderPanel={fixHeaderPanel}
         ></SidePanel>
 
-        <ContentBox> {children}</ContentBox>
+        <ContentBox>{children}</ContentBox>
       </DefaultLayout>
     </>
   );

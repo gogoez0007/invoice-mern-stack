@@ -2,6 +2,7 @@ import path from 'path';
 
 import { defineConfig, loadEnv } from 'vite';
 import react from '@vitejs/plugin-react';
+import svgr from 'vite-plugin-svgr';
 
 export default ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
@@ -12,7 +13,7 @@ export default ({ mode }) => {
       : 'http://localhost:8888/';
 
   const config = {
-    plugins: [react()],
+    plugins: [react(), svgr()],
     resolve: {
       base: '/',
       alias: {
@@ -20,7 +21,8 @@ export default ({ mode }) => {
       },
     },
     server: {
-      port: 3000,
+      port: 4000,
+      host:true,
       proxy: {
         '/api': {
           target: proxy_url,

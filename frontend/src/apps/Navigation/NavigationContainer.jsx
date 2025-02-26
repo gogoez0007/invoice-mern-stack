@@ -1,191 +1,199 @@
 import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Drawer, Layout, Menu } from 'antd';
+import {
+  DashboardOutlined,
+  AppstoreOutlined,
+  HeatMapOutlined,
+  CarOutlined,
+  MenuOutlined,
+  SettingOutlined,
+  BuildTwoTone,
+} from '@ant-design/icons';
 
 import { useAppContext } from '@/context/appContext';
-
 import useLanguage from '@/locale/useLanguage';
 import logoIcon from '@/style/images/logo-icon.svg';
-import logoText from '@/style/images/logo-text.svg';
-
 import useResponsive from '@/hooks/useResponsive';
-
-import {
-  SettingOutlined,
-  CustomerServiceOutlined,
-  ContainerOutlined,
-  FileSyncOutlined,
-  DashboardOutlined,
-  TagOutlined,
-  TagsOutlined,
-  UserOutlined,
-  CreditCardOutlined,
-  MenuOutlined,
-  FileOutlined,
-  ShopOutlined,
-  FilterOutlined,
-  WalletOutlined,
-  ReconciliationOutlined,
-} from '@ant-design/icons';
 
 const { Sider } = Layout;
 
 export default function Navigation() {
   const { isMobile } = useResponsive();
-
-  return isMobile ? <MobileSidebar /> : <Sidebar collapsible={false} />;
+  return isMobile ? <MobileSidebar /> : <Sidebar collapsible={true} />;
 }
 
 function Sidebar({ collapsible, isMobile = false }) {
-  let location = useLocation();
-
+  const location = useLocation();
   const { state: stateApp, appContextAction } = useAppContext();
   const { isNavMenuClose } = stateApp;
   const { navMenu } = appContextAction;
-  const [showLogoApp, setLogoApp] = useState(isNavMenuClose);
-  const [currentPath, setCurrentPath] = useState(location.pathname.slice(1));
 
+  const [collapsed, setCollapsed] = useState(isNavMenuClose);
+  const [currentPath, setCurrentPath] = useState(location.pathname.slice(1));
+  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
   const translate = useLanguage();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    const handleResize = () => setWindowWidth(window.innerWidth);
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  useEffect(() => {
+    if (location) {
+      if (currentPath !== location.pathname) {
+        setCurrentPath(location.pathname === '/' ? 'dashboard' : location.pathname.slice(1));
+      }
+    }
+  }, [location, currentPath]);
+
+  const onCollapse = (value) => {
+    setCollapsed(value);
+    navMenu.collapse();
+  };
 
   const items = [
     {
       key: 'dashboard',
       icon: <DashboardOutlined />,
-      label: <Link to={'/'}>{translate('dashboard')}</Link>,
+      label: <Link to="/">{translate('dashboard')}</Link>,
     },
     {
-      key: 'customer',
-      icon: <CustomerServiceOutlined />,
-      label: <Link to={'/customer'}>{translate('customers')}</Link>,
-    },
-
-    {
-      key: 'invoice',
-      icon: <ContainerOutlined />,
-      label: <Link to={'/invoice'}>{translate('invoices')}</Link>,
-    },
-    {
-      key: 'quote',
-      icon: <FileSyncOutlined />,
-      label: <Link to={'/quote'}>{translate('quote')}</Link>,
+      key: 'tambak',
+      icon: <AppstoreOutlined />,
+      label: translate('Data Tambak'),
+      children: [
+        {
+          key: 'tambak/list',
+          label: <Link to="/tambak">Daftar Tambak</Link>,
+        },
+      ],
     },
     {
-      key: 'payment',
-      icon: <CreditCardOutlined />,
-      label: <Link to={'/payment'}>{translate('payments')}</Link>,
-    },
-
-    {
-      key: 'paymentMode',
-      label: <Link to={'/payment/mode'}>{translate('payments_mode')}</Link>,
-      icon: <WalletOutlined />,
-    },
-    {
-      key: 'taxes',
-      label: <Link to={'/taxes'}>{translate('taxes')}</Link>,
-      icon: <ShopOutlined />,
+      key: 'kualitas',
+      icon: <HeatMapOutlined />,
+      label: translate('Data Kualitas'),
+      children: [
+        {
+          key: 'kualitas/list',
+          label: <Link to="/kualitas">List Kualitas</Link>,
+        },
+      ],
     },
     {
-      key: 'generalSettings',
-      label: <Link to={'/settings'}>{translate('settings')}</Link>,
-      icon: <SettingOutlined />,
+      key: 'listDriver',
+      icon: <CarOutlined />,
+      label: translate('Data Driver'),
+      children: [
+        {
+          key: 'driver',
+          label: <Link to="/driver">List Driver</Link>,
+        },
+      ],
     },
     {
-      key: 'about',
-      label: <Link to={'/about'}>{translate('about')}</Link>,
-      icon: <ReconciliationOutlined />,
+      key: 'manageHR',
+      icon: <BuildTwoTone />,
+      label: translate('Manajemen Karyawan'),
+      children: [
+        {
+          key: 'karyawan',
+          label: <Link to="/karyawan">Karyawan</Link>,
+        },
+        {
+          key: 'lokasi',
+          label: <Link to="/lokasi">Lokasi Office</Link>,
+        },
+        {
+          key: 'shift',
+          label: <Link to="/shift">Shift</Link>,
+        },
+      ],
     },
   ];
-
-  useEffect(() => {
-    if (location)
-      if (currentPath !== location.pathname) {
-        if (location.pathname === '/') {
-          setCurrentPath('dashboard');
-        } else setCurrentPath(location.pathname.slice(1));
-      }
-  }, [location, currentPath]);
-
-  useEffect(() => {
-    if (isNavMenuClose) {
-      setLogoApp(isNavMenuClose);
-    }
-    const timer = setTimeout(() => {
-      if (!isNavMenuClose) {
-        setLogoApp(isNavMenuClose);
-      }
-    }, 200);
-    return () => clearTimeout(timer);
-  }, [isNavMenuClose]);
-  const onCollapse = () => {
-    navMenu.collapse();
-  };
 
   return (
     <Sider
       collapsible={collapsible}
-      collapsed={collapsible ? isNavMenuClose : collapsible}
+      collapsed={collapsed}
       onCollapse={onCollapse}
-      className="navigation"
-      width={256}
+      collapsedWidth={isMobile ? 0 : 80}
+      width={windowWidth > 1900 ? 230 : 80}
       style={{
-        overflow: 'auto',
-        height: '100vh',
-
-        position: isMobile ? 'absolute' : 'relative',
-        bottom: '20px',
-        ...(!isMobile && {
-          // border: 'none',
-          ['left']: '20px',
-          top: '20px',
-          // borderRadius: '8px',
-        }),
+        overflow: 'hidden',
+        height: '92vh',
+        position: 'fixed',
+        top: 10,
+        left: 10,
+        transition: 'all 0.3s',
+        zIndex: 100,
+        borderRadius: '16px',
+        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+        backgroundColor: '#fff',
       }}
-      theme={'light'}
+      theme="light"
+      breakpoint="lg"
+      onBreakpoint={(broken) => setCollapsed(broken)}
     >
       <div
-        className="logo"
-        onClick={() => navigate('/')}
         style={{
-          cursor: 'pointer',
+          height: '100px',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderBottom: '1px solid #f0f0f0',
+          backgroundColor: '#fff',
+          flexShrink: 0,
         }}
       >
-        <img src={logoIcon} alt="Logo" style={{ marginLeft: '-5px', height: '40px' }} />
-
-        {!showLogoApp && (
-          <img
-            src={logoText}
-            alt="Logo"
-            style={{
-              marginTop: '3px',
-              marginLeft: '10px',
-              height: '38px',
-            }}
-          />
-        )}
+        <img
+          src={logoIcon}
+          alt="Logo"
+          style={{
+            height: collapsed ? '40px' : '80px',
+            width: 'auto',
+            objectFit: 'contain',
+            transition: 'all 0.2s',
+          }}
+        />
       </div>
-      <Menu
-        items={items}
-        mode="inline"
-        theme={'light'}
-        selectedKeys={[currentPath]}
-        style={{
-          width: 256,
-        }}
-      />
+      <div style={{ flex: 1, overflowY: 'auto' }}>
+        <Menu
+          items={items}
+          mode="inline"
+          theme="light"
+          selectedKeys={[currentPath]}
+          defaultOpenKeys={!collapsed ? ['tambak', 'kualitas', 'driver'] : []}
+          style={{
+            width: '100%',
+            borderInlineEnd: 'none',
+            paddingInline: '10px',
+            borderRadius: '10px',
+          }}
+        />
+      </div>
+      <style>{`
+        @media (max-width: 768px) {
+          .ant-layout-sider {
+            width: 100% !important;
+            position: absolute !important;
+            height: 100vh !important;
+            top: 0 !important;
+            left: 0 !important;
+            z-index: 1000 !important;
+          }
+        }
+      `}</style>
     </Sider>
   );
 }
 
 function MobileSidebar() {
   const [visible, setVisible] = useState(false);
-  const showDrawer = () => {
-    setVisible(true);
-  };
-  const onClose = () => {
-    setVisible(false);
-  };
+  const showDrawer = () => setVisible(true);
+  const onClose = () => setVisible(false);
 
   return (
     <>
@@ -193,15 +201,18 @@ function MobileSidebar() {
         type="text"
         size="large"
         onClick={showDrawer}
-        className="mobile-sidebar-btn"
-        style={{ ['marginLeft']: 25 }}
+        style={{
+          marginLeft: 25,
+          position: 'fixed',
+          top: 20,
+          zIndex: 103,
+        }}
       >
         <MenuOutlined style={{ fontSize: 18 }} />
       </Button>
       <Drawer
-        width={250}
-        // style={{ backgroundColor: 'rgba(255, 255, 255, 1)' }}
-        placement={'left'}
+        width={window.innerWidth * 0.8}
+        placement="left"
         closable={false}
         onClose={onClose}
         open={visible}

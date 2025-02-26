@@ -29,6 +29,15 @@ const Profile = lazy(() => import('@/pages/Profile'));
 
 const About = lazy(() => import('@/pages/About'));
 
+//Tambak
+const Tambak = lazy(()=> import('@/pages/Tambak'));
+//Supir
+const Supir = lazy(()=> import('@/pages/Supir'));
+const Kualitas = lazy(()=> import('@/pages/Kualitas'));
+const Lokasi = lazy(()=> import('@/pages/Lokasi'));
+const Shift = lazy(()=> import('@/pages/Shift'));
+const Karyawan = lazy(()=> import('@/pages/Karyawan'));
+
 let routes = {
   expense: [],
   default: [
@@ -122,6 +131,30 @@ let routes = {
     {
       path: '/profile',
       element: <Profile />,
+    },
+    {
+      path: '/tambak',
+      element: <Tambak />,
+    },
+    {
+      path: '/driver',
+      element: <Supir />,
+    },
+    {
+      path: '/kualitas',
+      element: <Kualitas />,
+    },
+    {
+      path: '/lokasi',
+      element: <Lokasi />,
+    },
+    {
+      path: '/shift',
+      element: <Shift />,
+    },
+    {
+      path: '/karyawan',
+      element: <Karyawan />,
     },
     {
       path: '*',

@@ -1,0 +1,50 @@
+[
+  {
+    "_id": "67a5667421ddd271fbaf53a2",
+    "removed": false,
+    "createdBy": "67a5642853e5f7b04f6d182f",
+    "number": 1,
+    "year": 2025,
+    "date": "2025-02-07T01:47:42.208Z",
+    "expiredDate": "2025-03-09T01:47:42.208Z",
+    "client": "67a565bf21ddd271fbaf535d",
+    "items": [
+      {
+        "itemName": "Kulkas",
+        "description": "Kulkas Aja",
+        "quantity": 1000,
+        "price": 10,
+        "total": 10000,
+        "_id": "67a566fc21ddd271fbaf55b2"
+      },
+      {
+        "itemName": "Remote",
+        "description": "Remote",
+        "quantity": 100,
+        "price": 20,
+        "total": 2000,
+        "_id": "67a566fc21ddd271fbaf55b3"
+      }
+    ],
+    "taxRate": 0,
+    "subTotal": 12000,
+    "taxTotal": 0,
+    "total": 12000,
+    "currency": "NA",
+    "credit": 12000,
+    "discount": 0,
+    "payment": [
+      "67a566e321ddd271fbaf5536",
+      "67a5673a21ddd271fbaf568f"
+    ],
+    "paymentStatus": "paid",
+    "isOverdue": false,
+    "approved": false,
+    "status": "sent",
+    "files": [],
+    "updated": "2025-02-07T01:48:36.058Z",
+    "created": "2025-02-07T01:48:36.058Z",
+    "__v": 0,
+    "pdf": "invoice-67a5667421ddd271fbaf53a2.pdf"
+  }
+]

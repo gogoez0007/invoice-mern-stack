@@ -1,0 +1,33 @@
+[
+  {
+    "_id": "67a566e321ddd271fbaf5536",
+    "removed": false,
+    "createdBy": "67a5642853e5f7b04f6d182f",
+    "number": 1,
+    "client": "67a565bf21ddd271fbaf535d",
+    "invoice": "67a5667421ddd271fbaf53a2",
+    "date": "2025-03-09T01:50:08.389Z",
+    "amount": 10000,
+    "currency": "NA",
+    "paymentMode": "67a5642953e5f7b04f6d186e",
+    "updated": "2025-02-07T01:50:27.247Z",
+    "created": "2025-02-07T01:50:27.247Z",
+    "__v": 0
+  },
+  {
+    "_id": "67a5673a21ddd271fbaf568f",
+    "removed": false,
+    "createdBy": "67a5642853e5f7b04f6d182f",
+    "number": 1,
+    "client": "67a565bf21ddd271fbaf535d",
+    "invoice": "67a5667421ddd271fbaf53a2",
+    "date": "2025-03-09T01:51:39.294Z",
+    "amount": 2000,
+    "currency": "NA",
+    "paymentMode": "67a5642953e5f7b04f6d186e",
+    "ref": "123123",
+    "updated": "2025-02-07T01:51:54.811Z",
+    "created": "2025-02-07T01:51:54.811Z",
+    "__v": 0
+  }
+]

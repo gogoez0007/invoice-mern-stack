@@ -12,7 +12,7 @@ export default function AutoCompleteAsync({
   entity,
   displayLabels,
   searchFields,
-  outputValue = '_id',
+  outputValue = 'id',
   redirectLabel = 'Add New',
   withRedirect = false,
   urlToRedirect = '/',
