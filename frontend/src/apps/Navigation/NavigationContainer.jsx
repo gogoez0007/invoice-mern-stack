@@ -9,6 +9,11 @@ import {
   MenuOutlined,
   SettingOutlined,
   BuildTwoTone,
+  CarTwoTone,
+  ContainerTwoTone,
+  AppstoreTwoTone,
+  DashboardTwoTone,
+  EnvironmentTwoTone,
 } from '@ant-design/icons';
 
 import { useAppContext } from '@/context/appContext';
@@ -57,12 +62,17 @@ function Sidebar({ collapsible, isMobile = false }) {
   const items = [
     {
       key: 'dashboard',
-      icon: <DashboardOutlined />,
+      icon: <DashboardTwoTone />,
       label: <Link to="/">{translate('dashboard')}</Link>,
     },
     {
+      key: 'panen',
+      icon: <EnvironmentTwoTone />,
+      label: <Link to="/panen">{translate('panen')}</Link>,
+    },
+    {
       key: 'tambak',
-      icon: <AppstoreOutlined />,
+      icon: <AppstoreTwoTone />,
       label: translate('Data Tambak'),
       children: [
         {
@@ -73,7 +83,7 @@ function Sidebar({ collapsible, isMobile = false }) {
     },
     {
       key: 'kualitas',
-      icon: <HeatMapOutlined />,
+      icon: <ContainerTwoTone />,
       label: translate('Data Kualitas'),
       children: [
         {
@@ -84,7 +94,7 @@ function Sidebar({ collapsible, isMobile = false }) {
     },
     {
       key: 'listDriver',
-      icon: <CarOutlined />,
+      icon: <CarTwoTone />,
       label: translate('Data Driver'),
       children: [
         {
@@ -120,7 +130,7 @@ function Sidebar({ collapsible, isMobile = false }) {
       collapsed={collapsed}
       onCollapse={onCollapse}
       collapsedWidth={isMobile ? 0 : 80}
-      width={windowWidth > 1900 ? 230 : 80}
+      width={windowWidth > 1500 ? 200 : 80}
       style={{
         overflow: 'hidden',
         height: '92vh',
@@ -165,7 +175,7 @@ function Sidebar({ collapsible, isMobile = false }) {
           mode="inline"
           theme="light"
           selectedKeys={[currentPath]}
-          defaultOpenKeys={!collapsed ? ['tambak', 'kualitas', 'driver'] : []}
+          defaultOpenKeys={!collapsed ? ['tambak', 'kualitas', 'driver','karyawan'] : []}
           style={{
             width: '100%',
             borderInlineEnd: 'none',
@@ -203,7 +213,6 @@ function MobileSidebar() {
         onClick={showDrawer}
         style={{
           marginLeft: 25,
-          position: 'fixed',
           top: 20,
           zIndex: 103,
         }}

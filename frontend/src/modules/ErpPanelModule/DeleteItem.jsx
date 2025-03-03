@@ -35,7 +35,7 @@ export default function Delete({ config }) {
   }, [isSuccess, current]);
 
   const handleOk = () => {
-    const id = current._id;
+    const id = current.id;
     dispatch(erp.delete({ entity, id }));
     modal.close();
   };

@@ -22,8 +22,8 @@ export default function Payment({ config, currentItem }) {
   useEffect(() => {
     const controller = new AbortController();
     if (currentItem) {
-      const { invoice, _id, ...others } = currentItem;
-      setCurrentErp({ ...others, ...invoice, _id });
+      const { invoice, id, ...others } = currentItem;
+      setCurrentErp({ ...others, ...invoice, id });
     }
     return () => controller.abort();
   }, [currentItem]);
@@ -64,7 +64,7 @@ export default function Payment({ config, currentItem }) {
               </Button>,
               <Button
                 key={`${uniqueId()}`}
-                onClick={() => navigate(`/invoice/read/${currentErp._id}`)}
+                onClick={() => navigate(`/invoice/read/${currentErp.id}`)}
                 icon={<FileTextOutlined />}
               >
                 {translate('Show invoice')}

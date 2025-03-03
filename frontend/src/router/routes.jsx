@@ -37,6 +37,9 @@ const Kualitas = lazy(()=> import('@/pages/Kualitas'));
 const Lokasi = lazy(()=> import('@/pages/Lokasi'));
 const Shift = lazy(()=> import('@/pages/Shift'));
 const Karyawan = lazy(()=> import('@/pages/Karyawan'));
+//Panen
+const Panen = lazy(() => import('@/pages/Panen'));
+const PanenRead = lazy(() => import('@/pages/Panen/PanenRead'));
 
 let routes = {
   expense: [],
@@ -155,6 +158,14 @@ let routes = {
     {
       path: '/karyawan',
       element: <Karyawan />,
+    },
+    {
+      path: '/panen',
+      element: <Panen />,
+    },
+    {
+      path: '/panen/read/:id',
+      element: <PanenRead />,
     },
     {
       path: '*',

@@ -13,7 +13,7 @@ export default function Taxes() {
   const searchConfig = {
     displayLabels: ['name'],
     searchFields: 'name',
-    outputValue: '_id',
+    outputValue: 'id',
   };
 
   const deleteModalLabels = ['name'];

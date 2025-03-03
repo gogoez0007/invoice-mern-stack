@@ -20,4 +20,7 @@ export const fields = {
   contact_person: {
     type: 'string',
   },
+  lokasi: {
+    type: 'string',
+  },
 };

@@ -13,7 +13,7 @@ import { Empty } from 'antd';
 export default function Search({ config }) {
   let { entity, searchConfig } = config;
 
-  const { displayLabels, searchFields, outputValue = '_id' } = searchConfig;
+  const { displayLabels, searchFields, outputValue = 'id' } = searchConfig;
   const dispatch = useDispatch();
   const [value, setValue] = useState('');
   const [options, setOptions] = useState([]);

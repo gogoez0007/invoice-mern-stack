@@ -81,7 +81,7 @@ export default function CreateItem({ config, CreateForm }) {
       dispatch(erp.resetAction({ actionType: 'create' }));
       setSubTotal(0);
       setOfferSubTotal(0);
-      navigate(`/${entity.toLowerCase()}/read/${result._id}`);
+      navigate(`/${entity.toLowerCase()}/read/${result.id}`);
     }
     return () => {};
   }, [isSuccess]);
