@@ -35,8 +35,6 @@ const ContentBox = ({ children }) => {
       className="whiteBox shadow layoutPadding"
       style={{
         margin: '20px auto',
-        width: '81vw',
-        maxWidth: '100vw',
         flex: 'none',
         borderRadius: '16px',
         boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',

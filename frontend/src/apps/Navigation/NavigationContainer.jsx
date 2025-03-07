@@ -14,6 +14,7 @@ import {
   AppstoreTwoTone,
   DashboardTwoTone,
   EnvironmentTwoTone,
+  AccountBookTwoTone,
 } from '@ant-design/icons';
 
 import { useAppContext } from '@/context/appContext';
@@ -67,7 +68,7 @@ function Sidebar({ collapsible, isMobile = false }) {
     },
     {
       key: 'panen',
-      icon: <EnvironmentTwoTone />,
+      icon: <AccountBookTwoTone />,
       label: <Link to="/panen">{translate('panen')}</Link>,
     },
     {

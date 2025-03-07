@@ -13,6 +13,9 @@ export const fields = {
     displayLabels: ['name'], // Label yang akan ditampilkan di dropdown
     outputValue: 'id', // Value yang akan dikirim saat form disubmit
     loadDefault: true, 
+    withRedirect : true,
+    urlToRedirect : '/lokasi',
+    redirectLabel : 'Tambah Lokasi',
   },
   shift: {
     type: 'async',  // Menggunakan SelectAsync
@@ -21,5 +24,8 @@ export const fields = {
     displayLabels: ['name'], // Label yang akan ditampilkan di dropdown
     outputValue: 'id', // Value yang akan dikirim saat form disubmit
     loadDefault: true, 
+    withRedirect : true,
+    urlToRedirect : '/shift',
+    redirectLabel : 'Tambah Shift',
   },
 };

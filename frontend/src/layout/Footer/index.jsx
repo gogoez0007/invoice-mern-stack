@@ -14,7 +14,7 @@ const FooterContent = () => (
       left: 0,
       width: '100%',
       zIndex: 1000, // 🔧 Z-index lebih rendah agar di belakang
-      position: 'fixed',
+
     }}
   >
     <img
