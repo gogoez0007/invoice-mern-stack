@@ -2,19 +2,14 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Drawer, Layout, Menu } from 'antd';
 import {
-  DashboardOutlined,
-  AppstoreOutlined,
-  HeatMapOutlined,
-  CarOutlined,
   MenuOutlined,
-  SettingOutlined,
   BuildTwoTone,
   CarTwoTone,
   ContainerTwoTone,
   AppstoreTwoTone,
   DashboardTwoTone,
-  EnvironmentTwoTone,
   AccountBookTwoTone,
+  BoxPlotTwoTone,
 } from '@ant-design/icons';
 
 import { useAppContext } from '@/context/appContext';
@@ -64,12 +59,33 @@ function Sidebar({ collapsible, isMobile = false }) {
     {
       key: 'dashboard',
       icon: <DashboardTwoTone />,
-      label: <Link to="/">{translate('dashboard')}</Link>,
+      label: translate('dashboard'),
+      children: [
+        {
+          key: 'dashboard_panen',
+          label: <Link to="/dashboard_panen"> Panen</Link>,
+        },
+        {
+          key: 'dashboard_absen',
+          label: <Link to="/"> Absen</Link>,
+        },
+      ],
     },
     {
       key: 'panen',
       icon: <AccountBookTwoTone />,
-      label: <Link to="/panen">{translate('panen')}</Link>,
+      label: <Link to="/panen">{translate('Data panen')}</Link>,
+    },
+    {
+      key: 'bongkar',
+      icon: <BoxPlotTwoTone />,
+      label: translate('Data Bongkar'),
+      children: [
+        {
+          key: 'bongkar/list',
+          label: <Link to="/bongkar">Daftar Bongkar</Link>,
+        },
+      ],
     },
     {
       key: 'tambak',

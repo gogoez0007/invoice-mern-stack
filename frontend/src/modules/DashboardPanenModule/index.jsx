@@ -6,22 +6,19 @@ import useLanguage from '@/locale/useLanguage';
 import { useMoney } from '@/settings';
 
 import { request } from '@/request';
-import useFetch from '@/hooks/useFetch';
 import useOnFetch from '@/hooks/useOnFetch';
 
 import RecentTable from './components/RecentTable';
 
-import SummaryCard from './components/SummaryCard';
-import PreviewCard from './components/PreviewCard';
 import CustomerPreviewCard from './components/CustomerPreviewCard';
-import AttendancePieChart from './components/AttendancePieChart';
-import AttendanceLineChart from './components/AttendanceLineChart';
+import PanenPieChart from './components/PanenPieChart';
+import PanenBarLineChart from './components/PanenBarLineChart';
 import SummaryAttendance  from './components/AttendanceTable';
 
 import { selectMoneyFormat } from '@/redux/settings/selectors';
 import { useSelector } from 'react-redux';
 
-export default function DashboardModule() {
+export default function DashboardPanenModule() {
   const translate = useLanguage();
   const { moneyFormatter } = useMoney();
   const money_format_settings = useSelector(selectMoneyFormat);
@@ -65,24 +62,11 @@ export default function DashboardModule() {
     onFetch: fetchAttendanceSummary,
   } = useOnFetch();
 
-  // const { result: clientResult, isLoading: clientLoading } = useFetch(() =>
-  //   request.summary({ entity: 'client' })
-  // );
-
-  // useEffect(() => {
-  //   fetchAttendanceStats(request.attendance_stats({ entity: "attendance" }));
-  //   fetchAttendanceLineStats(request.line_stats({ entity: "attendance" }));
-  //   fetchAttendanceSummary(request.attendance_summary({ entity: "attendance" }));
-  // }, []);
-
 
   useEffect(() => {
     const currency = money_format_settings.default_currency_code || null;
 
     if (currency) {
-      // fetchInvoicesStats(getStatsData({ entity: 'invoice', currency }));
-      // fetchQuotesStats(getStatsData({ entity: 'quote', currency }));
-      // fetchPayemntsStats(getStatsData({ entity: 'payment', currency }));
     }
   }, [money_format_settings.default_currency_code]);
 
@@ -151,21 +135,34 @@ export default function DashboardModule() {
     return (
       <>
         <Row gutter={[32, 32]}>
-          <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 18 }}>
-            <div className="whiteBox shadow" style={{ height: 458 }}>
-                <AttendanceLineChart
-                  title="Tren Absensi Bulanan"
-                  isLoading={attendanceLineLoading}
-                  data={attendanceLineStatistics}
+          <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 24 }}>
+            <div className="whiteBox shadow" style={{ height: 600 }}>
+                <PanenBarLineChart
+                  title="Tren Panen"
                 />
             </div>
           </Col>
-          <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 6 }}>
-            <AttendancePieChart
-              title="Statistik Absensi"
-              isLoading={attendanceLoading}
-              statistics={attendanceStatistics}
-            />
+        </Row>
+        <div className="space30"></div>
+        <Row gutter={[32, 32]}>
+          <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 12 }}>
+            <div className="whiteBox shadow" style={{ height: 450 }}>
+                <PanenPieChart
+                  title="Statistik Panen (Bulan)"
+                  filterMode='Bulan'
+                  isLoading={attendanceLoading}
+                  statistics={attendanceStatistics}
+                />
+            </div>
+          </Col>
+          <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 12 }}>
+            <div className="whiteBox shadow" style={{ height: 450 }}>
+                <PanenPieChart
+                  title="Statistik Panen (Tahun)"
+                  isLoading={attendanceLoading}
+                  statistics={attendanceStatistics}
+                />
+            </div>
           </Col>
         </Row>
         <div className="space30"></div>
@@ -196,15 +193,6 @@ export default function DashboardModule() {
               </h3>
               <RecentTable entity={'top_telat_monthly'} dataTableColumns={dataTableColumnsTop} />
             </div>
-          </Col>
-        </Row>
-        <div className="space30"></div>
-        <Row gutter={[32, 32]}>
-          <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }}>
-              <SummaryAttendance 
-                attendanceSummary={attendanceSummary} 
-                isLoading={attendanceSummaryLoading} 
-              />
           </Col>
         </Row>
       </>

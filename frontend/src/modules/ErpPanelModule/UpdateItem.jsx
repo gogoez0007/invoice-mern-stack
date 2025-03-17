@@ -1,176 +1,137 @@
-import { useState, useEffect } from 'react';
-import { Form, Divider } from 'antd';
-import dayjs from 'dayjs';
-import { Button, Tag } from 'antd';
+// UpdateItem.jsx
+import React, { useState, useEffect } from 'react';
+import {
+    Button,
+    Tag,
+    message
+} from 'antd';
 import { PageHeader } from '@ant-design/pro-layout';
-
+import {
+    FileAddOutlined,
+    EditOutlined,
+    CloseCircleOutlined,
+} from '@ant-design/icons';
 import { useSelector, useDispatch } from 'react-redux';
 import useLanguage from '@/locale/useLanguage';
 import { erp } from '@/redux/erp/actions';
-
-import calculate from '@/utils/calculate';
+import { selectCurrentItem, selectUpdatedItem } from '@/redux/erp/selectors';
+import { useNavigate } from 'react-router-dom';
+import { useMoney, useDate } from '@/settings';
+import BongkarFormUpdate from '@/modules/BongkarModule/Forms/BongkarFormUpdate'; // Import komponen tampilan
+import dayjs from 'dayjs';
 import { generate as uniqueId } from 'shortid';
-import { selectUpdatedItem } from '@/redux/erp/selectors';
-import Loading from '@/components/Loading';
+import calculate from '@/utils/calculate';
 
-import { CloseCircleOutlined, PlusOutlined } from '@ant-design/icons';
-import { useNavigate, useParams } from 'react-router-dom';
+const UpdateItem = ({ config, selectedItem }) => {
+    const translate = useLanguage();
+    const { entity, ENTITY_NAME } = config;
+    const dispatch = useDispatch();
+    const navigate = useNavigate();
+    const { dateFormat } = useDate();
+    const formatNumber = (number) =>
+        new Intl.NumberFormat('id-ID', { minimumFractionDigits: 2 }).format(number);
+    const { result: currentResult } = useSelector(selectCurrentItem);
+    const { isSuccess: isUpdateSuccess, isError: isUpdateError } = useSelector(selectUpdatedItem);
 
-import { settingsAction } from '@/redux/settings/actions';
-// import { StatusTag } from '@/components/Tag';
+    const [itemsByPosition, setItemsByPosition] = useState({});
+    const [currentErp, setCurrentErp] = useState(selectedItem ?? {
+        nama_pabrik: '',
+        lokasi: '',
+        staff: '',
+        nama_perusahaan: '',
+        nopol: '',
+        status: ''
+    });
 
-function SaveForm({ form, translate }) {
-  const handelClick = () => {
-    form.submit();
-  };
+    useEffect(() => {
+        if (currentResult) {
+            const { detail, ...others } = currentResult;
+            setCurrentErp(currentResult);
 
-  return (
-    <Button onClick={handelClick} type="primary" icon={<PlusOutlined />}>
-      {translate('update')}
-    </Button>
-  );
-}
-
-export default function UpdateItem({ config, UpdateForm }) {
-  const translate = useLanguage();
-  let { entity } = config;
-
-  const dispatch = useDispatch();
-  const navigate = useNavigate();
-  const { current, isLoading, isSuccess } = useSelector(selectUpdatedItem);
-  const [form] = Form.useForm();
-  const [subTotal, setSubTotal] = useState(0);
-
-  const resetErp = {
-    status: '',
-    client: {
-      name: '',
-      email: '',
-      phone: '',
-      address: '',
-    },
-    subTotal: 0,
-    taxTotal: 0,
-    taxRate: 0,
-    total: 0,
-    credit: 0,
-    number: 0,
-    year: 0,
-  };
-
-  const [currentErp, setCurrentErp] = useState(current ?? resetErp);
-
-  const { id } = useParams();
-
-  const handelValuesChange = (changedValues, values) => {
-    const items = values['items'];
-    let subTotal = 0;
-
-    if (items) {
-      items.map((item) => {
-        if (item) {
-          if (item.quantity && item.price) {
-            let total = calculate.multiply(item['quantity'], item['price']);
-            //sub total
-            subTotal = calculate.add(subTotal, total);
-          }
+            if (detail) {
+                // Group items by posisi
+                const groupedItems = detail.reduce((acc, item) => {
+                    const position = item.posisi || 'Unknown Position';
+                    if (!acc[position]) {
+                        acc[position] = [];
+                    }
+                    acc[position].push(item);
+                    return acc;
+                }, {});
+                setItemsByPosition(groupedItems);
+            }
         }
-      });
-      setSubTotal(subTotal);
-    }
-  };
+    }, [currentResult]);
 
-  const onSubmit = (fieldsValue) => {
-    let dataToUpdate = { ...fieldsValue };
-    if (fieldsValue) {
-      if (fieldsValue.date || fieldsValue.expiredDate) {
-        dataToUpdate.date = dayjs(fieldsValue.date).format('YYYY-MM-DDTHH:mm:ss.SSSZ');
-        dataToUpdate.expiredDate = dayjs(fieldsValue.expiredDate).format(
-          'YYYY-MM-DDTHH:mm:ss.SSSZ'
-        );
-      }
-      if (fieldsValue.items) {
-        let newList = [];
-        fieldsValue.items.map((item) => {
-          const { quantity, price, itemName, description } = item;
-          const total = item.quantity * item.price;
-          newList.push({ total, quantity, price, itemName, description });
-        });
-        dataToUpdate.items = newList;
-      }
-    }
+    useEffect(() => {
+        if (isUpdateSuccess) {
+            message.success(translate('Data berhasil diperbarui'));
+            navigate(`/${entity.toLowerCase()}/read/${currentErp.id}`); // Arahkan ke halaman detail setelah sukses
+            dispatch(erp.resetAction({ actionType: 'update' }));
+        }
 
-    dispatch(erp.update({ entity, id, jsonData: dataToUpdate }));
-  };
-  useEffect(() => {
-    if (isSuccess) {
-      form.resetFields();
-      setSubTotal(0);
-      dispatch(erp.resetAction({ actionType: 'update' }));
-      navigate(`/${entity.toLowerCase()}/read/${id}`);
-    }
-  }, [isSuccess]);
+        if (isUpdateError) {
+            message.error(translate('Gagal memperbarui data'));
+        }
+    }, [isUpdateSuccess, isUpdateError, navigate, translate, entity, currentErp.id, dispatch]);
 
-  useEffect(() => {
-    if (current) {
-      setCurrentErp(current);
-      let formData = { ...current };
-      if (formData.date) {
-        formData.date = dayjs(formData.date);
-      }
-      if (formData.expiredDate) {
-        formData.expiredDate = dayjs(formData.expiredDate);
-      }
-      if (!formData.taxRate) {
-        formData.taxRate = 0;
-      }
+    const handleFormSubmit = (dataToSend) => {
 
-      const { subTotal } = formData;
+        console.log('Data yang akan disubmit ke backend:', JSON.stringify(dataToSend, null, 2));
+        dispatch(erp.update({ entity, id: currentErp.id, jsonData: dataToSend })) // Kirim ke action update
+    };
 
-      form.resetFields();
-      form.setFieldsValue(formData);
-      setSubTotal(subTotal);
-    }
-  }, [current]);
+    return (
+        <>
+            <PageHeader
+                onBack={() => {
+                    navigate(`/${entity.toLowerCase()}`);
+                }}
+                title={`${ENTITY_NAME} # ${currentErp.nama_pabrik || currentErp.tanggal_bongkar}`}
+                ghost={false}
+                tags={[
+                    <Tag key="status">{currentErp.status && translate(currentErp.status)}</Tag>,
+                ]}
+                extra={[
+                    <Button
+                        key="close"
+                        onClick={() => navigate(`/${entity.toLowerCase()}`)}
+                        icon={<CloseCircleOutlined />}
+                    >
+                        {translate('Close')}
+                    </Button>,
+                    <Button
+                        key="create"
+                        onClick={() => {
+                            dispatch(
+                                erp.currentAction({
+                                    actionType: 'create',
+                                    data: null,
+                                })
+                            );
+                            navigate(`/${entity.toLowerCase()}/create`);
+                        }}
+                        type="primary"
+                        icon={<FileAddOutlined />}
+                    >
+                        {translate('New')}
+                    </Button>,
+                ]}
+                style={{ padding: '20px 0' }}
+            >
 
-  return (
-    <>
-      <PageHeader
-        onBack={() => {
-          navigate(`/${entity.toLowerCase()}`);
-        }}
-        title={translate('update')}
-        ghost={false}
-        tags={[
-          <span key="status">{currentErp.status && translate(currentErp.status)}</span>,
-          currentErp.paymentStatus && (
-            <span key="paymentStatus">
-              {currentErp.paymentStatus && translate(currentErp.paymentStatus)}
-            </span>
-          ),
-        ]}
-        extra={[
-          <Button
-            key={`${uniqueId()}`}
-            onClick={() => {
-              navigate(`/${entity.toLowerCase()}`);
-            }}
-            icon={<CloseCircleOutlined />}
-          >
-            {translate('Cancel')}
-          </Button>,
-          <SaveForm translate={translate} form={form} key={`${uniqueId()}`} />,
-        ]}
-        style={{
-          padding: '20px 0px',
-        }}
-      ></PageHeader>
-      <Divider dashed />
-      <Loading isLoading={isLoading}>
-        <Form form={form} layout="vertical" onFinish={onSubmit} onValuesChange={handelValuesChange}>
-          <UpdateForm subTotal={subTotal} current={current} />
-        </Form>
-      </Loading>
-    </>
-  );
-}
+
+            </PageHeader>
+            <BongkarFormUpdate
+                translate={translate}
+                itemsByPosition={itemsByPosition}
+                currentErp={currentErp}
+                dateFormat={dateFormat}
+                formatNumber={formatNumber}
+                onSubmit={handleFormSubmit} // Pass handler ke komponen form
+            />
+        </>
+    );
+};
+
+export default UpdateItem;

@@ -1,35 +1,32 @@
 import { useState, useEffect } from "react";
-import { DatePicker, Select, Spin } from "antd";
+import { DatePicker, Spin } from "antd";
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import dayjs from "dayjs";
 import { request } from "@/request"; // Import request API
+const COLORS = [  "#4E79A7",  "#F28E2B",  "#E15759",  "#76B7B2",  "#59A14F",  "#EDC949",  "#AF7AA1",  "#FF9DA7",  "#9C755F",  "#BAB0AC",];
 
-const { Option } = Select;
-const COLORS = ["#4E79A7", "#F28E2B", "#E15759", "#76B7B2"];
-
-export default function AttendancePieChart({ title }) {
+export default function PanenPieChart({ title, filterMode = "tahun" }) {
   const [date, setDate] = useState(dayjs()); // Default hari ini
-  const [type, setType] = useState("semua"); // Default semua
   const [statistics, setStatistics] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const fetchData = async (selectedDate = date, selectedType = type) => {
+  const fetchData = async (selectedDate = date) => {
     setIsLoading(true);
     try {
-      const response = await request.attendance_stats({
-        entity: "attendance",
-        options: {
-          tanggal: selectedDate.format("YYYY-MM-DD"),
-          type: selectedType,
-        },
+      const response = await request.panen_stats({
+        entity: "panen",
+        filterMode,
+        options: filterMode === "tahun"
+          ? { tahun: selectedDate.year() }
+          : { tahun: selectedDate.year(), bulan: selectedDate.month() + 1 },
       });
 
       setStatistics([]);
 
       // Konversi response API ke format Pie Chart
-      const formattedData = Object.entries(response || {}).map(([key, value]) => ({
-        tag: key.replace(/_/g, " "), // Ganti underscore dengan spasi
-        value: Number(value), // Pastikan dalam bentuk angka
+      const formattedData = response.map((item) => ({
+        tag: item.tambak,
+        value: Number(item.total_berat),
       }));
 
       setStatistics(formattedData);
@@ -41,7 +38,7 @@ export default function AttendancePieChart({ title }) {
 
   useEffect(() => {
     fetchData();
-  }, [date, type]); // Panggil ulang saat `date` atau `type` berubah
+  }, [date]); // Panggil ulang saat `date` berubah
 
   // Hitung total dari semua kategori untuk persentase
   const totalValue = statistics.reduce((sum, entry) => sum + entry.value, 0);
@@ -58,14 +55,14 @@ export default function AttendancePieChart({ title }) {
     const y = cy + radius * Math.sin(-midAngle * (Math.PI / 180));
 
     return (
-        <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={14} fontWeight="bold">
+      <text x={x} y={y} fill="white" textAnchor="middle" dominantBaseline="central" fontSize={14} fontWeight="bold">
         {percentage}%
-        </text>
+      </text>
     );
-    };
+  };
 
   return (
-    <div className="whiteBox shadow" style={{ height: 458, padding: 20, borderRadius: 8 }}>
+    <div className="whiteBox shadow" style={{ height: 500, padding: 20, borderRadius: 8 }}>
       <h3 style={{ color: "#333", marginBottom: 20, fontSize: "large", textAlign: "center" }}>
         {title}
       </h3>
@@ -75,21 +72,10 @@ export default function AttendancePieChart({ title }) {
           value={date}
           onChange={(value) => {
             setDate(value);
-            fetchData(value, type);
+            fetchData(value);
           }}
+          picker={filterMode === "tahun" ? "year" : "month"}
         />
-        <Select
-          value={type}
-          onChange={(value) => {
-            setType(value);
-            fetchData(date, value);
-          }}
-          style={{ width: 150 }}
-        >
-          <Option value="semua">Semua</Option>
-          <Option value="datang">Absen Datang</Option>
-          <Option value="pulang">Absen Pulang</Option>
-        </Select>
       </div>
 
       {isLoading ? (

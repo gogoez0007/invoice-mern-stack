@@ -6,6 +6,7 @@ const Logout = lazy(() => import('@/pages/Logout.jsx'));
 const NotFound = lazy(() => import('@/pages/NotFound.jsx'));
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const DashboardPanen = lazy(() => import('@/pages/DashboardPanen'));
 const Customer = lazy(() => import('@/pages/Customer'));
 const Invoice = lazy(() => import('@/pages/Invoice'));
 const InvoiceCreate = lazy(() => import('@/pages/Invoice/InvoiceCreate'));
@@ -41,6 +42,12 @@ const Karyawan = lazy(()=> import('@/pages/Karyawan'));
 const Panen = lazy(() => import('@/pages/Panen'));
 const PanenRead = lazy(() => import('@/pages/Panen/PanenRead'));
 
+//Bongkar
+const Bongkar = lazy(() => import('@/pages/Bongkar'));
+const BongkarCreate = lazy(() => import('@/pages/Bongkar/BongkarCreate'));
+const BongkarRead = lazy(() => import('@/pages/Bongkar/BongkarRead'));
+const BongkarUpdate = lazy(() => import('@/pages/Bongkar/BongkarUpdate'));
+
 let routes = {
   expense: [],
   default: [
@@ -55,6 +62,10 @@ let routes = {
     {
       path: '/about',
       element: <About />,
+    },
+    {
+      path: '/dashboard_panen',
+      element: <DashboardPanen />,
     },
     {
       path: '/',
@@ -166,6 +177,22 @@ let routes = {
     {
       path: '/panen/read/:id',
       element: <PanenRead />,
+    },
+    {
+      path: '/bongkar',
+      element: <Bongkar />,
+    },
+    {
+      path: '/bongkar/create',
+      element: <BongkarCreate />,
+    },
+    {
+      path: '/bongkar/read/:id',
+      element: <BongkarRead />,
+    },
+    {
+      path: '/bongkar/update/:id',
+      element: <BongkarUpdate />,
     },
     {
       path: '*',

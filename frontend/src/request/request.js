@@ -332,6 +332,27 @@ const request = {
     }
   },
 
+  barchart: async ({ entity, options = {} }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in options) {
+        query += key + '=' + options[key] + '&';
+      }
+      query = query.slice(0, -1);
+      const response = await axios.get(entity + '/barchart' + query);
+
+      successHandler(response, {
+        notifyOnSuccess: false,
+        notifyOnFailed: false,
+      });
+
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
+
   attendance_summary: async ({ entity, options = {} }) => {
     try {
       includeToken();
@@ -341,6 +362,28 @@ const request = {
       }
       query = query.slice(0, -1);
       const response = await axios.get(entity + '/attendance_summary' + query);
+
+      successHandler(response, {
+        notifyOnSuccess: false,
+        notifyOnFailed: false,
+      });
+
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
+
+  panen_stats: async ({ entity, filterMode, options = {} }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in options) {
+        query += key + '=' + options[key] + '&';
+      }
+      let endpoint = filterMode == 'tahun' ? 'yearlystats' : 'monthlystats';
+      query = query.slice(0, -1);
+      const response = await axios.get(entity + '/'+endpoint + query);
 
       successHandler(response, {
         notifyOnSuccess: false,

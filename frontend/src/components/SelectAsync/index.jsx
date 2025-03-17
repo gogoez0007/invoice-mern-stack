@@ -61,13 +61,13 @@ const SelectAsync = ({
     //   const label = `+ ${translate(redirectLabel)}`;
     //   list.push({ value, label });
     // }
-    selectOptions.map((optionField) => {
-      const value = optionField[outputValue] ?? optionField;
-      const label = labels(optionField);
-      const currentColor = optionField[outputValue]?.color ?? optionField?.color;
-      const labelColor = color.find((x) => x.color === currentColor);
-      list.push({ value, label, color: labelColor?.color });
-    });
+    // selectOptions.map((optionField) => {
+    //   const value = optionField[outputValue] ?? optionField;
+    //   const label = labels(optionField);
+    //   const currentColor = optionField[outputValue]?.color ?? optionField?.color;
+    //   const labelColor = color.find((x) => x.color === currentColor);
+    //   list.push({ value, label, color: labelColor?.color });
+    // });
 
     return list;
   };
