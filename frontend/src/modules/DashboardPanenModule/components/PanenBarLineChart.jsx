@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Select, Spin, Checkbox, Switch } from "antd";
+import { DatePicker, Spin, Checkbox, Switch } from "antd";
 import {
   LineChart,
   Line,
@@ -15,7 +15,7 @@ import {
 import dayjs from "dayjs";
 import { request } from "@/request";
 
-const { Option } = Select;
+const { RangePicker } = DatePicker;
 
 export default function PanenChart({ title }) {
   const [year, setYear] = useState(dayjs().year());
@@ -110,6 +110,14 @@ console.log(formattedData);
     tambakColors[tambak] = `hsl(${(index * 137) % 360}, 70%, 50%)`;
   });
 
+  const handleYearChange = (date, dateString) => {
+    if (date) {
+      const selectedYear = date.year();
+      setYear(selectedYear);
+      fetchData(selectedYear);
+    }
+  };
+
   return (
     <div>
       <h3 style={{ color: "#333", marginBottom: 20, fontSize: "large", textAlign: "center" }}>
@@ -118,15 +126,11 @@ console.log(formattedData);
 
       {/* Filter Tahun & Switch Merge */}
       <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 20 }}>
-        <Select
-          value={year}
-          onChange={(value) => { setYear(value); fetchData(value); }}
-          style={{ width: 120 }}
-        >
-          {Array.from({ length: 10 }, (_, i) => (
-            <Option key={year - i} value={year - i}>{year - i}</Option>
-          ))}
-        </Select>
+        <DatePicker
+            picker="year"
+            value={dayjs(`${year}-01-01`, 'YYYY-MM-DD')}
+            onChange={handleYearChange}
+          />
         
         {/* Tombol Merge/Unmerge */}
         <Switch 

@@ -65,7 +65,7 @@ export default function AttendancePieChart({ title }) {
     };
 
   return (
-    <div className="whiteBox shadow" style={{ height: 458, padding: 20, borderRadius: 8 }}>
+    <div className="whiteBox shadow" style={{ height: 500, padding: 20, borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
       <h3 style={{ color: "#333", marginBottom: 20, fontSize: "large", textAlign: "center" }}>
         {title}
       </h3>

@@ -152,7 +152,7 @@ export default function DashboardModule() {
       <>
         <Row gutter={[32, 32]}>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 18 }}>
-            <div className="whiteBox shadow" style={{ height: 458 }}>
+            <div className="whiteBox shadow" style={{ height: 500, borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
                 <AttendanceLineChart
                   title="Tren Absensi Bulanan"
                   isLoading={attendanceLineLoading}
@@ -171,7 +171,7 @@ export default function DashboardModule() {
         <div className="space30"></div>
         <Row gutter={[32, 32]}>
           <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
-            <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
+            <div className="whiteBox shadow pad20" style={{ height: '100%', borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
               <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
                 {translate('Karyawan Tidak Hadir (Today)')}
               </h3>
@@ -181,7 +181,7 @@ export default function DashboardModule() {
           </Col>
 
           <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
-            <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
+            <div className="whiteBox shadow pad20" style={{ height: '100%', borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
               <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
                 {translate('Karyawan Telat (Today)')}
               </h3>
@@ -190,7 +190,7 @@ export default function DashboardModule() {
           </Col>
 
           <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
-            <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
+            <div className="whiteBox shadow pad20" style={{ height: '100%' , borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
               <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
                 {translate('Top Telat Absen Bulan ini')}
               </h3>

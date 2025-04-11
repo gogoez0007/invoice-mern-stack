@@ -9,7 +9,8 @@ import {
     DatePicker,
     Form,
     Button,
-    Popconfirm
+    Popconfirm,
+    message  // Import message dari antd
 } from 'antd';
 import dayjs from 'dayjs';
 import utc from 'dayjs/plugin/utc';
@@ -52,6 +53,35 @@ const BongkarFormUpdate = ({
     const [editCache, setEditCache] = useState({});
     const inputRef = useRef(null);
 
+    const [potPercentage, setPotPercentage] = useState('');
+    const [subtotal, setSubtotal] = useState('');
+    const [potPercentageDisabled, setPotPercentageDisabled] = useState(true);
+    const [subtotalDisabled, setSubtotalDisabled] = useState(true);
+
+    const updateFormValue = useCallback((fieldName, value) => {
+        if (value !== form.getFieldValue(fieldName)) {
+            form.setFieldsValue({ [fieldName]: value });
+        }
+    }, [form]);
+
+    useEffect(() => {
+        setPotPercentageDisabled(subtotal.length > 0);
+        setSubtotalDisabled(potPercentage.length > 0);
+    }, [potPercentage, subtotal]);
+
+
+    const handlePotPercentageChange = useCallback((e) => {
+        const val = e.target.value;
+        setPotPercentage(val);
+        updateFormValue('persen_potongan', val);
+    }, [updateFormValue]);
+
+    const handleSubtotalChange = useCallback((e) => {
+        const val = e.target.value;
+        setSubtotal(val);
+        updateFormValue('sub_total', val);
+    }, [updateFormValue]);
+
     useEffect(() => {
         form.setFieldsValue({
             nama_pabrik: currentErp?.nama_pabrik,
@@ -61,6 +91,8 @@ const BongkarFormUpdate = ({
             lokasi: currentErp?.lokasi,
             nama_perusahaan: currentErp?.nama_perusahaan,
             petambak: currentErp?.petambak,
+            persen_potongan: currentErp?.persen_potongan,
+            sub_total: currentErp.sub_total
         });
     }, [currentErp, form]);
 
@@ -86,7 +118,7 @@ const BongkarFormUpdate = ({
     const edit = (record) => {
         form.setFieldsValue({
             ...record,
-            tanggal_bongkar: record.tanggal_bongkar ? dayjs(record.tanggal_bongkar) : null,
+            tanggal: record.tanggal ? dayjs(record.tanggal) : null,
         });
         setEditCache({...record})
         setEditingKey(record.key);
@@ -122,12 +154,12 @@ const BongkarFormUpdate = ({
                     const existingIndex = prev.findIndex(item => item.key === key);
                     if (existingIndex > -1) {
                         const updated = [...prev];
-                        const { key, posisi, action, nama_pabrik, tanggal_bongkar, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = { ...item, ...row };
-                        updated[existingIndex] = { ...detailData, action: prev[existingIndex].action || 'edit', key: key, posisi: item.posisi, id: currentErp.id };
+                        const { key, posisi, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = { ...item, ...row };
+                        updated[existingIndex] = { ...detailData, tanggal : row.tanggal, action: prev[existingIndex].action || 'edit', key: key, posisi: item.posisi, id: item.id };
                         return updated;
                     } else {
-                        const { key, action, nama_pabrik, tanggal_bongkar, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = { ...item, ...row };
-                        return [...prev, { ...detailData, action: 'edit', key: key, posisi: item.posisi, id: currentErp.id }];
+                        const { key, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = { ...item, ...row };
+                        return [...prev, { ...detailData, tanggal : row.tanggal, action: 'edit', key: key, posisi: item.posisi, id: item.id }];
                     }
                 });
                 setDataSource(newData);
@@ -137,8 +169,8 @@ const BongkarFormUpdate = ({
                 newData.push(row);
 
                 setModifiedDetail(prev => {
-                    const { key, action, nama_pabrik, tanggal_bongkar, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = { ...item, ...row };
-                    return [...prev, { ...detailData, action: 'add', key: key, posisi: item.posisi, id: currentErp.id }];
+                    const { key, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = newData;
+                    return [...prev, { ...detailData, tanggal : newData.tanggal, posisi : posisi, key : key, action : action}];
                 });
                 setDataSource(newData);
                 setEditingKey('');
@@ -179,12 +211,13 @@ const BongkarFormUpdate = ({
         const newKey = Date.now();
         const newData = {
             key: newKey,
-            tanggal_bongkar: dayjs(),
-            berat_bongkar: 0,
+            tanggal: dayjs(),
+            berat_bongkar: '',
             size: '',
-            persen_molting: 0,
-            harga: 0,
-            sub_total: 0,
+            kualitas: '', // Tambahkan field kualitas
+            persen_molting: '',
+            harga: '',
+            sub_total: '',
             posisi: posisi,
             action: 'add',
             id: currentErp.id, // Tambahkan di sini
@@ -192,8 +225,8 @@ const BongkarFormUpdate = ({
         };
         const newDataSource = [...dataSource, newData];
         setDataSource(newDataSource);
-        const { key, action, nama_pabrik, tanggal_bongkar, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = newData;
-        setModifiedDetail(prev => [...prev, {...detailData, posisi : posisi, key : key, action : action}]);
+        const { key, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = newData;
+        setModifiedDetail(prev => [...prev, {...detailData, tanggal : newData.tanggal, posisi : posisi, key : key, action : action}]);
         edit(newData);
     };
 
@@ -203,7 +236,21 @@ const BongkarFormUpdate = ({
         setModifiedDetail(prev => prev.filter(item => item.key !== key));
     };
 
+    // Fungsi Validasi
+    const validateBeforeSubmit = () => {
+        if (editingKey) {
+            message.error(translate('Selesaikan atau batalkan edit baris sebelum menyimpan.'));
+            return false;
+        }
+        return true;
+    };
+
     const handleSubmit = () => {
+        // Validasi sebelum submit
+        if (!validateBeforeSubmit()) {
+            return;
+        }
+
         form.validateFields().then(values => {
             const formattedFormData = {
                 ...values,
@@ -213,15 +260,13 @@ const BongkarFormUpdate = ({
 
             const formattedModifiedDetail = modifiedDetail.map(item => ({
                 ...item,
-                tanggal_bongkar: values.tanggal_bongkar ? dayjs(values.tanggal_bongkar).tz(timezoneName).format('YYYY-MM-DD') : null,
+                tanggal: item.tanggal ? dayjs(item.tanggal).tz(timezoneName).format('YYYY-MM-DD') : null,
             }));
 
             const payload = {
                 ...formattedFormData,
                 details: formattedModifiedDetail
             };
-
-            // console.log('Data yang akan dikirim ke backend:', payload);
 
             if (onSubmit) {
                 onSubmit(payload);
@@ -233,8 +278,8 @@ const BongkarFormUpdate = ({
     const columns = [
         {
             title: translate('Tanggal'),
-            dataIndex: 'tanggal_bongkar',
-            key: 'tanggal_bongkar',
+            dataIndex: 'tanggal',
+            key: 'tanggal',
             editable: true,
             width: '150px',
             render: (date) => (date ? dayjs(date).format(dateFormat) : '-'),
@@ -249,6 +294,13 @@ const BongkarFormUpdate = ({
             title: translate('Size'),
             dataIndex: 'size',
             key: 'size',
+            editable: true,
+        },
+        // Kolom Kualitas Ditambahkan Di Sini
+        {
+            title: translate('Kualitas'),
+            dataIndex: 'kualitas',
+            key: 'kualitas',
             editable: true,
         },
         {
@@ -276,7 +328,7 @@ const BongkarFormUpdate = ({
         {
             title: 'Action',
             dataIndex: 'Action',
-            width: '120px',
+            width: '100px',
             render: (_, record) => {
                 const editable = isEditing(record);
                 const isNew = record.action === 'add';
@@ -326,20 +378,19 @@ const BongkarFormUpdate = ({
                     name={col.dataIndex}
                     rules={[{ required: true, message: `Please Input ${col.title}!` }]}
                     getValueProps={(value) => {
-                        if (col.dataIndex === 'tanggal_bongkar' && value) {
+                        if (col.dataIndex === 'tanggal' && value) {
                             return { value: dayjs(value) };
                         }
                         return { value };
                     }}
                 >
-                    {col.dataIndex === 'tanggal_bongkar' ? (
+                    {col.dataIndex === 'tanggal' ? (
                         <DatePicker style={{ width: '100%' }} format={dateFormat} />
                     ) : (
                         <Input
                             ref={inputRef}
                             type={col.dataIndex === 'berat_bongkar' || col.dataIndex === 'harga' || col.dataIndex === 'sub_total' ? 'number' : 'text'}
                             style={{ width: col.dataIndex === 'size' || col.dataIndex === 'persen_molting' || col.dataIndex === 'harga' ? '80px' : '100%' }}
-
                         />
                     )}
                 </Form.Item>
@@ -362,36 +413,54 @@ const BongkarFormUpdate = ({
     }, [dataSource, itemsByPosition]);
 
     return (
-        <div style={{ padding: '0 16px' }}>
+        <div style={{ padding: '0 10px' }}>
             <Form
                 form={form}
                 layout="vertical"
             >
                 <Row gutter={16} style={{ fontWeight: 'bold', background: '#f0f0f0', padding: '10px', borderBottom: '1px solid #ddd' }}>
                     <Col span={3}>{translate('Pabrik')}</Col>
-                    <Col span={5}>{translate('Tanggal Bongkar')}</Col>
-                    <Col span={4}>{translate('Lokasi')}</Col>
+                    <Col span={3}>{translate('Tanggal Bongkar')}</Col>
+                    <Col span={2}>{translate('Potongan (%)')}</Col>
+                    <Col span={3}>{translate('Subtotal (Nota)')}</Col>
+                    <Col span={3}>{translate('Lokasi')}</Col>
                     <Col span={4}>{translate('Perusahaan')}</Col>
                     <Col span={2}>{translate('Petambak')}</Col>
-                    <Col span={3}>{translate('No Polisi')}</Col>
-                    <Col span={3}>{translate('Staff')}</Col>
+                    <Col span={2}>{translate('No Polisi')}</Col>
+                    <Col span={2}>{translate('Staff')}</Col>
                 </Row>
                 <Row gutter={16} style={{ padding: '10px' }}>
                     <Col span={3}>
-                        <Form.Item name="nama_pabrik" label={translate('Pabrik')}>
+                        <Form.Item name="nama_pabrik" >
                             <Input />
                         </Form.Item>
                     </Col>
-                    <Col span={5}>
-                        <Form.Item name="tanggal_bongkar" label={translate('Tanggal Bongkar')}>
+                    <Col span={3}>
+                        <Form.Item name="tanggal_bongkar">
                             <DatePicker style={{ width: '100%' }} format={dateFormat} />
                         </Form.Item>
-                        </Col>
-                    <Col span={4}>{currentErp.lokasi}</Col>
+                    </Col>
+                    <Col span={2}>
+                        <Form.Item name="persen_potongan" >
+                            <Input
+                                disabled={potPercentageDisabled}
+                                onChange={handlePotPercentageChange}
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={3}>
+                        <Form.Item name="sub_total" >
+                            <Input
+                                disabled={subtotalDisabled}
+                                onChange={handleSubtotalChange}
+                            />
+                        </Form.Item>
+                    </Col>
+                    <Col span={3}>{currentErp.lokasi}</Col>
                     <Col span={4}>{currentErp.nama_perusahaan}</Col>
-                    <Col span={4}>{currentErp.petambak}</Col>
-                    <Col span={3}>{currentErp.nopol}</Col>
-                    <Col span={3}>{currentErp.staff}</Col>
+                    <Col span={2}>{currentErp.petambak}</Col>
+                    <Col span={2}>{currentErp.nopol}</Col>
+                    <Col span={2}>{currentErp.staff}</Col>
                 </Row>
 
                 {Object.keys(itemsByPosition).map(posisi => {
@@ -411,7 +480,7 @@ const BongkarFormUpdate = ({
                                             style={{
                                                 textAlign: 'center',
                                                 fontWeight: 'bold',
-                                                padding: '8px',
+                                                padding: '10px',
                                                 backgroundColor: positionColors[posisi] || "#f0f0f0",
                                                 borderRadius: '5px',
                                                 display: "block",
@@ -448,9 +517,7 @@ const BongkarFormUpdate = ({
                                         dataSource={dataSource.filter(item => item.posisi === posisi)}
                                         columns={mergedColumns}
                                         rowClassName="editable-row"
-                                        pagination={{
-                                            onChange: cancel,
-                                        }}
+                                        pagination={false}
                                     />
                                 </Col>
                             </Row>

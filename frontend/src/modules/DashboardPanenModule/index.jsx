@@ -136,7 +136,7 @@ export default function DashboardPanenModule() {
       <>
         <Row gutter={[32, 32]}>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 24 }}>
-            <div className="whiteBox shadow" style={{ height: 600 }}>
+            <div className="whiteBox shadow" style={{ height: 600, borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
                 <PanenBarLineChart
                   title="Tren Panen"
                 />
@@ -146,7 +146,7 @@ export default function DashboardPanenModule() {
         <div className="space30"></div>
         <Row gutter={[32, 32]}>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 12 }}>
-            <div className="whiteBox shadow" style={{ height: 450 }}>
+            <div className="whiteBox shadow" style={{ height: 550, borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
                 <PanenPieChart
                   title="Statistik Panen (Bulan)"
                   filterMode='Bulan'
@@ -156,42 +156,12 @@ export default function DashboardPanenModule() {
             </div>
           </Col>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 12 }}>
-            <div className="whiteBox shadow" style={{ height: 450 }}>
+            <div className="whiteBox shadow" style={{ height: 550, borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
                 <PanenPieChart
                   title="Statistik Panen (Tahun)"
                   isLoading={attendanceLoading}
                   statistics={attendanceStatistics}
                 />
-            </div>
-          </Col>
-        </Row>
-        <div className="space30"></div>
-        <Row gutter={[32, 32]}>
-          <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
-            <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
-              <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
-                {translate('Karyawan Tidak Hadir (Today)')}
-              </h3>
-
-              <RecentTable entity={'absen_today'} dataTableColumns={dataTableColumnsAbsen} />
-            </div>
-          </Col>
-
-          <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
-            <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
-              <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
-                {translate('Karyawan Telat (Today)')}
-              </h3>
-              <RecentTable entity={'telat_today'} dataTableColumns={dataTableColumns} />
-            </div>
-          </Col>
-
-          <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
-            <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
-              <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
-                {translate('Top Telat Absen Bulan ini')}
-              </h3>
-              <RecentTable entity={'top_telat_monthly'} dataTableColumns={dataTableColumnsTop} />
             </div>
           </Col>
         </Row>

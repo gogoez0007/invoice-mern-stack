@@ -352,6 +352,27 @@ const request = {
       return errorHandler(error);
     }
   },
+  
+  bongkarBarchart: async ({ entity, options = {} }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in options) {
+        query += key + '=' + options[key] + '&';
+      }
+      query = query.slice(0, -1);
+      const response = await axios.get(entity + '/barchart' + query);
+
+      successHandler(response, {
+        notifyOnSuccess: false,
+        notifyOnFailed: false,
+      });
+
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
 
   attendance_summary: async ({ entity, options = {} }) => {
     try {

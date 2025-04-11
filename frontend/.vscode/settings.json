@@ -14,5 +14,8 @@
       "strings": "on",
       "other": "on"
     }
+  },
+  "[javascriptreact]": {
+    "editor.defaultFormatter": "vscode.typescript-language-features"
   }
 }

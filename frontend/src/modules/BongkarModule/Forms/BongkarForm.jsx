@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback  } from 'react';
 import { Form, Input, InputNumber, Button, Select, DatePicker, Row, Col, Card, Descriptions, Divider } from 'antd';
 import { PlusOutlined, MinusCircleOutlined, CheckOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import useLanguage from '@/locale/useLanguage';
@@ -33,6 +33,35 @@ export default function BongkarForm({
     const [panenData, setPanenData] = useState(null);
     const [loadingPanen, setLoadingPanen] = useState(false);
     const [idTambak, setIdTambak] = useState(null);
+    
+    const [potPercentage, setPotPercentage] = useState('');
+    const [subtotal, setSubtotal] = useState('');
+    const [potPercentageDisabled, setPotPercentageDisabled] = useState(true);
+    const [subtotalDisabled, setSubtotalDisabled] = useState(true);
+
+    const updateFormValue = useCallback((fieldName, value) => {
+        if (value !== form.getFieldValue(fieldName)) {
+            form.setFieldsValue({ [fieldName]: value });
+        }
+    }, [form]);
+
+    useEffect(() => {
+        setPotPercentageDisabled(subtotal.length > 0);
+        setSubtotalDisabled(potPercentage.length > 0);
+    }, [potPercentage, subtotal]);
+
+
+    const handlePotPercentageChange = useCallback((e) => {
+        const val = e.target.value;
+        setPotPercentage(val);
+        updateFormValue('persen_potongan', val);
+    }, [updateFormValue]);
+
+    const handleSubtotalChange = useCallback((e) => {
+        const val = e.target.value;
+        setSubtotal(val);
+        updateFormValue('sub_total', val);
+    }, [updateFormValue]);
 
     // State baru untuk menyimpan detail bongkar secara lokal (untuk perhitungan)
     const [localDetailBongkar, setLocalDetailBongkar] = useState({});
@@ -178,6 +207,7 @@ export default function BongkarForm({
                 id_detail_panen: detailPanenId,
                 berat_bongkar: '',
                 size: '',
+                kualitas: '', // Tambahkan field untuk input kualitas
                 persen_molting: '',
                 harga: '',
                 subtotal: ''
@@ -289,7 +319,7 @@ export default function BongkarForm({
                     <div className="space30"></div>
                     <div>
                         <Row gutter={16}>
-                            <Col span={12}>
+                            <Col span={6}>
                                 <Form.Item
                                     name="pabrik"
                                     label={translate('Nama Pabrik')}
@@ -298,13 +328,35 @@ export default function BongkarForm({
                                     <Input />
                                 </Form.Item>
                             </Col>
-                            <Col span={12}>
+                            <Col span={6}>
                                 <Form.Item
                                     name="tanggal_bongkar"
                                     label={translate('Tanggal Bongkar')}
                                     rules={[{ required: true, message: 'Tanggal bongkar harus diisi' }]}
                                 >
                                     <DatePicker style={{ width: '100%' }} />
+                                </Form.Item>
+                            </Col>
+                            <Col span={5}>
+                                <Form.Item
+                                    name="persen_potongan"
+                                    label={translate('Pot (%)')}
+                                >
+                                    <Input
+                                        disabled={potPercentageDisabled}
+                                        onChange={handlePotPercentageChange}
+                                    />
+                                </Form.Item>
+                            </Col>
+                            <Col span={6}>
+                                <Form.Item
+                                    name="sub_total"
+                                    label={translate('Subtotal (Nota)')}
+                                >
+                                     <Input
+                                        disabled={subtotalDisabled}
+                                        onChange={handleSubtotalChange}
+                                    />
                                 </Form.Item>
                             </Col>
                         </Row>
@@ -349,7 +401,7 @@ export default function BongkarForm({
                             >
                                 <Row gutter={16}>
                                     {/* Data Panen di Kiri */}
-                                    <Col span={7}>
+                                    <Col span={6}>
                                         <p style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                                             <strong>Data Panen:</strong>
 
@@ -384,8 +436,9 @@ export default function BongkarForm({
                                         <p><strong>Data Bongkar:</strong></p>
                                         {/* Input Detail Bongkar (Awalnya Kosong) */}
                                         <Row gutter={16} style={{ fontWeight: 'bold', marginBottom: '5px' }}>
-                                            <Col span={5}>{translate('Berat')}</Col>
+                                            <Col span={4}>{translate('Berat (Kg)')}</Col>
                                             <Col span={4}>{translate('Size')}</Col>
+                                            <Col span={3}>{translate('Kualitas')}</Col>
                                             <Col span={3}>{translate('Molting (%)')}</Col>
                                             <Col span={4}>{translate('Harga')}</Col>
                                             <Col span={4}>{translate('Subtotal')}</Col>
@@ -394,11 +447,10 @@ export default function BongkarForm({
 
                                         {details.map((detail, index) => (
                                             <Row gutter={16} align="middle" key={index}>
-                                                <Col span={5}>
+                                                <Col span={4}>
                                                     <Form.Item>
                                                         <InputNumber
                                                             style={{ width: '100%' }}
-                                                            addonAfter="Kg"
                                                             value={detail.berat_bongkar}
                                                             onChange={(value) => handleLocalDetailChange(posisi, index, 'berat_bongkar', value)}
                                                         />
@@ -410,6 +462,16 @@ export default function BongkarForm({
                                                             style={{ width: '100%' }}
                                                             value={detail.size}
                                                             onChange={(value) => handleLocalDetailChange(posisi, index, 'size', value)}
+                                                        />
+                                                    </Form.Item>
+                                                </Col>
+                                                {/* Input Text Baru (Kualitas) */}
+                                                <Col span={3}>
+                                                    <Form.Item>
+                                                        <Input
+                                                            style={{ width: '100%' }}
+                                                            value={detail.kualitas}
+                                                            onChange={(e) => handleLocalDetailChange(posisi, index, 'kualitas', e.target.value)}
                                                         />
                                                     </Form.Item>
                                                 </Col>
@@ -439,18 +501,6 @@ export default function BongkarForm({
                                                             onChange={(value) => handleLocalDetailChange(posisi, index, 'subtotal', value)}
                                                         />
                                                     </Form.Item>
-                                                    {/* Menampilkan subtotal untuk setiap detail
-                                                    {new Intl.NumberFormat('id-ID', {
-                                                        style: 'decimal',
-                                                        minimumFractionDigits: 2,
-                                                        maximumFractionDigits: 2
-                                                    }).format(calculate.sub(
-                                                                calculate.multiply(detail.berat_bongkar || 0, detail.harga || 0),
-                                                                calculate.multiply(
-                                                                    calculate.multiply(detail.berat_bongkar || 0, detail.harga || 0),
-                                                                    detail.persen_molting ? detail.persen_molting / 100 : 0
-                                                                )
-                                                            ))} */}
                                                 </Col>
                                                 <Col span={1}>
                                                     <Button

@@ -167,6 +167,7 @@ export default function CreateItem({ config, CreateForm }) {
 
         // Cetak semua parameter yang akan disubmit
         console.log("Data yang akan disubmit ke backend:", JSON.stringify(dataToSend, null, 2)); // Cetak dengan format JSON yang mudah dibaca
+        // process.exit();
 
         dispatch(erp.create({ entity, jsonData: dataToSend }));
     };

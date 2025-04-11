@@ -1,5 +1,5 @@
 {
-  "name": "idurar-erp-crm",
+  "name": "backoffice-delmar",
   "version": "4.1.0",
   "engines": {
     "node": "20.9.0",
@@ -11,11 +11,12 @@
     "@ant-design/pro-layout": "^7.17.19",
     "@reduxjs/toolkit": "^2.2.1",
     "@vitejs/plugin-react": "^4.3.1",
-    "antd": "^5.14.1",
+    "antd": "^5.24.4",
     "axios": "^1.6.2",
     "cross-env": "7.0.3",
     "currency.js": "2.0.4",
     "dayjs": "^1.11.10",
+    "file-saver": "^2.0.5",
     "just-compare": "^2.3.0",
     "react": "^18.3.1",
     "react-dom": "^18.2.0",
@@ -25,6 +26,7 @@
     "recharts": "^2.15.1",
     "redux": "^5.0.1",
     "reselect": "^5.1.0",
+    "sheetjs-style": "^0.15.8",
     "shortid": "^2.2.16",
     "vite": "^5.4.8",
     "xlsx": "^0.18.5"

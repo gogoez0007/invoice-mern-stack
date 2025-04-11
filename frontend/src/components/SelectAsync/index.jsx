@@ -28,6 +28,7 @@ const SelectAsync = ({
     return request.list({ entity });
   };
   const { result, isLoading: fetchIsLoading, isSuccess } = useFetch(asyncList);
+
   useEffect(() => {
     isSuccess && setOptions(result);
   }, [isSuccess]);
@@ -35,39 +36,43 @@ const SelectAsync = ({
   const labels = (optionField) => {
     return displayLabels.map((x) => optionField[x]).join(' ');
   };
+
   useEffect(() => {
     if (value !== undefined) {
-      const val = value?.[outputValue] ?? value;
+      let val = value?.[outputValue] ?? value;
+
+      // Logic untuk mengganti value jika sama dengan select option name
+      if (typeof val === 'string') { // Pastikan value adalah string (kemungkinan nama)
+        const matchedOption = selectOptions.find(option => option.name === val);
+        if (matchedOption) {
+          val = matchedOption.id; // Ganti dengan ID jika nama sesuai
+        }
+      }
+
       setCurrentValue(val);
       onChange(val);
     }
-  }, [value]);
+  }, [value, selectOptions, outputValue, onChange]);  // Tambahkan dependency yang digunakan di dalam useEffect
 
   const handleSelectChange = (newValue) => {
     if (newValue === 'redirectURL') {
       navigate(urlToRedirect);
     } else {
       const val = newValue?.[outputValue] ?? newValue;
-      setCurrentValue(newValue);
+      setCurrentValue(val);
       onChange(val);
     }
   };
 
   const optionsList = () => {
     const list = [];
-
-    // if (selectOptions.length === 0 && withRedirect) {
-    //   const value = 'redirectURL';
-    //   const label = `+ ${translate(redirectLabel)}`;
-    //   list.push({ value, label });
-    // }
-    // selectOptions.map((optionField) => {
-    //   const value = optionField[outputValue] ?? optionField;
-    //   const label = labels(optionField);
-    //   const currentColor = optionField[outputValue]?.color ?? optionField?.color;
-    //   const labelColor = color.find((x) => x.color === currentColor);
-    //   list.push({ value, label, color: labelColor?.color });
-    // });
+    selectOptions.forEach((optionField) => { // Menggunakan forEach lebih disarankan
+      const val = optionField[outputValue] ?? optionField;
+      const label = labels(optionField);
+      const currentColor = optionField[outputValue]?.color ?? optionField?.color;
+      const labelColor = color.find((x) => x.color === currentColor);
+      list.push({ val, label, color: labelColor?.color });
+    });
 
     return list;
   };
@@ -82,7 +87,7 @@ const SelectAsync = ({
     >
       {optionsList()?.map((option) => {
         return (
-          <Select.Option key={`${uniqueId()}`} value={option.value}>
+          <Select.Option key={`${uniqueId()}`} value={option.val}>
             <Tag bordered={false} color={option.color}>
               {option.label}
             </Tag>

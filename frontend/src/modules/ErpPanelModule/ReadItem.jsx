@@ -53,13 +53,14 @@ const Item = ({ item, currentErp }) => {
           {item.size}
         </p>
       </Col>
+      {/* Tampilkan Kualitas */}
       <Col className="gutter-row" span={5}>
         <p
           style={{
             textAlign: 'right',
           }}
         >
-          {item.kualitas}
+          {item.kualitas} {/* Menampilkan data kualitas */}
         </p>
       </Col>
       <Col className="gutter-row" span={5}>
@@ -242,6 +243,7 @@ export default function ReadItem({ config, selectedItem }) {
             <strong>{translate('Size')}</strong>
           </p>
         </Col>
+        {/* Header Kualitas */}
         <Col className="gutter-row" span={5}>
           <p
             style={{

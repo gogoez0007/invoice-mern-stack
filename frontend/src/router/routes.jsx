@@ -7,6 +7,7 @@ const NotFound = lazy(() => import('@/pages/NotFound.jsx'));
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const DashboardPanen = lazy(() => import('@/pages/DashboardPanen'));
+const DashboardBongkar = lazy(() => import('@/pages/DashboardBongkar'));
 const Customer = lazy(() => import('@/pages/Customer'));
 const Invoice = lazy(() => import('@/pages/Invoice'));
 const InvoiceCreate = lazy(() => import('@/pages/Invoice/InvoiceCreate'));
@@ -48,6 +49,8 @@ const BongkarCreate = lazy(() => import('@/pages/Bongkar/BongkarCreate'));
 const BongkarRead = lazy(() => import('@/pages/Bongkar/BongkarRead'));
 const BongkarUpdate = lazy(() => import('@/pages/Bongkar/BongkarUpdate'));
 
+const ReviewTrade = lazy(()=> import('@/pages/Review'));
+
 let routes = {
   expense: [],
   default: [
@@ -66,6 +69,10 @@ let routes = {
     {
       path: '/dashboard_panen',
       element: <DashboardPanen />,
+    },
+    {
+      path: '/dashboard_bongkar',
+      element: <DashboardBongkar />,
     },
     {
       path: '/',
@@ -193,6 +200,10 @@ let routes = {
     {
       path: '/bongkar/update/:id',
       element: <BongkarUpdate />,
+    },
+    {
+      path: '/review',
+      element: <ReviewTrade />,
     },
     {
       path: '*',

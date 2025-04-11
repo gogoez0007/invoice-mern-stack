@@ -86,8 +86,8 @@ const ReadItemBongkar = ({ config, selectedItem }) => {
   const columns = [
     {
       title: translate('Tanggal'),
-      dataIndex: 'tanggal_bongkar',
-      key: 'tanggal_bongkar',
+      dataIndex: 'tanggal',
+      key: 'tanggal',
       render: (date) => (date ? dayjs(date).format(dateFormat) : '-'),
     },
     {
@@ -103,6 +103,12 @@ const ReadItemBongkar = ({ config, selectedItem }) => {
       title: translate('Size'),
       dataIndex: 'size',
       key: 'size',
+    },
+    // Kolom Kualitas Ditambahkan Di Sini
+    {
+      title: translate('Kualitas'),
+      dataIndex: 'kualitas',
+      key: 'kualitas',
     },
     {
       title: translate('Molting (%)'),
@@ -184,22 +190,26 @@ const ReadItemBongkar = ({ config, selectedItem }) => {
         style={{ padding: '20px 0' }}
       >
         <Row gutter={16} style={{ fontWeight: 'bold', background: '#f0f0f0', padding: '10px', borderBottom: '1px solid #ddd' }}>
-          <Col span={4}>{translate('Lokasi')}</Col>
+          <Col span={3}>{translate('Lokasi')}</Col>
           <Col span={4}>{translate('Perusahaan')}</Col>
-          <Col span={4}>{translate('Petambak')}</Col>
-          <Col span={3}>{translate('Pabrik')}</Col>
+          <Col span={2}>{translate('Petambak')}</Col>
+          <Col span={2}>{translate('Pabrik')}</Col>
           <Col span={3}>{translate('Tanggal Bongkar')}</Col>
-          <Col span={3}>{translate('No Polisi')}</Col>
-          <Col span={3}>{translate('Staff')}</Col>
+          <Col span={2}>{translate('No Polisi')}</Col>
+          <Col span={2}>{translate('Staff')}</Col>
+          <Col span={2}>{translate('Potongan (%)')}</Col>
+          <Col span={2}>{translate('Subtotal (Nota)')}</Col>
         </Row>
         <Row gutter={16} style={{ padding: '10px' }}>
-          <Col span={4}>{currentErp.lokasi}</Col>
+          <Col span={3}>{currentErp.lokasi}</Col>
           <Col span={4}>{currentErp.nama_perusahaan}</Col>
-          <Col span={4}>{currentErp.petambak}</Col>
-          <Col span={3}>{currentErp.nama_pabrik}</Col>
+          <Col span={2}>{currentErp.petambak}</Col>
+          <Col span={2}>{currentErp.nama_pabrik}</Col>
           <Col span={3}>{currentErp.tanggal_bongkar}</Col>
-          <Col span={3}>{currentErp.nopol}</Col>
-          <Col span={3}>{currentErp.staff}</Col>
+          <Col span={2}>{currentErp.nopol}</Col>
+          <Col span={2}>{currentErp.staff}</Col>
+          <Col span={2}>{formatNumber(currentErp.persen_potongan)}</Col>
+          <Col span={2}>{currentErp.sub_total > 0 ?formatNumber(currentErp.sub_total) : '-'} </Col>
         </Row>
 
       </PageHeader>

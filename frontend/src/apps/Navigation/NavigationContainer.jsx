@@ -21,34 +21,26 @@ const { Sider } = Layout;
 
 export default function Navigation() {
   const { isMobile } = useResponsive();
-  return isMobile ? <MobileSidebar /> : <Sidebar collapsible={true} />;
+  return isMobile ? <MobileSidebar /> : <Sidebar />;
 }
 
-function Sidebar({ collapsible, isMobile = false }) {
+function Sidebar() {
   const location = useLocation();
   const { state: stateApp, appContextAction } = useAppContext();
   const { isNavMenuClose } = stateApp;
   const { navMenu } = appContextAction;
 
   const [collapsed, setCollapsed] = useState(isNavMenuClose);
-  const [currentPath, setCurrentPath] = useState(location.pathname.slice(1));
-  const [windowWidth, setWindowWidth] = useState(window.innerWidth);
+  const [currentPath, setCurrentPath] = useState(
+    location.pathname === '/' ? 'dashboard' : location.pathname.slice(1)
+  );
   const translate = useLanguage();
   const navigate = useNavigate();
 
   useEffect(() => {
-    const handleResize = () => setWindowWidth(window.innerWidth);
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
-  useEffect(() => {
-    if (location) {
-      if (currentPath !== location.pathname) {
-        setCurrentPath(location.pathname === '/' ? 'dashboard' : location.pathname.slice(1));
-      }
-    }
-  }, [location, currentPath]);
+    // Efek untuk mendeteksi perubahan rute
+    setCurrentPath(location.pathname === '/' ? 'dashboard' : location.pathname.slice(1));
+  }, [location]);
 
   const onCollapse = (value) => {
     setCollapsed(value);
@@ -63,11 +55,15 @@ function Sidebar({ collapsible, isMobile = false }) {
       children: [
         {
           key: 'dashboard_panen',
-          label: <Link to="/dashboard_panen"> Panen</Link>,
+          label: <Link to="/dashboard_panen">Panen</Link>,
         },
         {
           key: 'dashboard_absen',
-          label: <Link to="/"> Absen</Link>,
+          label: <Link to="/">Absen</Link>,
+        },
+        {
+          key: 'dashboard_bongkar',
+          label: <Link to="/dashboard_bongkar">Bongkar</Link>,
         },
       ],
     },
@@ -79,11 +75,15 @@ function Sidebar({ collapsible, isMobile = false }) {
     {
       key: 'bongkar',
       icon: <BoxPlotTwoTone />,
-      label: translate('Data Bongkar'),
+      label: translate('Data Penjualan'),
       children: [
         {
           key: 'bongkar/list',
-          label: <Link to="/bongkar">Daftar Bongkar</Link>,
+          label: <Link to="/bongkar">List Penjualan</Link>,
+        },
+        {
+          key: 'review',
+          label: <Link to="/review">Review</Link>,
         },
       ],
     },
@@ -141,28 +141,28 @@ function Sidebar({ collapsible, isMobile = false }) {
     },
   ];
 
+  const defaultOpenMenu = items
+  .filter(item => item.children) // Ambil hanya menu yang memiliki anak
+  .map(item => item.key);
+
   return (
     <Sider
-      collapsible={collapsible}
+      collapsible
       collapsed={collapsed}
       onCollapse={onCollapse}
-      collapsedWidth={isMobile ? 0 : 80}
-      width={windowWidth > 1500 ? 200 : 80}
+      width={250}
       style={{
-        overflow: 'hidden',
-        height: '92vh',
+        overflow: 'auto',
+        height: '100vh',
         position: 'fixed',
-        top: 10,
-        left: 10,
-        transition: 'all 0.3s',
+        top: 6,
+        left: 6,
         zIndex: 100,
+        backgroundColor: '#fff',
         borderRadius: '16px',
         boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
-        backgroundColor: '#fff',
       }}
       theme="light"
-      breakpoint="lg"
-      onBreakpoint={(broken) => setCollapsed(broken)}
     >
       <div
         style={{
@@ -192,7 +192,7 @@ function Sidebar({ collapsible, isMobile = false }) {
           mode="inline"
           theme="light"
           selectedKeys={[currentPath]}
-          defaultOpenKeys={!collapsed ? ['tambak', 'kualitas', 'driver','karyawan'] : []}
+          defaultOpenKeys={defaultOpenMenu}
           style={{
             width: '100%',
             borderInlineEnd: 'none',
@@ -201,18 +201,6 @@ function Sidebar({ collapsible, isMobile = false }) {
           }}
         />
       </div>
-      <style>{`
-        @media (max-width: 768px) {
-          .ant-layout-sider {
-            width: 100% !important;
-            position: absolute !important;
-            height: 100vh !important;
-            top: 0 !important;
-            left: 0 !important;
-            z-index: 1000 !important;
-          }
-        }
-      `}</style>
     </Sider>
   );
 }
@@ -231,19 +219,21 @@ function MobileSidebar() {
         style={{
           marginLeft: 25,
           top: 20,
-          zIndex: 103,
+          zIndex: 1000, // Higher z-index
+          position: 'fixed',
         }}
       >
         <MenuOutlined style={{ fontSize: 18 }} />
       </Button>
       <Drawer
-        width={window.innerWidth * 0.8}
+        title="Menu"
         placement="left"
-        closable={false}
+        closable={true}
         onClose={onClose}
         open={visible}
+        width="65%"
       >
-        <Sidebar collapsible={false} isMobile={true} />
+        <Sidebar />
       </Drawer>
     </>
   );

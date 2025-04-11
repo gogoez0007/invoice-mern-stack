@@ -49,6 +49,9 @@ const UpdateItem = ({ config, selectedItem }) => {
             setCurrentErp(currentResult);
 
             if (detail) {
+                // Posisi wajib
+                const posisiWajib = ["Depan", "Tengah", "Belakang"];
+
                 // Group items by posisi
                 const groupedItems = detail.reduce((acc, item) => {
                     const position = item.posisi || 'Unknown Position';
@@ -58,6 +61,14 @@ const UpdateItem = ({ config, selectedItem }) => {
                     acc[position].push(item);
                     return acc;
                 }, {});
+
+                // Pastikan semua posisi wajib ada, jika tidak, buat array kosong
+                posisiWajib.forEach(posisi => {
+                    if (!groupedItems[posisi]) {
+                        groupedItems[posisi] = [];
+                    }
+                });
+
                 setItemsByPosition(groupedItems);
             }
         }
