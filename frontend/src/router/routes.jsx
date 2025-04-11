@@ -6,6 +6,8 @@ const Logout = lazy(() => import('@/pages/Logout.jsx'));
 const NotFound = lazy(() => import('@/pages/NotFound.jsx'));
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const DashboardPanen = lazy(() => import('@/pages/DashboardPanen'));
+const DashboardBongkar = lazy(() => import('@/pages/DashboardBongkar'));
 const Customer = lazy(() => import('@/pages/Customer'));
 const Invoice = lazy(() => import('@/pages/Invoice'));
 const InvoiceCreate = lazy(() => import('@/pages/Invoice/InvoiceCreate'));
@@ -29,6 +31,26 @@ const Profile = lazy(() => import('@/pages/Profile'));
 
 const About = lazy(() => import('@/pages/About'));
 
+//Tambak
+const Tambak = lazy(()=> import('@/pages/Tambak'));
+//Supir
+const Supir = lazy(()=> import('@/pages/Supir'));
+const Kualitas = lazy(()=> import('@/pages/Kualitas'));
+const Lokasi = lazy(()=> import('@/pages/Lokasi'));
+const Shift = lazy(()=> import('@/pages/Shift'));
+const Karyawan = lazy(()=> import('@/pages/Karyawan'));
+//Panen
+const Panen = lazy(() => import('@/pages/Panen'));
+const PanenRead = lazy(() => import('@/pages/Panen/PanenRead'));
+
+//Bongkar
+const Bongkar = lazy(() => import('@/pages/Bongkar'));
+const BongkarCreate = lazy(() => import('@/pages/Bongkar/BongkarCreate'));
+const BongkarRead = lazy(() => import('@/pages/Bongkar/BongkarRead'));
+const BongkarUpdate = lazy(() => import('@/pages/Bongkar/BongkarUpdate'));
+
+const ReviewTrade = lazy(()=> import('@/pages/Review'));
+
 let routes = {
   expense: [],
   default: [
@@ -43,6 +65,14 @@ let routes = {
     {
       path: '/about',
       element: <About />,
+    },
+    {
+      path: '/dashboard_panen',
+      element: <DashboardPanen />,
+    },
+    {
+      path: '/dashboard_bongkar',
+      element: <DashboardBongkar />,
     },
     {
       path: '/',
@@ -122,6 +152,58 @@ let routes = {
     {
       path: '/profile',
       element: <Profile />,
+    },
+    {
+      path: '/tambak',
+      element: <Tambak />,
+    },
+    {
+      path: '/driver',
+      element: <Supir />,
+    },
+    {
+      path: '/kualitas',
+      element: <Kualitas />,
+    },
+    {
+      path: '/lokasi',
+      element: <Lokasi />,
+    },
+    {
+      path: '/shift',
+      element: <Shift />,
+    },
+    {
+      path: '/karyawan',
+      element: <Karyawan />,
+    },
+    {
+      path: '/panen',
+      element: <Panen />,
+    },
+    {
+      path: '/panen/read/:id',
+      element: <PanenRead />,
+    },
+    {
+      path: '/bongkar',
+      element: <Bongkar />,
+    },
+    {
+      path: '/bongkar/create',
+      element: <BongkarCreate />,
+    },
+    {
+      path: '/bongkar/read/:id',
+      element: <BongkarRead />,
+    },
+    {
+      path: '/bongkar/update/:id',
+      element: <BongkarUpdate />,
+    },
+    {
+      path: '/review',
+      element: <ReviewTrade />,
     },
     {
       path: '*',

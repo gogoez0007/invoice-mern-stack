@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
 import isBrowser from '@/utils/isBrowser';
+
 const subscribers = new Set();
-let info;
+let info = {}; // Initialize info here to avoid undefined issues
 let responsiveConfig = {
   xs: 0,
   sm: 576,
@@ -10,52 +11,64 @@ let responsiveConfig = {
   lg: 992,
   xl: 1200,
 };
+
 function handleResize() {
-  const oldInfo = info;
+  if (!isBrowser) return; // Add check for browser environment
+
+  const oldInfo = { ...info }; // Create a copy for comparison
   calculate();
-  if (oldInfo === info) return;
+
+  // Deep comparison of objects
+  if (JSON.stringify(oldInfo) === JSON.stringify(info)) return;
+
   for (const subscriber of subscribers) {
     subscriber();
   }
 }
+
 let listening = false;
+
 function calculate() {
+  if (!isBrowser) return; // Add check for browser environment
+
   const width = window.innerWidth;
   const newInfo = {};
-  let shouldUpdate = false;
+
   for (const key of Object.keys(responsiveConfig)) {
     newInfo[key] = width >= responsiveConfig[key];
-    if (newInfo[key] !== info[key]) {
-      shouldUpdate = true;
-    }
   }
-  if (shouldUpdate) {
-    info = newInfo;
-  }
+
+  info = newInfo; // Update info directly
 }
+
 export function configResponsive(config) {
   responsiveConfig = config;
   if (info) calculate();
 }
+
 export default function useResponsive() {
-  if (isBrowser && !listening) {
-    info = {};
-    calculate();
-    window.addEventListener('resize', handleResize);
-    listening = true;
-  }
-  const [state, setState] = useState(info);
+  const [state, setState] = useState(() => { // Use a function to initialize state
+    if (isBrowser) {
+      calculate(); // Initial calculation
+      return { ...info }; // Return a copy of info
+    }
+    return {}; // Return an empty object if not in browser
+  });
+
   useEffect(() => {
     if (!isBrowser) return;
-    // In React 18's StrictMode, useEffect perform twice, resize listener is remove, so handleResize is never perform.
-    // https://github.com/alibaba/hooks/issues/1910
+
     if (!listening) {
       window.addEventListener('resize', handleResize);
+      listening = true;
     }
+
     const subscriber = () => {
-      setState(info);
+      setState({ ...info }); // Update state with a copy of info
     };
+
     subscribers.add(subscriber);
+
     return () => {
       subscribers.delete(subscriber);
       if (subscribers.size === 0) {
@@ -64,5 +77,6 @@ export default function useResponsive() {
       }
     };
   }, []);
+
   return { screenSize: state, isMobile: !state.md };
 }

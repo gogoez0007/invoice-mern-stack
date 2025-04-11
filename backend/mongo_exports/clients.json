@@ -1,0 +1,15 @@
+[
+  {
+    "_id": "67a565bf21ddd271fbaf535d",
+    "removed": false,
+    "enabled": true,
+    "name": "tes",
+    "phone": "08977777",
+    "country": "ID",
+    "address": "tambangan",
+    "email": "toto@gmail.com",
+    "created": "2025-02-07T01:45:35.882Z",
+    "updated": "2025-02-07T01:45:35.882Z",
+    "__v": 0
+  }
+]

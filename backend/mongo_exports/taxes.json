@@ -1,0 +1,12 @@
+[
+  {
+    "_id": "67a5642953e5f7b04f6d186c",
+    "removed": false,
+    "enabled": true,
+    "taxName": "Tax 0%",
+    "taxValue": 0,
+    "isDefault": true,
+    "created": "2025-02-07T01:38:49.330Z",
+    "__v": 0
+  }
+]

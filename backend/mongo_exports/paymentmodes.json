@@ -1,0 +1,12 @@
+[
+  {
+    "_id": "67a5642953e5f7b04f6d186e",
+    "removed": false,
+    "enabled": true,
+    "name": "Default Payment",
+    "description": "Default Payment Mode (Cash , Wire Transfert)",
+    "isDefault": true,
+    "created": "2025-02-07T01:38:49.413Z",
+    "__v": 0
+  }
+]

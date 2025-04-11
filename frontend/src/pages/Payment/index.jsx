@@ -12,7 +12,7 @@ export default function Payment() {
     entity: 'client',
     displayLabels: ['number'],
     searchFields: 'number',
-    outputValue: '_id',
+    outputValue: 'id',
   };
 
   const deleteModalLabels = ['number'];

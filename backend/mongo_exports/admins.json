@@ -1,0 +1,13 @@
+[
+  {
+    "_id": "67a5642853e5f7b04f6d182f",
+    "removed": false,
+    "enabled": true,
+    "email": "admin@demo.com",
+    "name": "IDURAR",
+    "surname": "Admin",
+    "role": "owner",
+    "created": "2025-02-07T01:38:48.096Z",
+    "__v": 0
+  }
+]

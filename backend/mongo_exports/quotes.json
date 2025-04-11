@@ -1,0 +1,74 @@
+[
+  {
+    "_id": "67a75b1d0828e34ea67f5962",
+    "removed": false,
+    "createdBy": "67a5642853e5f7b04f6d182f",
+    "converted": false,
+    "number": 1,
+    "year": 2025,
+    "date": "2025-02-08T13:24:03.642Z",
+    "expiredDate": "2025-03-10T13:24:03.642Z",
+    "client": "67a565bf21ddd271fbaf535d",
+    "items": [
+      {
+        "itemName": "Kulkas",
+        "description": "Kulkas Aja",
+        "quantity": 10,
+        "price": 100,
+        "total": 1000,
+        "_id": "67a75ba00828e34ea67f5a09"
+      }
+    ],
+    "taxRate": 0,
+    "subTotal": 1000,
+    "taxTotal": 0,
+    "total": 1000,
+    "credit": 0,
+    "currency": "NA",
+    "discount": 0,
+    "status": "accepted",
+    "approved": false,
+    "isExpired": false,
+    "files": [],
+    "updated": "2025-02-08T13:24:45.870Z",
+    "created": "2025-02-08T13:24:45.870Z",
+    "__v": 0,
+    "pdf": "quote-67a75b1d0828e34ea67f5962.pdf"
+  },
+  {
+    "_id": "67a75d2f0828e34ea67f5b81",
+    "removed": false,
+    "createdBy": "67a5642853e5f7b04f6d182f",
+    "converted": false,
+    "number": 2,
+    "year": 2025,
+    "date": "2025-02-08T13:33:06.121Z",
+    "expiredDate": "2025-03-10T13:33:06.121Z",
+    "client": "67a565bf21ddd271fbaf535d",
+    "items": [
+      {
+        "itemName": "batok",
+        "description": "dari padi",
+        "quantity": 10,
+        "price": 100,
+        "total": 1000,
+        "_id": "67a75d470828e34ea67f5c1c"
+      }
+    ],
+    "taxRate": 0,
+    "subTotal": 1000,
+    "taxTotal": 0,
+    "total": 1000,
+    "credit": 0,
+    "currency": "NA",
+    "discount": 0,
+    "status": "sent",
+    "approved": false,
+    "isExpired": false,
+    "files": [],
+    "updated": "2025-02-08T13:33:35.756Z",
+    "created": "2025-02-08T13:33:35.756Z",
+    "__v": 0,
+    "pdf": "quote-67a75d2f0828e34ea67f5b81.pdf"
+  }
+]

@@ -41,7 +41,7 @@ export default function ReadItem({ config }) {
     return (
       <Row key={item.propsKey} gutter={12}>
         <Col className="gutter-row" span={8}>
-          <p>{item.label}</p>
+          <p>{translate(item.label)}</p>
         </Col>
         <Col className="gutter-row" span={2}>
           <p> : </p>

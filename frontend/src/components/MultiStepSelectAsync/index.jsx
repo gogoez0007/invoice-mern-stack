@@ -16,10 +16,10 @@ const asyncFilter = (entity, options) => {
 const MultiStepSelectAsync = ({
   firstSelectProps = {},
   secondSelectProps = {},
-  firstSelectIdKey = '_id',
+  firstSelectIdKey = 'id',
   firstSelectValueKey = 'value',
   firstSelectLabelKey = 'label',
-  secondSelectIdKey = '_id',
+  secondSelectIdKey = 'id',
   secondSelectValueKey = 'value',
   secondSelectLabelKey = 'label',
   entityName,
@@ -39,7 +39,7 @@ const MultiStepSelectAsync = ({
       try {
         if (firstSelectedOption) {
           const data = await asyncFilter(entityName, {
-            filter: '_id',
+            filter: 'id',
             equal: firstSelectedOption[firstSelectIdKey],
           });
 

@@ -9,21 +9,19 @@ export default function LoginForm() {
   return (
     <div>
       <Form.Item
-        label={translate('email')}
-        name="email"
+        label={translate('username')}
+        name="username"
         rules={[
           {
             required: true,
           },
           {
-            type: 'email',
+            type: 'username',
           },
         ]}
       >
         <Input
           prefix={<UserOutlined className="site-form-item-icon" />}
-          placeholder={'admin@demo.com'}
-          type="email"
           size="large"
         />
       </Form.Item>
@@ -38,18 +36,8 @@ export default function LoginForm() {
       >
         <Input.Password
           prefix={<LockOutlined className="site-form-item-icon" />}
-          placeholder={'admin123'}
           size="large"
         />
-      </Form.Item>
-
-      <Form.Item>
-        <Form.Item name="remember" valuePropName="checked" noStyle>
-          <Checkbox>{translate('Remember me')}</Checkbox>
-        </Form.Item>
-        <a className="login-form-forgot" href="/forgetpassword" style={{ marginLeft: '0px' }}>
-          {translate('Forgot password')}
-        </a>
       </Form.Item>
     </div>
   );

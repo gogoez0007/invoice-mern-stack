@@ -14,6 +14,9 @@ import RecentTable from './components/RecentTable';
 import SummaryCard from './components/SummaryCard';
 import PreviewCard from './components/PreviewCard';
 import CustomerPreviewCard from './components/CustomerPreviewCard';
+import AttendancePieChart from './components/AttendancePieChart';
+import AttendanceLineChart from './components/AttendanceLineChart';
+import SummaryAttendance  from './components/AttendanceTable';
 
 import { selectMoneyFormat } from '@/redux/settings/selectors';
 import { useSelector } from 'react-redux';
@@ -44,151 +47,164 @@ export default function DashboardModule() {
     onFetch: fetchPayemntsStats,
   } = useOnFetch();
 
-  const { result: clientResult, isLoading: clientLoading } = useFetch(() =>
-    request.summary({ entity: 'client' })
-  );
+  const {
+    result: attendanceResult,
+    isLoading: attendanceLoading,
+    onFetch: fetchAttendanceStats,
+  } = useOnFetch();
+
+  const {
+    result: attendanceLineResult,
+    isLoading: attendanceLineLoading,
+    onFetch: fetchAttendanceLineStats,
+  } = useOnFetch();
+
+  const {
+    result: attendanceSummaryResult,
+    isLoading: attendanceSummaryLoading,
+    onFetch: fetchAttendanceSummary,
+  } = useOnFetch();
+
+  // const { result: clientResult, isLoading: clientLoading } = useFetch(() =>
+  //   request.summary({ entity: 'client' })
+  // );
+
+  // useEffect(() => {
+  //   fetchAttendanceStats(request.attendance_stats({ entity: "attendance" }));
+  //   fetchAttendanceLineStats(request.line_stats({ entity: "attendance" }));
+  //   fetchAttendanceSummary(request.attendance_summary({ entity: "attendance" }));
+  // }, []);
+
 
   useEffect(() => {
     const currency = money_format_settings.default_currency_code || null;
 
     if (currency) {
-      fetchInvoicesStats(getStatsData({ entity: 'invoice', currency }));
-      fetchQuotesStats(getStatsData({ entity: 'quote', currency }));
-      fetchPayemntsStats(getStatsData({ entity: 'payment', currency }));
+      // fetchInvoicesStats(getStatsData({ entity: 'invoice', currency }));
+      // fetchQuotesStats(getStatsData({ entity: 'quote', currency }));
+      // fetchPayemntsStats(getStatsData({ entity: 'payment', currency }));
     }
   }, [money_format_settings.default_currency_code]);
 
   const dataTableColumns = [
     {
-      title: translate('number'),
-      dataIndex: 'number',
+      title: translate('Nama Karyawan'),
+      dataIndex: 'name',
     },
     {
-      title: translate('Client'),
-      dataIndex: ['client', 'name'],
-    },
-
-    {
-      title: translate('Total'),
-      dataIndex: 'total',
-      onCell: () => {
-        return {
-          style: {
-            textAlign: 'right',
-            whiteSpace: 'nowrap',
-            direction: 'ltr',
-          },
-        };
-      },
-      render: (total, record) => moneyFormatter({ amount: total, currency_code: record.currency }),
-    },
-    {
-      title: translate('Status'),
-      dataIndex: 'status',
+      title: translate('Jam'),
+      dataIndex: 'check_in_time',
     },
   ];
 
-  const entityData = [
+  const dataTableColumnsAbsen = [
     {
-      result: invoiceResult,
-      isLoading: invoiceLoading,
-      entity: 'invoice',
-      title: translate('Invoices'),
+      title: translate('Nama Karyawan'),
+      dataIndex: 'name',
     },
     {
-      result: quoteResult,
-      isLoading: quoteLoading,
-      entity: 'quote',
-      title: translate('quote'),
+      title: translate('Posisi'),
+      dataIndex: 'position',
     },
   ];
 
-  const statisticCards = entityData.map((data, index) => {
-    const { result, entity, isLoading, title } = data;
+  const dataTableColumnsTop = [
+    {
+      title: translate('Nama Karyawan'),  
+      dataIndex: 'name',
+    },
+    {
+      title: translate('Posisi'),
+      dataIndex: 'position',
+    },
+    {
+      title: translate('Jumlah Telat'),
+      dataIndex: 'late_count',
+    },
+  ];
 
-    return (
-      <PreviewCard
-        key={index}
-        title={title}
-        isLoading={isLoading}
-        entity={entity}
-        statistics={
-          !isLoading &&
-          result?.performance?.map((item) => ({
-            tag: item?.status,
-            color: 'blue',
-            value: item?.percentage,
-          }))
-        }
-      />
-    );
-  });
+  const attendanceStatistics =
+    !attendanceLoading &&
+    attendanceResult?.performance?.map((item) => ({
+      name: item?.status,
+      value: item?.count,
+    }));
 
+  const attendanceLineStatistics =
+    !attendanceLineLoading &&
+    attendanceLineResult?.trend?.map((item) => ({
+      date: item?.date, // Format tanggal yang diambil
+      present: item?.present || 0,
+      absent: item?.absent || 0,
+      late: item?.late || 0,
+    }));
+
+    const attendanceSummary =
+      !attendanceSummaryLoading &&
+      attendanceSummaryResult?.summary?.map((item) => ({
+        name: item?.name,
+        department: item?.department,
+        position: item?.position,
+        attendance: item?.attendance || [],
+      }));
   if (money_format_settings) {
     return (
       <>
         <Row gutter={[32, 32]}>
-          <SummaryCard
-            title={translate('Invoices')}
-            prefix={translate('This month')}
-            isLoading={invoiceLoading}
-            data={invoiceResult?.total}
-          />
-          <SummaryCard
-            title={translate('Quote')}
-            prefix={translate('This month')}
-            isLoading={quoteLoading}
-            data={quoteResult?.total}
-          />
-          <SummaryCard
-            title={translate('paid')}
-            prefix={translate('This month')}
-            isLoading={paymentLoading}
-            data={paymentResult?.total}
-          />
-          <SummaryCard
-            title={translate('Unpaid')}
-            prefix={translate('Not Paid')}
-            isLoading={invoiceLoading}
-            data={invoiceResult?.total_undue}
-          />
-        </Row>
-        <div className="space30"></div>
-        <Row gutter={[32, 32]}>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 18 }}>
-            <div className="whiteBox shadow" style={{ height: 458 }}>
-              <Row className="pad20" gutter={[0, 0]}>
-                {statisticCards}
-              </Row>
+            <div className="whiteBox shadow" style={{ height: 500, borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
+                <AttendanceLineChart
+                  title="Tren Absensi Bulanan"
+                  isLoading={attendanceLineLoading}
+                  data={attendanceLineStatistics}
+                />
             </div>
           </Col>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 6 }}>
-            <CustomerPreviewCard
-              isLoading={clientLoading}
-              activeCustomer={clientResult?.active}
-              newCustomer={clientResult?.new}
+            <AttendancePieChart
+              title="Statistik Absensi"
+              isLoading={attendanceLoading}
+              statistics={attendanceStatistics}
             />
           </Col>
         </Row>
         <div className="space30"></div>
         <Row gutter={[32, 32]}>
-          <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 12 }}>
-            <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
+          <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
+            <div className="whiteBox shadow pad20" style={{ height: '100%', borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
               <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
-                {translate('Recent Invoices')}
+                {translate('Karyawan Tidak Hadir (Today)')}
               </h3>
 
-              <RecentTable entity={'invoice'} dataTableColumns={dataTableColumns} />
+              <RecentTable entity={'absen_today'} dataTableColumns={dataTableColumnsAbsen} />
             </div>
           </Col>
 
-          <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 12 }}>
-            <div className="whiteBox shadow pad20" style={{ height: '100%' }}>
+          <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
+            <div className="whiteBox shadow pad20" style={{ height: '100%', borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
               <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
-                {translate('Recent Quotes')}
+                {translate('Karyawan Telat (Today)')}
               </h3>
-              <RecentTable entity={'quote'} dataTableColumns={dataTableColumns} />
+              <RecentTable entity={'telat_today'} dataTableColumns={dataTableColumns} />
             </div>
+          </Col>
+
+          <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
+            <div className="whiteBox shadow pad20" style={{ height: '100%' , borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
+              <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
+                {translate('Top Telat Absen Bulan ini')}
+              </h3>
+              <RecentTable entity={'top_telat_monthly'} dataTableColumns={dataTableColumnsTop} />
+            </div>
+          </Col>
+        </Row>
+        <div className="space30"></div>
+        <Row gutter={[32, 32]}>
+          <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }}>
+              <SummaryAttendance 
+                attendanceSummary={attendanceSummary} 
+                isLoading={attendanceSummaryLoading} 
+              />
           </Col>
         </Row>
       </>

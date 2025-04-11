@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 
 import {
   EyeOutlined,
@@ -6,8 +6,8 @@ import {
   DeleteOutlined,
   EllipsisOutlined,
   RedoOutlined,
-  ArrowRightOutlined,
   ArrowLeftOutlined,
+  DownloadOutlined,
 } from '@ant-design/icons';
 import { Dropdown, Table, Button, Input } from 'antd';
 import { PageHeader } from '@ant-design/pro-layout';
@@ -22,6 +22,8 @@ import { useMoney, useDate } from '@/settings';
 import { generate as uniqueId } from 'shortid';
 
 import { useCrudContext } from '@/context/crud';
+import * as XLSX from 'xlsx';
+import { FileExcelOutlined } from '@ant-design/icons';
 
 function AddNewItem({ config }) {
   const { crudContextAction } = useCrudContext();
@@ -46,6 +48,8 @@ export default function DataTable({ config, extra = [] }) {
   const translate = useLanguage();
   const { moneyFormatter } = useMoney();
   const { dateFormat } = useDate();
+
+  const [currentPagination, setCurrentPagination] = useState({ current: 1, pageSize: 10 });
 
   const items = [
     {
@@ -104,9 +108,23 @@ export default function DataTable({ config, extra = [] }) {
   }
 
   dataTableColumns = [
-    ...dispatchColumns,
     {
-      title: '',
+      title: 'No',
+      dataIndex: 'no',
+      key: 'no',
+      render: (_, __, index) => (currentPagination.current - 1) * currentPagination.pageSize + index + 1,
+    },
+    ...dispatchColumns.map((col) => ({
+      ...col,
+      sorter: (a, b) => {
+        if (typeof a[col.dataIndex] === 'string') {
+          return a[col.dataIndex]?.localeCompare(b[col.dataIndex]);
+        }
+        return (a[col.dataIndex] || 0) - (b[col.dataIndex] || 0);
+      },
+    })),
+    {
+      title: 'Action',
       key: 'action',
       fixed: 'right',
       render: (_, record) => (
@@ -121,18 +139,15 @@ export default function DataTable({ config, extra = [] }) {
                 case 'edit':
                   handleEdit(record);
                   break;
-
                 case 'delete':
                   handleDelete(record);
                   break;
                 case 'updatePassword':
                   handleUpdatePassword(record);
                   break;
-
                 default:
                   break;
               }
-              // else if (key === '2')handleCloseTask
             },
           }}
           trigger={['click']}
@@ -152,19 +167,33 @@ export default function DataTable({ config, extra = [] }) {
 
   const dispatch = useDispatch();
 
-  const handelDataTableLoad = useCallback((pagination) => {
-    const options = { page: pagination.current || 1, items: pagination.pageSize || 10 };
+  const handelDataTableLoad = useCallback((pagination, filters, sorter) => {
+    setCurrentPagination(pagination);
+    const options = {
+      page: pagination.current || 1,
+      items: pagination.pageSize || 10,
+      sortField: sorter.field,
+      sortOrder: sorter.order,
+    };
     dispatch(crud.list({ entity, options }));
   }, []);
 
   const filterTable = (e) => {
     const value = e.target.value;
-    const options = { q: value, fields: searchConfig?.searchFields || '' };
+    setCurrentPagination({ current: 1, pageSize: currentPagination.pageSize });
+    const options = { q: value, fields: searchConfig?.searchFields || '', page: 1, items: currentPagination.pageSize };
     dispatch(crud.list({ entity, options }));
   };
 
   const dispatcher = () => {
     dispatch(crud.list({ entity }));
+  };
+
+  const exportToExcel = () => {
+    const worksheet = XLSX.utils.json_to_sheet(dataSource);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, 'Data');
+    XLSX.writeFile(workbook, `${entity}_data.xlsx`);
   };
 
   useEffect(() => {
@@ -189,26 +218,40 @@ export default function DataTable({ config, extra = [] }) {
             placeholder={translate('search')}
             allowClear
           />,
-          <Button onClick={handelDataTableLoad} key={`${uniqueId()}`} icon={<RedoOutlined />}>
+          <Button onClick={dispatcher} key={`${uniqueId()}`} icon={<RedoOutlined />}>
             {translate('Refresh')}
           </Button>,
-
+          <Button
+            onClick={exportToExcel}
+            key={`${uniqueId()}`}
+            icon={<FileExcelOutlined style={{ color: '#217346' }} />}
+            style={{ backgroundColor: '#d9f7be', borderColor: '#b7eb8f', color: '#217346' }}
+          >
+            Export to Excel
+          </Button>,
           <AddNewItem key={`${uniqueId()}`} config={config} />,
         ]}
         style={{
           padding: '20px 0px',
         }}
       ></PageHeader>
-
       <Table
         columns={dataTableColumns}
-        rowKey={(item) => item._id}
+        rowKey={(item) => item.id}
         dataSource={dataSource}
         pagination={pagination}
         loading={listIsLoading}
         onChange={handelDataTableLoad}
         scroll={{ x: true }}
+        rowClassName={(_, index) => ''}
+        onRow={(_, index) => ({
+          style: {
+            backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#f0f5f5', // Biru muda & Kuning muda
+          },
+        })}
       />
+
+
     </>
   );
 }

@@ -45,14 +45,14 @@ export default function UpdatePayment({ config, currentInvoice }) {
       form.resetFields();
       dispatch(erp.resetAction({ actionType: 'recordPayment' }));
       dispatch(erp.list({ entity }));
-      navigate(`/${entity.toLowerCase()}/read/${currentInvoice._id}`);
+      navigate(`/${entity.toLowerCase()}/read/${currentInvoice.id}`);
     }
   }, [isSuccess]);
 
   const onSubmit = (fieldsValue) => {
     if (currentInvoice) {
-      const { _id: invoice } = currentInvoice;
-      const client = currentInvoice.client && currentInvoice.client._id;
+      const { id: invoice } = currentInvoice;
+      const client = currentInvoice.client && currentInvoice.client.id;
       fieldsValue = {
         ...fieldsValue,
         invoice,
@@ -63,7 +63,7 @@ export default function UpdatePayment({ config, currentInvoice }) {
     dispatch(
       erp.update({
         entity,
-        id: currentInvoice._id,
+        id: currentInvoice.id,
         jsonData: fieldsValue,
       })
     );

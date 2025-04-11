@@ -270,6 +270,152 @@ const request = {
       return errorHandler(error);
     }
   },
+  summaryAbsen:async ({ entity, options = {} }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in options) {
+        query += key + '=' + options[key] + '&';
+      }
+      query = query.slice(0, -1);
+      const response = await axios.get('/summary/' + entity + query);
+
+      successHandler(response, {
+        notifyOnSuccess: false,
+        notifyOnFailed: false,
+      });
+
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
+  attendance_stats: async ({ entity, options = {} }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in options) {
+        query += key + '=' + options[key] + '&';
+      }
+      query = query.slice(0, -1);
+      const response = await axios.get(entity + '/attendance_stats' + query);
+
+      successHandler(response, {
+        notifyOnSuccess: false,
+        notifyOnFailed: false,
+      });
+
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
+
+  line_stats: async ({ entity, options = {} }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in options) {
+        query += key + '=' + options[key] + '&';
+      }
+      query = query.slice(0, -1);
+      const response = await axios.get(entity + '/line_stats' + query);
+
+      successHandler(response, {
+        notifyOnSuccess: false,
+        notifyOnFailed: false,
+      });
+
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
+
+  barchart: async ({ entity, options = {} }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in options) {
+        query += key + '=' + options[key] + '&';
+      }
+      query = query.slice(0, -1);
+      const response = await axios.get(entity + '/barchart' + query);
+
+      successHandler(response, {
+        notifyOnSuccess: false,
+        notifyOnFailed: false,
+      });
+
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
+  
+  bongkarBarchart: async ({ entity, options = {} }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in options) {
+        query += key + '=' + options[key] + '&';
+      }
+      query = query.slice(0, -1);
+      const response = await axios.get(entity + '/barchart' + query);
+
+      successHandler(response, {
+        notifyOnSuccess: false,
+        notifyOnFailed: false,
+      });
+
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
+
+  attendance_summary: async ({ entity, options = {} }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in options) {
+        query += key + '=' + options[key] + '&';
+      }
+      query = query.slice(0, -1);
+      const response = await axios.get(entity + '/attendance_summary' + query);
+
+      successHandler(response, {
+        notifyOnSuccess: false,
+        notifyOnFailed: false,
+      });
+
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
+
+  panen_stats: async ({ entity, filterMode, options = {} }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in options) {
+        query += key + '=' + options[key] + '&';
+      }
+      let endpoint = filterMode == 'tahun' ? 'yearlystats' : 'monthlystats';
+      query = query.slice(0, -1);
+      const response = await axios.get(entity + '/'+endpoint + query);
+
+      successHandler(response, {
+        notifyOnSuccess: false,
+        notifyOnFailed: false,
+      });
+
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
 
   mail: async ({ entity, jsonData }) => {
     try {

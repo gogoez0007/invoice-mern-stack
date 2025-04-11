@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { DatePicker, Input, Form, Select, InputNumber, Switch, Tag } from 'antd';
+import { DatePicker, Input, Form, Select, InputNumber, Switch, Tag, TimePicker } from 'antd';
 
 import { CloseOutlined, CheckOutlined } from '@ant-design/icons';
 import useLanguage from '@/locale/useLanguage';
@@ -51,6 +51,7 @@ function FormElement({ field, feedback, setFeedback }) {
         {
           required: field.required || false,
           type: filedType[field.type] ?? 'any',
+          disabled: field.disabled ?? '',
         },
       ]}
     >
