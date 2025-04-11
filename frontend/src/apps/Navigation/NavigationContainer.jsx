@@ -35,6 +35,7 @@ function Sidebar() {
   const currentAdmin = useSelector(selectCurrentAdmin);
 
   const isReviewer = ['cynthia', 'welli'];
+  const isAdmin = ['hindri3578', 'dini3515'];
 
   const [collapsed, setCollapsed] = useState(isNavMenuClose);
   const [currentPath, setCurrentPath] = useState(
@@ -168,6 +169,16 @@ function Sidebar() {
         }
         return item;
       });
+  }
+
+  const allowedAdminKeys = ['panen', 'bongkar', 'tambak', 'kualitas', 'listDriver'];
+
+  // Jika reviewer, filter menu yang boleh tampil
+  if (isAdmin.includes(currentAdmin?.username)) {
+    const allowedAdminKeys = ['panen', 'bongkar', 'tambak', 'kualitas', 'listDriver'];
+    items = items
+      .filter((item) => allowedAdminKeys.includes(item.key))
+      .map((item) => item); // biarkan children tetap semua
   }
 
   const defaultOpenMenu = items
