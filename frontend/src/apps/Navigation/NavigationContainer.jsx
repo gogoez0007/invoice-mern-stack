@@ -16,6 +16,8 @@ import { useAppContext } from '@/context/appContext';
 import useLanguage from '@/locale/useLanguage';
 import logoIcon from '@/style/images/logo-icon.svg';
 import useResponsive from '@/hooks/useResponsive';
+import { selectCurrentAdmin } from '@/redux/auth/selectors';
+import { useSelector } from 'react-redux';
 
 const { Sider } = Layout;
 
@@ -29,6 +31,10 @@ function Sidebar() {
   const { state: stateApp, appContextAction } = useAppContext();
   const { isNavMenuClose } = stateApp;
   const { navMenu } = appContextAction;
+
+  const currentAdmin = useSelector(selectCurrentAdmin);
+
+  const isReviewer = ['cynthia', 'welli'];
 
   const [collapsed, setCollapsed] = useState(isNavMenuClose);
   const [currentPath, setCurrentPath] = useState(
@@ -47,7 +53,7 @@ function Sidebar() {
     navMenu.collapse();
   };
 
-  const items = [
+  let items = [
     {
       key: 'dashboard',
       icon: <DashboardTwoTone />,
@@ -141,9 +147,32 @@ function Sidebar() {
     },
   ];
 
+  const allowedReviewerKeys = ['dashboard', 'bongkar'];
+
+  // Jika reviewer, filter menu yang boleh tampil
+  if (isReviewer.includes(currentAdmin?.username)) {
+    items = items
+      .filter((item) => allowedReviewerKeys.includes(item.key))
+      .map((item) => {
+        // Filter child-nya juga kalau ada
+        if (item.key === 'dashboard') {
+          item.children = item.children?.filter(
+            (child) =>
+              child.key === 'dashboard_panen' || child.key === 'dashboard_bongkar'
+          );
+        }
+        if (item.key === 'bongkar') {
+          item.children = item.children?.filter(
+            (child) => child.key === 'review'
+          );
+        }
+        return item;
+      });
+  }
+
   const defaultOpenMenu = items
-  .filter(item => item.children) // Ambil hanya menu yang memiliki anak
-  .map(item => item.key);
+    .filter(item => item.children) // Ambil hanya menu yang memiliki anak
+    .map(item => item.key);
 
   return (
     <Sider
