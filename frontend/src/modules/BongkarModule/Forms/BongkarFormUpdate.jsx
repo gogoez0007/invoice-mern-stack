@@ -65,6 +65,12 @@ const BongkarFormUpdate = ({
     }, [form]);
 
     useEffect(() => {
+        if (subtotal.length > 0) {
+            updateFormValue('persen_potongan', '');
+        } else {
+            updateFormValue('master_sub_total', '');
+        }
+
         setPotPercentageDisabled(subtotal.length > 0);
         setSubtotalDisabled(potPercentage.length > 0);
     }, [potPercentage, subtotal]);
@@ -79,7 +85,7 @@ const BongkarFormUpdate = ({
     const handleSubtotalChange = useCallback((e) => {
         const val = e.target.value;
         setSubtotal(val);
-        updateFormValue('sub_total', val);
+        updateFormValue('master_sub_total', val);
     }, [updateFormValue]);
 
     useEffect(() => {
@@ -92,7 +98,8 @@ const BongkarFormUpdate = ({
             nama_perusahaan: currentErp?.nama_perusahaan,
             petambak: currentErp?.petambak,
             persen_potongan: currentErp?.persen_potongan,
-            sub_total: currentErp.sub_total
+            master_sub_total: currentErp.sub_total,
+            no_spb: currentErp.no_spb
         });
     }, [currentErp, form]);
 
@@ -120,11 +127,11 @@ const BongkarFormUpdate = ({
             ...record,
             tanggal: record.tanggal ? dayjs(record.tanggal) : null,
         });
-        setEditCache({...record})
+        setEditCache({ ...record })
         setEditingKey(record.key);
     };
 
-   const cancel = () => {
+    const cancel = () => {
         const newData = [...dataSource];
         const index = newData.findIndex((item) => editCache.key === item.key);
         if (index > -1) {
@@ -155,11 +162,11 @@ const BongkarFormUpdate = ({
                     if (existingIndex > -1) {
                         const updated = [...prev];
                         const { key, posisi, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = { ...item, ...row };
-                        updated[existingIndex] = { ...detailData, tanggal : row.tanggal, action: prev[existingIndex].action || 'edit', key: key, posisi: item.posisi, id: item.id };
+                        updated[existingIndex] = { ...detailData, tanggal: row.tanggal, action: prev[existingIndex].action || 'edit', key: key, posisi: item.posisi, id: item.id };
                         return updated;
                     } else {
                         const { key, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = { ...item, ...row };
-                        return [...prev, { ...detailData, tanggal : row.tanggal, action: 'edit', key: key, posisi: item.posisi, id: item.id }];
+                        return [...prev, { ...detailData, tanggal: row.tanggal, action: 'edit', key: key, posisi: item.posisi, id: item.id }];
                     }
                 });
                 setDataSource(newData);
@@ -170,7 +177,7 @@ const BongkarFormUpdate = ({
 
                 setModifiedDetail(prev => {
                     const { key, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = newData;
-                    return [...prev, { ...detailData, tanggal : newData.tanggal, posisi : posisi, key : key, action : action}];
+                    return [...prev, { ...detailData, tanggal: newData.tanggal, posisi: posisi, key: key, action: action }];
                 });
                 setDataSource(newData);
                 setEditingKey('');
@@ -226,7 +233,7 @@ const BongkarFormUpdate = ({
         const newDataSource = [...dataSource, newData];
         setDataSource(newDataSource);
         const { key, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = newData;
-        setModifiedDetail(prev => [...prev, {...detailData, tanggal : newData.tanggal, posisi : posisi, key : key, action : action}]);
+        setModifiedDetail(prev => [...prev, { ...detailData, tanggal: newData.tanggal, posisi: posisi, key: key, action: action }]);
         edit(newData);
     };
 
@@ -267,6 +274,7 @@ const BongkarFormUpdate = ({
                 ...formattedFormData,
                 details: formattedModifiedDetail
             };
+            // console.log(payload);
 
             if (onSubmit) {
                 onSubmit(payload);
@@ -363,43 +371,43 @@ const BongkarFormUpdate = ({
         },
     ];
 
-   const mergedColumns = columns.map((col) => {
-    if (!col.editable) {
-        return col;
-    }
+    const mergedColumns = columns.map((col) => {
+        if (!col.editable) {
+            return col;
+        }
 
-    return {
-        ...col,
-        render: (text, record) => {
-            const editing = isEditing(record);
-            return editing ? (
-                <Form.Item
-                    style={{ margin: 0 }}
-                    name={col.dataIndex}
-                    rules={[{ required: true, message: `Please Input ${col.title}!` }]}
-                    getValueProps={(value) => {
-                        if (col.dataIndex === 'tanggal' && value) {
-                            return { value: dayjs(value) };
-                        }
-                        return { value };
-                    }}
-                >
-                    {col.dataIndex === 'tanggal' ? (
-                        <DatePicker style={{ width: '100%' }} format={dateFormat} />
-                    ) : (
-                        <Input
-                            ref={inputRef}
-                            type={col.dataIndex === 'berat_bongkar' || col.dataIndex === 'harga' || col.dataIndex === 'sub_total' ? 'number' : 'text'}
-                            style={{ width: col.dataIndex === 'size' || col.dataIndex === 'persen_molting' || col.dataIndex === 'harga' ? '80px' : '100%' }}
-                        />
-                    )}
-                </Form.Item>
-            ) : (
-                col.render ? col.render(text, record) : text
-            );
-        },
-    };
-});
+        return {
+            ...col,
+            render: (text, record) => {
+                const editing = isEditing(record);
+                return editing ? (
+                    <Form.Item
+                        style={{ margin: 0 }}
+                        name={col.dataIndex}
+                        rules={[{ required: true, message: `Please Input ${col.title}!` }]}
+                        getValueProps={(value) => {
+                            if (col.dataIndex === 'tanggal' && value) {
+                                return { value: dayjs(value) };
+                            }
+                            return { value };
+                        }}
+                    >
+                        {col.dataIndex === 'tanggal' ? (
+                            <DatePicker style={{ width: '100%' }} format={dateFormat} />
+                        ) : (
+                            <Input
+                                ref={inputRef}
+                                type={col.dataIndex === 'berat_bongkar' || col.dataIndex === 'harga' || col.dataIndex === 'sub_total' ? 'number' : 'text'}
+                                style={{ width: col.dataIndex === 'size' || col.dataIndex === 'persen_molting' || col.dataIndex === 'harga' || col.dataIndex === 'berat_bongkar' ? '80px' : '100%' }}
+                            />
+                        )}
+                    </Form.Item>
+                ) : (
+                    col.render ? col.render(text, record) : text
+                );
+            },
+        };
+    });
 
     const totalsByPosition = useMemo(() => {
         const totals = {};
@@ -449,7 +457,7 @@ const BongkarFormUpdate = ({
                         </Form.Item>
                     </Col>
                     <Col span={3}>
-                        <Form.Item name="sub_total" >
+                        <Form.Item name="master_sub_total" >
                             <Input
                                 disabled={subtotalDisabled}
                                 onChange={handleSubtotalChange}
@@ -461,6 +469,14 @@ const BongkarFormUpdate = ({
                     <Col span={2}>{currentErp.petambak}</Col>
                     <Col span={2}>{currentErp.nopol}</Col>
                     <Col span={2}>{currentErp.staff}</Col>
+                </Row>
+                <Row gutter={12} style={{ padding: '10px' }}>
+                    <Col span={3} style={{ fontWeight: 'bold', padding: '10px', display: 'flex' }}>{translate('No SPB')}</Col>
+                    <Col span={5}>
+                        <Form.Item name="no_spb" >
+                            <Input />
+                        </Form.Item>
+                    </Col>
                 </Row>
 
                 {Object.keys(itemsByPosition).map(posisi => {
