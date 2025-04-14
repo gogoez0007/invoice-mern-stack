@@ -6,7 +6,7 @@ import {
   ClockCircleOutlined,
   EditOutlined,
   CloseCircleOutlined,
-  FileExcelOutlined
+  FileExcelOutlined, StopOutlined
 } from '@ant-design/icons';
 import { Modal, Input, List, Avatar } from 'antd';
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
@@ -37,8 +37,8 @@ const Review = () => {
         return <CheckCircleOutlined style={{ marginRight: 8 }} />;
       case 'proses':
         return <ClockCircleOutlined style={{ marginRight: 8 }} />;
-      case 'revisi':
-        return <EditOutlined style={{ marginRight: 8 }} />;
+      case 'rejected':
+        return <StopOutlined style={{ marginRight: 8 }} />;
       default:
         return <CloseCircleOutlined style={{ marginRight: 8 }} />;
     }
@@ -69,6 +69,7 @@ const Review = () => {
 
   const submitReview = async (status) => {
     if (!status) return;
+    status = commentText != '' ? 'rejected' : status;
     try {
       const response = await fetch(`http://123.255.202.38:5000/api/review/submit`, {
         method: 'POST',
@@ -214,17 +215,17 @@ const Review = () => {
     }
   }, [currentSheetName])
 
-  useEffect(() => {
+  // useEffect(() => {
 
-    if (isInitialRender.current) {
-      isInitialRender.current = false;
-      return;
-    }
+  //   if (isInitialRender.current) {
+  //     isInitialRender.current = false;
+  //     return;
+  //   }
 
-    if (reviewStatus !== '') {
-      submitReview();
-    }
-  }, [reviewStatus]);
+  //   if (reviewStatus !== '') {
+  //     submitReview(reviewStatus);
+  //   }
+  // }, [reviewStatus]);
 
 
   const selectStyle = {
@@ -363,18 +364,18 @@ const Review = () => {
                 backgroundColor:
                   reviewStatus === 'approved' ? '#f6ffed' :
                     reviewStatus === 'proses' ? '#fff7e6' :
-                      reviewStatus === 'revisi' ? '#e6f7ff' :
+                      reviewStatus === 'rejected' ? '#fdecea' :
                         '#fdecea',
                 color:
                   reviewStatus === 'approved' ? '#389e0d' :
                     reviewStatus === 'proses' ? '#d48806' :
-                      reviewStatus === 'revisi' ? '#1890ff' :
+                      reviewStatus === 'rejected' ? '#d93025' :
                         '#d93025',
                 border:
                   reviewStatus === 'approved' ? '1px solid  #b7eb8f' :
                     reviewStatus === 'proses' ? '1px solid #ffe58f' :
-                      reviewStatus === 'revisi' ? '1px solid #91d5ff' :
-                        '1px solid #f5c6cb',
+                      reviewStatus === 'rejected' ? '1px solid #rejected' :
+                        '1px solid #rejected',
                 fontSize: '0.9rem',
               }}
             >
@@ -383,7 +384,7 @@ const Review = () => {
               {
                 reviewStatus === 'approved' ? 'Approved' :
                   reviewStatus === 'proses' ? 'On Review' :
-                    reviewStatus === 'revisi' ? 'Revisi' :
+                    reviewStatus === 'rejected' ? 'Rejected' :
                       'Belum Direview'
               }
             </div>
@@ -392,13 +393,19 @@ const Review = () => {
             <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap' }}>
               {isReviewer.includes(currentAdmin?.username) && (
                 <>
-                  {reviewStatus !== 'proses' && reviewStatus !== 'approved' && (
-                    <Button onClick={() => submitReview('proses')}>On Review</Button>
+                  {!['approved', 'rejected', 'proses', 'Revision'].includes(reviewStatus) && (
+                    <Button
+                      onClick={() => submitReview('proses')}
+                      style={{
+                        backgroundColor: 'rgb(196, 190, 247)',
+                        borderColor: 'rgb(160, 143, 235)',
+                        color: 'rgb(33, 59, 115)',
+                      }}
+                    >
+                      Review
+                    </Button>
                   )}
-                  {reviewStatus !== 'revisi' && reviewStatus !== 'approved' && (
-                    <Button type="dashed" onClick={() => submitReview('revisi')}>Revisi</Button>
-                  )}
-                  {reviewStatus !== 'approved' && (
+                  {!['approved', 'rejected'].includes(reviewStatus) && ['proses'].includes(reviewStatus) && (
                     <Button
                       type="primary"
                       icon={<CheckOutlined />}
@@ -407,21 +414,35 @@ const Review = () => {
                     </Button>
                   )}
 
-                  {reviewStatus !== 'approved' && (
+                  {!['approved', 'rejected'].includes(reviewStatus) && ['proses'].includes(reviewStatus) && (
                     <Button
                       type="default"
-                      icon={<CommentOutlined />}
+                      icon={<StopOutlined />}
                       onClick={() => setIsModalVisible(true)}
                       style={{
-                        backgroundColor: 'rgb(217, 247, 190)',
-                        borderColor: 'rgb(183, 235, 143)',
-                        color: 'rgb(33, 115, 70)',
+                        backgroundColor: 'rgb(247, 190, 190)',
+                        borderColor: 'rgb(235, 143, 143)',
+                        color: 'rgb(115, 33, 33)',
                       }}
                     >
-                      Add Comment
+                      Reject
                     </Button>
                   )}
                 </>
+              )}
+              {!isReviewer.includes(currentAdmin?.username) && ['rejected'].includes(reviewStatus) && (
+                <Button
+                  type="default"
+                  icon={<CheckCircleOutlined />}
+                  onClick={() => submitReview('revision')}
+                  style={{
+                    backgroundColor: 'rgb(190, 247, 202)',
+                    borderColor: 'rgb(172, 235, 143)',
+                    color: 'rgb(36, 115, 33)',
+                  }}
+                >
+                  Done Revisi
+                </Button>
               )}
 
               <Badge count={commentUser.length > 0 ? commentUser.length : 0} offset={[-2, 2]}>
@@ -486,7 +507,7 @@ const Review = () => {
         <p>Tidak ada data untuk bulan dan tahun yang dipilih.</p>
       )}
       <Modal
-        title="Add Comment"
+        title="Add Comment Reject"
         open={isModalVisible}
         onOk={() => {
           submitReview(reviewStatus);
