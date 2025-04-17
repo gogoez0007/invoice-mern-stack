@@ -63,7 +63,7 @@ const Review = () => {
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`http://localhost:5000/api/review`, {
+      const res = await axios.get(`http://123.255.202.38:5000/api/review`, {
         params: { month, year },
       });
       setData(res.data.data);
