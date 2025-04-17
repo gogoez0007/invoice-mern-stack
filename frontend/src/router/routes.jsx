@@ -32,13 +32,13 @@ const Profile = lazy(() => import('@/pages/Profile'));
 const About = lazy(() => import('@/pages/About'));
 
 //Tambak
-const Tambak = lazy(()=> import('@/pages/Tambak'));
+const Tambak = lazy(() => import('@/pages/Tambak'));
 //Supir
-const Supir = lazy(()=> import('@/pages/Supir'));
-const Kualitas = lazy(()=> import('@/pages/Kualitas'));
-const Lokasi = lazy(()=> import('@/pages/Lokasi'));
-const Shift = lazy(()=> import('@/pages/Shift'));
-const Karyawan = lazy(()=> import('@/pages/Karyawan'));
+const Supir = lazy(() => import('@/pages/Supir'));
+const Kualitas = lazy(() => import('@/pages/Kualitas'));
+const Lokasi = lazy(() => import('@/pages/Lokasi'));
+const Shift = lazy(() => import('@/pages/Shift'));
+const Karyawan = lazy(() => import('@/pages/Karyawan'));
 //Panen
 const Panen = lazy(() => import('@/pages/Panen'));
 const PanenRead = lazy(() => import('@/pages/Panen/PanenRead'));
@@ -49,7 +49,8 @@ const BongkarCreate = lazy(() => import('@/pages/Bongkar/BongkarCreate'));
 const BongkarRead = lazy(() => import('@/pages/Bongkar/BongkarRead'));
 const BongkarUpdate = lazy(() => import('@/pages/Bongkar/BongkarUpdate'));
 
-const ReviewTrade = lazy(()=> import('@/pages/Review'));
+const ReviewTrade = lazy(() => import('@/pages/Review'));
+const ReviewTradeDetail = lazy(() => import('@/pages/Review/detailReview'));
 
 let routes = {
   expense: [],
@@ -204,6 +205,10 @@ let routes = {
     {
       path: '/review',
       element: <ReviewTrade />,
+    },
+    {
+      path: '/review/process',
+      element: <ReviewTradeDetail />,
     },
     {
       path: '*',

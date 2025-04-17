@@ -92,6 +92,10 @@ function Sidebar() {
           key: 'review',
           label: <Link to="/review">Review</Link>,
         },
+        {
+          key: 'review_process',
+          label: <Link to="/review/process">Proses Review</Link>,
+        },
       ],
     },
     {

@@ -111,7 +111,15 @@ export default function PanenPieChart({ title, filterMode = "tahun" }) {
 
 
     return (
-        <div className="whiteBox shadow" style={{ height: 550, padding: 10 }}>
+        <div
+            className="whiteBox shadow"
+            style={{
+                background: "#f4f7fa", // Ubah warna latar belakang menjadi abu-abu terang
+                borderRadius: 16,
+                padding: 30,
+                boxShadow: "0 4px 16px rgba(0, 0, 0, 0.1)",
+                margin: "20px 0",
+            }}>
             <h3 style={{ color: "#333", marginBottom: 20, fontSize: "large", textAlign: "center" }}>
                 {title}
             </h3>
