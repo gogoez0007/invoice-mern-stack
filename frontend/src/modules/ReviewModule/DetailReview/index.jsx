@@ -97,7 +97,7 @@ const Review = () => {
     if (!status) return;
     status = commentText != '' ? 'rejected' : status;
     try {
-      const response = await fetch(`http://192.168.40.11:5000/api/review/submit`, {
+      const response = await fetch(`http://123.255.202.38:5000/api/review/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,7 +122,7 @@ const Review = () => {
 
   const fetchReview = async () => {
     try {
-      const response = await fetch(`http://192.168.40.11:5000/api/review/detail?name=${encodeURIComponent(currentSheetName)}`, {
+      const response = await fetch(`http://123.255.202.38:5000/api/review/detail?name=${encodeURIComponent(currentSheetName)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',
@@ -159,7 +159,7 @@ const Review = () => {
     if (!selectedMonth || !selectedYear) return;
 
     try {
-      const uri = `http://192.168.40.11:7000/report/generate_bongkar/${selectedMonth}/${selectedYear}`;
+      const uri = `http://123.255.202.38:7000/report/generate_bongkar/${selectedMonth}/${selectedYear}`;
       // console.log(uri);
       const response = await fetch(uri, {
         method: 'GET',
@@ -195,7 +195,7 @@ const Review = () => {
     setLoading(true);
     setFetchResult(false);
     try {
-      const response = await fetch(`http://192.168.40.11:7000/report/generate_bongkar_html/${selectedMonth}/${selectedYear}`);
+      const response = await fetch(`http://123.255.202.38:7000/report/generate_bongkar_html/${selectedMonth}/${selectedYear}`);
       const html = await response.text();
 
       const parser = new DOMParser();
