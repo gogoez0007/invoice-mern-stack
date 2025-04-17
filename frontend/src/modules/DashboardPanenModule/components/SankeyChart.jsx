@@ -21,7 +21,7 @@ export default function SankeyDiagram({ title, filterMode = "tahun" }) {
                 ? `tahun=${tahun}`
                 : `tahun=${tahun}&bulan=${bulan.toString().padStart(2, "0")}`;
 
-            const response = await fetch(`http://123.255.202.38/api/sankey?${query}`);
+            const response = await fetch(`http://123.255.202.38:5000/api/sankey?${query}`);
             if (!response.ok) throw new Error("Failed to fetch Sankey data");
 
             const rawData = await response.json();
