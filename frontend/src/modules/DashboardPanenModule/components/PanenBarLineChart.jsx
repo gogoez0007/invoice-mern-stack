@@ -46,7 +46,7 @@ export default function PanenChart({ title }) {
         <div className="custom-tooltip" style={{ background: "#fff", padding: 10, border: "1px solid #ccc", borderRadius: 5 }}>
           {Object.values(mergedData).map((entry, index) => (
             <p key={index} style={{ color: entry.color, margin: 0 }}>
-              {entry.name}: {new Intl.NumberFormat("id-ID").format(entry.value)} Ton
+              {entry.name}: {new Intl.NumberFormat("id-ID").format(entry.value / 2)} Ton
             </p>
           ))}
         </div>

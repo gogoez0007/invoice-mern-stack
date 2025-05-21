@@ -59,6 +59,10 @@ function Sidebar() {
       key: 'dashboard',
       icon: <DashboardTwoTone />,
       label: translate('dashboard'),
+      style: {
+        fontSize: 15,
+        fontWeight: 600, // menu utama
+      },
       children: [
         {
           key: 'dashboard_panen',
@@ -71,6 +75,10 @@ function Sidebar() {
         {
           key: 'dashboard_bongkar',
           label: <Link to="/dashboard_bongkar">Bongkar</Link>,
+        },
+        {
+          key: 'summary_percentage',
+          label: <Link to="/review/summary_percentage">Analisa randeman (%)</Link>,
         },
       ],
     },
@@ -154,41 +162,71 @@ function Sidebar() {
 
   const allowedReviewerKeys = ['dashboard', 'bongkar'];
 
-  // Jika reviewer, filter menu yang boleh tampil
-  if (isReviewer.includes(currentAdmin?.username)) {
-    items = items
-      .filter((item) => allowedReviewerKeys.includes(item.key))
-      .map((item) => {
-        // Filter child-nya juga kalau ada
-        if (item.key === 'dashboard') {
-          item.children = item.children?.filter(
-            (child) =>
-              child.key === 'dashboard_panen' || child.key === 'dashboard_bongkar'
-          );
-        }
-        if (item.key === 'bongkar') {
-          item.children = item.children?.filter(
-            (child) => child.key === 'review'
-          );
-        }
-        return item;
-      });
-  }
+  const filterMenuByRole = (items, username) => {
+    if (isReviewer.includes(username)) {
+      const allowedReviewerKeys = ['dashboard', 'bongkar'];
 
-  const allowedAdminKeys = ['panen', 'bongkar', 'tambak', 'kualitas', 'listDriver'];
+      return items
+        .filter(item => allowedReviewerKeys.includes(item.key))
+        .map(item => {
+          if (item.key === 'dashboard') {
+            item.children = item.children?.filter(child =>
+              ['dashboard_panen', 'dashboard_bongkar', 'summary_percentage'].includes(child.key)
+            );
+          }
 
-  // Jika reviewer, filter menu yang boleh tampil
-  if (isAdmin.includes(currentAdmin?.username)) {
-    const allowedAdminKeys = ['panen', 'bongkar', 'tambak', 'kualitas', 'listDriver'];
-    items = items
-      .filter((item) => allowedAdminKeys.includes(item.key))
-      .map((item) => item); // biarkan children tetap semua
-  }
+          if (item.key === 'bongkar') {
+            item.children = item.children?.filter(child => child.key === 'review');
+          }
 
+          return item;
+        });
+    }
+
+    if (isAdmin.includes(username)) {
+      const allowedAdminKeys = ['panen', 'bongkar', 'tambak', 'kualitas', 'listDriver'];
+
+      return items.filter(item => allowedAdminKeys.includes(item.key));
+    }
+
+    return items;
+  };
+  const applyMenuStyles = (items) => {
+    return items.map(item => {
+      const styledItem = {
+        ...item,
+        style: {
+          fontSize: 15,
+          fontWeight: 600,
+          ...(item.style || {}),
+        },
+      };
+
+      if (item.children) {
+        styledItem.children = item.children.map(child => ({
+          ...child,
+          style: {
+            fontSize: 14,
+            fontWeight: 400,
+            color: '#555555',
+            ...(child.style || {}),
+          },
+        }));
+      }
+
+      return styledItem;
+    });
+  };
+
+  // Filter menu sesuai role
+  let filteredItems = filterMenuByRole(items, currentAdmin?.username);
+
+  // Apply default style
+  const styledItems = applyMenuStyles(filteredItems);
   const defaultOpenMenu = items
+
     .filter(item => item.children) // Ambil hanya menu yang memiliki anak
     .map(item => item.key);
-
   return (
     <Sider
       collapsible
@@ -232,11 +270,11 @@ function Sidebar() {
       </div>
       <div style={{ flex: 1, overflowY: 'auto' }}>
         <Menu
-          items={items}
+          items={styledItems}
           mode="inline"
           theme="light"
-          selectedKeys={[currentPath]}
           defaultOpenKeys={defaultOpenMenu}
+          selectedKeys={[currentPath]}
           style={{
             width: '100%',
             borderInlineEnd: 'none',

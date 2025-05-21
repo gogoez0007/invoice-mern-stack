@@ -51,6 +51,7 @@ const BongkarUpdate = lazy(() => import('@/pages/Bongkar/BongkarUpdate'));
 
 const ReviewTrade = lazy(() => import('@/pages/Review'));
 const ReviewTradeDetail = lazy(() => import('@/pages/Review/detailReview'));
+const SummaryPercentage = lazy(() => import('@/pages/Review/summaryPercentage'));
 
 let routes = {
   expense: [],
@@ -209,6 +210,10 @@ let routes = {
     {
       path: '/review/process',
       element: <ReviewTradeDetail />,
+    },
+    {
+      path: '/review/summary_percentage',
+      element: <SummaryPercentage />,
     },
     {
       path: '*',

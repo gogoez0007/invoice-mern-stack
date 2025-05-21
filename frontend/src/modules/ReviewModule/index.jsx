@@ -11,12 +11,15 @@ import {
   Spin,
   Empty,
   Table,
+  Radio,
+  Input,
 } from 'antd';
 import {
   FileTextOutlined,
   CheckCircleOutlined,
   CloseCircleOutlined,
   HourglassOutlined,
+  SearchOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
@@ -25,6 +28,7 @@ import dayjs from 'dayjs';
 
 const { Option } = Select;
 const { Title, Text } = Typography;
+
 
 const statusLabels = {
   'Belum Review': 'Belum Review',
@@ -49,26 +53,33 @@ const statusIcons = {
 
 const Review = () => {
   const currentDate = new Date();
-  const [month, setMonth] = useState((currentDate.getMonth() + 1).toString().padStart(2, '0')); // Menyesuaikan dengan bulan saat ini
+  const [month, setMonth] = useState((currentDate.getMonth() + 1).toString().padStart(2, '0'));
   const [year, setYear] = useState(currentDate.getFullYear());
+  const [filterMode, setFilterMode] = useState('all'); // 'all' atau 'monthYear'
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [selectedStatus, setSelectedStatus] = useState(null);
   const [currentPage, setCurrentPage] = useState(1);
   const navigate = useNavigate();
   const { dateFormat } = useDate();
+  const [searchName, setSearchName] = useState('');
 
   const pageSize = 10;
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      const res = await axios.get(`http://123.255.202.38:5000/api/review`, {
-        params: { month, year },
-      });
+      const params = {};
+
+      if (filterMode === 'monthYear') {
+        params.month = month;
+        params.year = year;
+      }
+
+      const res = await axios.get(`http://localhost:5000/api/review`, { params });
       setData(res.data.data);
-      setSelectedStatus(null); // reset filter status saat refresh
-      setCurrentPage(1); // reset halaman ke 1 saat refresh
+      setSelectedStatus(null);
+      setCurrentPage(1);
     } catch (err) {
       console.error('Gagal ambil data:', err);
     } finally {
@@ -78,7 +89,7 @@ const Review = () => {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [filterMode]);
 
   const getCountByStatus = (status) =>
     data.filter((item) => (item.status || 'Belum Review') === status).length;
@@ -86,11 +97,7 @@ const Review = () => {
   const handleAction = (item, actionType) => {
     if (actionType === 'Review') {
       navigate('/review/process', {
-        state: {
-          month,
-          year,
-          name: item.name,
-        },
+        state: { month, year, name: item.name },
       });
     }
   };
@@ -100,16 +107,17 @@ const Review = () => {
     setCurrentPage(1);
   };
 
-  const filteredData = selectedStatus
-    ? data.filter((item) => (item.status || 'Belum Review') === selectedStatus)
-    : data;
+  const filteredData = data.filter((item) => {
+    const statusMatch = selectedStatus ? (item.status || 'Belum Review') === selectedStatus : true;
+    const nameMatch = item.name.toLowerCase().includes(searchName.toLowerCase());
+    return statusMatch && nameMatch;
+  });
 
   const columns = [
     {
       title: 'No.',
       key: 'index',
-      render: (text, record, index) =>
-        (currentPage - 1) * pageSize + index + 1,
+      render: (text, record, index) => (currentPage - 1) * pageSize + index + 1,
     },
     {
       title: 'Nama',
@@ -132,16 +140,13 @@ const Review = () => {
       title: 'Tanggal Review',
       dataIndex: 'updated_at',
       key: 'updated_at',
-      render: (text) => <Text> {text ? dayjs(text).format(dateFormat) : '-'} </Text>,
+      render: (text) => <Text>{text ? dayjs(text).format(dateFormat) : '-'}</Text>,
     },
     {
       title: '',
       key: 'action',
       render: (_, record) => (
-        <Button
-          type="default"
-          onClick={() => handleAction(record, 'Review')}
-        >
+        <Button type="default" onClick={() => handleAction(record, 'Review')}>
           Review
         </Button>
       ),
@@ -150,74 +155,103 @@ const Review = () => {
 
   return (
     <div style={{ maxWidth: 1200, margin: '0 auto', padding: 24 }}>
-      <Card
-        title="Filter Data"
-        variant="outlined"
-        style={{ marginBottom: 24, borderRadius: '10px' }}
-      >
-        <Row gutter={16} align="bottom">
-          <Col>
-            <Text strong>Bulan</Text>
-            <Select
-              value={month}
-              onChange={setMonth}
-              style={{ width: 100 }}
+      <Card title="Filter Data" variant="outlined" style={{ marginBottom: 24, borderRadius: '10px' }}>
+        <Row gutter={16} align="middle" wrap={false} style={{ marginBottom: 16 }}>
+
+          <Col flex="none" style={{ display: 'flex', alignItems: 'center' }}>
+            <Radio.Group
+              onChange={(e) => setFilterMode(e.target.value)}
+              value={filterMode}
+              style={{
+                display: 'inline-flex',
+                overflow: 'hidden', // biar sudut keliatan rapi
+                borderRadius: 20,
+              }}
             >
-              {Array.from({ length: 12 }, (_, i) => {
-                const m = (i + 1).toString().padStart(2, '0');
-                return (
-                  <Option key={m} value={m}>
-                    {m}
-                  </Option>
-                );
-              })}
-            </Select>
+              <Radio.Button
+                value="all"
+                style={{
+                  borderRadius: '20px 0 0 20px', // sudut kiri rounded
+                }}
+              >
+                Semua Data
+              </Radio.Button>
+
+              <Radio.Button
+                value="monthYear"
+                style={{
+                  borderRadius: '0 20px 20px 0', // sudut kanan rounded
+                }}
+              >
+                Bulan & Tahun
+              </Radio.Button>
+            </Radio.Group>
+
           </Col>
-          <Col>
-            <Text strong>Tahun</Text>
-            <InputNumber value={year} onChange={setYear} style={{ width: 120 }} />
-          </Col>
-          <Col>
-            <Button type="primary" onClick={fetchData}>
-              Refresh
-            </Button>
-          </Col>
+
+          {filterMode === 'monthYear' && (
+            <>
+              <Col flex="none">
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Text strong style={{ minWidth: 50, marginRight: 8 }}>Bulan</Text>
+                  <Select
+                    value={month}
+                    onChange={setMonth}
+                    style={{ width: 140 }}
+                    options={Array.from({ length: 12 }, (_, i) => ({
+                      value: (i + 1).toString().padStart(2, '0'),
+                      label: (i + 1).toString().padStart(2, '0'),
+                    }))}
+                  />
+                </div>
+              </Col>
+
+              <Col flex="none">
+                <div style={{ display: 'flex', alignItems: 'center' }}>
+                  <Text strong style={{ minWidth: 50, marginRight: 8 }}>Tahun</Text>
+                  <InputNumber
+                    value={year}
+                    onChange={setYear}
+                    style={{ width: 140 }}
+                    min={2025}
+                    max={new Date().getFullYear()}
+                  />
+                </div>
+              </Col>
+
+              <Col flex="none">
+                <Button type="primary" onClick={fetchData} style={{ padding: '0 20px' }}>
+                  Refresh
+                </Button>
+              </Col>
+            </>
+          )}
         </Row>
       </Card>
 
       <Row gutter={16} style={{ marginBottom: 24 }}>
-        <SummaryCard
-          label="Belum Review"
-          count={getCountByStatus('Belum Review')}
-          color="default"
-          icon={statusIcons['Belum Review']}
-          onClick={() => handleSummaryClick('Belum Review')}
-        />
-        <SummaryCard
-          label="On Review"
-          count={getCountByStatus('Proses')}
-          color="warning"
-          icon={statusIcons.Proses}
-          onClick={() => handleSummaryClick('Proses')}
-        />
-        <SummaryCard
-          label="Approved"
-          count={getCountByStatus('Approved')}
-          color="success"
-          icon={statusIcons.Approved}
-          onClick={() => handleSummaryClick('Approved')}
-        />
-        <SummaryCard
-          label="Rejected"
-          count={getCountByStatus('Rejected')}
-          color="error"
-          icon={statusIcons.Rejected}
-          onClick={() => handleSummaryClick('Rejected')}
-        />
+        {['Belum Review', 'Proses', 'Approved', 'Rejected'].map((status) => (
+          <SummaryCard
+            key={status}
+            label={statusLabels[status]}
+            count={getCountByStatus(status)}
+            color={statusColors[status]}
+            icon={statusIcons[status]}
+            onClick={() => handleSummaryClick(status)}
+          />
+        ))}
       </Row>
-
       <Card
         title="List Review"
+        extra={
+          <Input
+            placeholder="Cari data..."
+            value={searchName}
+            onChange={(e) => setSearchName(e.target.value)}
+            style={{ width: 200 }}
+            prefix={<SearchOutlined style={{ color: '#999' }} />}
+          />
+        }
         variant="outlined"
         style={{ borderRadius: '10px' }}
       >

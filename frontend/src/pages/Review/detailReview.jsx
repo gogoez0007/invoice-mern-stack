@@ -8,3 +8,4 @@ export default function bongkar() {
   const translate = useLanguage();
   return <ReviewDetailModule />;
 }
+
