@@ -431,6 +431,43 @@ const request = {
     }
   },
 
+  productivity: async ({ entity, jsonData }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in jsonData) {
+        query += key + '=' + jsonData[key] + '&';
+      }
+      query = query.slice(0, -1);
+      const response = await axios.get(entity + '/summary_productivity'+ query);
+      successHandler(response, {
+        notifyOnSuccess: true,
+        notifyOnFailed: true,
+      });
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
+
+  ponds: async ({ entity, jsonData }) => {
+    try {
+      includeToken();
+      let query = '?';
+      for (var key in jsonData) {
+        query += key + '=' + jsonData[key] + '&';
+      }
+      query = query.slice(0, -1);
+      const response = await axios.get(entity + '/summary_ponds'+ query);
+      successHandler(response, {
+        notifyOnSuccess: true,
+        notifyOnFailed: true,
+      });
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
   convert: async ({ entity, id }) => {
     try {
       includeToken();

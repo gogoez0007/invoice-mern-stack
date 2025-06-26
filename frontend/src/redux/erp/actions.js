@@ -76,8 +76,6 @@ export const erp = {
       });
 
       let data = await request.create({ entity, jsonData });
-      console.log(data);
-
       if (data.success === true) {
         dispatch({
           type: actionTypes.REQUEST_SUCCESS,
@@ -291,6 +289,58 @@ export const erp = {
         });
       }
     },
+
+    productivity:
+      ({ entity, jsonData }) =>
+      async (dispatch) => {
+        dispatch({
+          type: actionTypes.REQUEST_LOADING,
+          keyState: 'productivity',
+          payload: null,
+        });
+  
+        const data = await request.productivity({ entity, jsonData });
+        if (data.success === true) {
+          dispatch({
+            type: actionTypes.REQUEST_SUCCESS,
+            keyState: 'productivity',
+            payload: data.result,
+            period: data.periodeSummary,
+          });
+        } else {
+          dispatch({
+            type: actionTypes.REQUEST_FAILED,
+            keyState: 'productivity',
+            payload: null,
+          });
+        }
+      },
+
+      ponds:
+        ({ entity, jsonData }) =>
+        async (dispatch) => {
+          dispatch({
+            type: actionTypes.REQUEST_LOADING,
+            keyState: 'ponds',
+            payload: null,
+          });
+    
+          const data = await request.ponds({ entity, jsonData });
+          if (data.success === true) {
+            dispatch({
+              type: actionTypes.REQUEST_SUCCESS,
+              keyState: 'ponds',
+              payload: data.result,
+              period: data.periodeSummary,
+            });
+          } else {
+            dispatch({
+              type: actionTypes.REQUEST_FAILED,
+              keyState: 'ponds',
+              payload: null,
+            });
+          }
+        },
 
   convert:
     ({ entity, id }) =>

@@ -16,7 +16,7 @@ import PreviewCard from './components/PreviewCard';
 import CustomerPreviewCard from './components/CustomerPreviewCard';
 import AttendancePieChart from './components/AttendancePieChart';
 import AttendanceLineChart from './components/AttendanceLineChart';
-import SummaryAttendance  from './components/AttendanceTable';
+import SummaryAttendance from './components/AttendanceTable';
 
 import { selectMoneyFormat } from '@/redux/settings/selectors';
 import { useSelector } from 'react-redux';
@@ -110,7 +110,7 @@ export default function DashboardModule() {
 
   const dataTableColumnsTop = [
     {
-      title: translate('Nama Karyawan'),  
+      title: translate('Nama Karyawan'),
       dataIndex: 'name',
     },
     {
@@ -139,25 +139,25 @@ export default function DashboardModule() {
       late: item?.late || 0,
     }));
 
-    const attendanceSummary =
-      !attendanceSummaryLoading &&
-      attendanceSummaryResult?.summary?.map((item) => ({
-        name: item?.name,
-        department: item?.department,
-        position: item?.position,
-        attendance: item?.attendance || [],
-      }));
+  const attendanceSummary =
+    !attendanceSummaryLoading &&
+    attendanceSummaryResult?.summary?.map((item) => ({
+      name: item?.name,
+      department: item?.department,
+      position: item?.position,
+      attendance: item?.attendance || [],
+    }));
   if (money_format_settings) {
     return (
       <>
         <Row gutter={[32, 32]}>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 18 }}>
             <div className="whiteBox shadow" style={{ height: 500, borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
-                <AttendanceLineChart
-                  title="Tren Absensi Bulanan"
-                  isLoading={attendanceLineLoading}
-                  data={attendanceLineStatistics}
-                />
+              <AttendanceLineChart
+                title="Tren Absensi Bulanan"
+                isLoading={attendanceLineLoading}
+                data={attendanceLineStatistics}
+              />
             </div>
           </Col>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 6 }}>
@@ -190,7 +190,7 @@ export default function DashboardModule() {
           </Col>
 
           <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
-            <div className="whiteBox shadow pad20" style={{ height: '100%' , borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
+            <div className="whiteBox shadow pad20" style={{ height: '100%', borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
               <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
                 {translate('Top Telat Absen Bulan ini')}
               </h3>
@@ -201,10 +201,10 @@ export default function DashboardModule() {
         <div className="space30"></div>
         <Row gutter={[32, 32]}>
           <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }}>
-              <SummaryAttendance 
-                attendanceSummary={attendanceSummary} 
-                isLoading={attendanceSummaryLoading} 
-              />
+            <SummaryAttendance
+              attendanceSummary={attendanceSummary}
+              isLoading={attendanceSummaryLoading}
+            />
           </Col>
         </Row>
       </>

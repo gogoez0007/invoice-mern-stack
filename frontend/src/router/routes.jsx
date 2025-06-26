@@ -8,6 +8,8 @@ const NotFound = lazy(() => import('@/pages/NotFound.jsx'));
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
 const DashboardPanen = lazy(() => import('@/pages/DashboardPanen'));
 const DashboardBongkar = lazy(() => import('@/pages/DashboardBongkar'));
+const DashboardProductivity = lazy(() => import('@/pages/DashboarProductivity'));
+const DashboardPonds = lazy(() => import('@/pages/DashboardPonds'));
 const Customer = lazy(() => import('@/pages/Customer'));
 const Invoice = lazy(() => import('@/pages/Invoice'));
 const InvoiceCreate = lazy(() => import('@/pages/Invoice/InvoiceCreate'));
@@ -53,6 +55,11 @@ const ReviewTrade = lazy(() => import('@/pages/Review'));
 const ReviewTradeDetail = lazy(() => import('@/pages/Review/detailReview'));
 const SummaryPercentage = lazy(() => import('@/pages/Review/summaryPercentage'));
 
+//KPI
+const Kpi = lazy(() => import('@/pages/Kpi'));
+const KpiCreate = lazy(() => import('@/pages/Kpi/KpiCreate'));
+const KpiUpdate = lazy(() => import('@/pages/Kpi/KpiUpdate'))
+
 let routes = {
   expense: [],
   default: [
@@ -79,6 +86,14 @@ let routes = {
     {
       path: '/',
       element: <Dashboard />,
+    },
+    {
+      path: '/dashboard_productivity',
+      element: <DashboardProductivity />,
+    },
+    {
+      path: '/dashboard_ponds',
+      element: <DashboardPonds />,
     },
     {
       path: '/customer',
@@ -178,6 +193,18 @@ let routes = {
     {
       path: '/karyawan',
       element: <Karyawan />,
+    },
+    {
+      path: '/kpi',
+      element: <Kpi />,
+    },
+    {
+      path: '/kpi/create',
+      element: <KpiCreate />,
+    },
+    {
+      path: '/kpi/update/:id',
+      element: <KpiUpdate />,
     },
     {
       path: '/panen',

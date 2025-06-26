@@ -65,6 +65,20 @@ const INITIAL_STATE = {
     isLoading: false,
     isSuccess: false,
   },
+  productivity: {
+    result: null,
+    current: null,
+    period: null,
+    isLoading: false,
+    isSuccess: false,
+  },
+  ponds: {
+    result: null,
+    current: null,
+    period: null,
+    isLoading: false,
+    isSuccess: false,
+  },
 };
 
 const erpReducer = (state = INITIAL_STATE, action) => {
@@ -103,6 +117,7 @@ const erpReducer = (state = INITIAL_STATE, action) => {
         [keyState]: {
           result: payload,
           isLoading: false,
+          period: action.period ?? null, 
           isSuccess: true,
         },
       };

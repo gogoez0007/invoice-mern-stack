@@ -27,7 +27,7 @@ const FooterContent = () => {
       <img
         src={logoIcon}
         alt="Logo"
-        style={{ width: "30px", marginRight: "10px", verticalAlign: "middle" }}
+        style={{ width: "50px", marginRight: "10px", verticalAlign: "middle" }}
       />
       © 2025 Delta Marine - Back Office System
     </Footer>

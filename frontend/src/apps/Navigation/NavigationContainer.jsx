@@ -36,6 +36,7 @@ function Sidebar() {
 
   const isReviewer = ['cynthia', 'welli'];
   const isAdmin = ['hindri3578', 'dini3515'];
+  const isHR = ['silvya3515', 'jogi9104']; // tambahkan isHR
 
   const [collapsed, setCollapsed] = useState(isNavMenuClose);
   const [currentPath, setCurrentPath] = useState(
@@ -79,6 +80,14 @@ function Sidebar() {
         {
           key: 'summary_percentage',
           label: <Link to="/review/summary_percentage">Analisa randeman (%)</Link>,
+        },
+        {
+          key: 'productivity',
+          label: <Link to="/dashboard_productivity">Produktivias Truck</Link>,
+        },
+        {
+          key: 'summary_ponds',
+          label: <Link to="/dashboard_ponds">Analisa Kolam</Link>,
         },
       ],
     },
@@ -149,6 +158,10 @@ function Sidebar() {
           label: <Link to="/karyawan">Karyawan</Link>,
         },
         {
+          key: 'kpi',
+          label: <Link to="/kpi">Daftar KPI</Link>,
+        },
+        {
           key: 'lokasi',
           label: <Link to="/lokasi">Lokasi Office</Link>,
         },
@@ -160,18 +173,14 @@ function Sidebar() {
     },
   ];
 
-  const allowedReviewerKeys = ['dashboard', 'bongkar'];
-
   const filterMenuByRole = (items, username) => {
     if (isReviewer.includes(username)) {
-      const allowedReviewerKeys = ['dashboard', 'bongkar'];
-
       return items
         .filter(item => allowedReviewerKeys.includes(item.key))
         .map(item => {
           if (item.key === 'dashboard') {
             item.children = item.children?.filter(child =>
-              ['dashboard_panen', 'dashboard_bongkar', 'summary_percentage'].includes(child.key)
+              ['dashboard_panen', 'dashboard_bongkar', 'summary_percentage', 'productivity'].includes(child.key)
             );
           }
 
@@ -189,8 +198,18 @@ function Sidebar() {
       return items.filter(item => allowedAdminKeys.includes(item.key));
     }
 
+    if (isHR.includes(username)) {
+      return items.filter(item => item.key === 'dashboard' || item.key === 'manageHR').map(item => {
+        if (item.key === 'dashboard') {
+          item.children = item.children?.filter(child => child.key === 'dashboard_absen');
+        }
+        return item;
+      });
+    }
+
     return items;
   };
+
   const applyMenuStyles = (items) => {
     return items.map(item => {
       const styledItem = {
@@ -224,9 +243,9 @@ function Sidebar() {
   // Apply default style
   const styledItems = applyMenuStyles(filteredItems);
   const defaultOpenMenu = items
-
     .filter(item => item.children) // Ambil hanya menu yang memiliki anak
     .map(item => item.key);
+
   return (
     <Sider
       collapsible
@@ -261,7 +280,7 @@ function Sidebar() {
           src={logoIcon}
           alt="Logo"
           style={{
-            height: collapsed ? '40px' : '80px',
+            height: collapsed ? '20px' : '50px',
             width: 'auto',
             objectFit: 'contain',
             transition: 'all 0.2s',

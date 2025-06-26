@@ -58,8 +58,9 @@ const renderActiveShape = (props) => {
             />
             <path d={`M${sx},${sy}L${mx},${my}L${ex},${ey}`} stroke={fill} fill="none" />
             <circle cx={ex} cy={ey} r={2} fill={fill} stroke="none" />
-            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333">{`${payload.tag} ${valueInTon} Ton`}</text>
-            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#999">
+            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} textAnchor={textAnchor} fill="#333">{`${payload.tag}`}</text>
+            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={18} textAnchor={textAnchor} fill="#333">{`${valueInTon} Ton`}</text>
+            <text x={ex + (cos >= 0 ? 1 : -1) * 12} y={ey} dy={36} textAnchor={textAnchor} fill="#999">
                 {`${(percent * 100).toFixed(2)}%`}
             </text>
         </g>
@@ -150,7 +151,7 @@ export default function PanenPieChart({ title, filterMode = "tahun" }) {
                             nameKey="tag"
                             cx="50%"
                             cy="45%"
-                            innerRadius={60}
+                            innerRadius={80}
                             outerRadius={120}
                             fill="#8884d8"
                             onMouseEnter={onPieEnter}

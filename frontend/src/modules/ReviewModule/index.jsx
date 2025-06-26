@@ -96,8 +96,11 @@ const Review = () => {
 
   const handleAction = (item, actionType) => {
     if (actionType === 'Review') {
+      const name = item.name;
+      const monthSub = name.substring(3, 5);
+
       navigate('/review/process', {
-        state: { month, year, name: item.name },
+        state: { month: monthSub, year, name: name },
       });
     }
   };
