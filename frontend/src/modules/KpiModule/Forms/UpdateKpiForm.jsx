@@ -33,7 +33,7 @@ import { useNavigate } from 'react-router-dom';
 import './UpdateKpiForm.css'; // Import f
 const { Title } = Typography;
 
-const API_ENDPOINT = 'http://192.168.40.11:5000/api';
+const API_ENDPOINT = 'http://123.255.202.38:5000/api';
 
 // Fungsi debounce tanpa lodash
 function debounce(func, delay) {
