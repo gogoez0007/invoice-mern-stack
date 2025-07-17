@@ -30,7 +30,8 @@ import {
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
-import './UpdateKpiForm.css'; // Import f
+import * as XLSX from 'xlsx'; // Import library xlsx
+import './UpdateKpiForm.css';
 
 const { Option } = Select;
 const { TextArea } = Input;
@@ -58,6 +59,8 @@ const KPIForm = () => {
     const [fileList, setFileList] = useState([]);
     const [catatanList, setCatatanList] = useState([]);
     const [loadingDetails, setLoadingDetails] = useState(false);
+    const [sheetNames, setSheetNames] = useState([]); // State untuk nama sheet
+    const [selectedSheet, setSelectedSheet] = useState(null); // State untuk sheet yang dipilih
 
     const fetchKaryawan = useCallback(async (query) => {
         try {
@@ -91,7 +94,26 @@ const KPIForm = () => {
 
     const handleFileChange = (info) => {
         setFileList(info.fileList);
+        if (info.fileList.length > 0) {
+            const file = info.fileList[0].originFileObj;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                setSheetNames(workbook.SheetNames);
+                if (workbook.SheetNames.length > 0) {
+                    form.setFieldsValue({ sheet: workbook.SheetNames[0] }); // Otomatis pilih sheet pertama
+                    setSelectedSheet(workbook.SheetNames[0]);
+                }
+            };
+            reader.readAsArrayBuffer(file);
+        } else {
+            setSheetNames([]);
+            setSelectedSheet(null);
+            form.setFieldsValue({ sheet: undefined });
+        }
     };
+
 
     const handleFileUpload = async () => {
         try {
@@ -102,6 +124,7 @@ const KPIForm = () => {
             formData.append('bulan', form.getFieldValue('bulan'));
             formData.append('tahun', dayjs(form.getFieldValue('tahun')).format('YYYY'));
             formData.append('kpi_file', fileList[0]?.originFileObj);
+            formData.append('sheet_name', selectedSheet); // Kirim nama sheet yang dipilih
 
             setUploading(true);
 
@@ -129,7 +152,6 @@ const KPIForm = () => {
         try {
             const response = await axios.get(`${API_ENDPOINT}/kpi/${id}`);
 
-            // Add checks to ensure the data is an array before setting the state
             const details = Array.isArray(response.data.result.detail) ? response.data.result.detail : [];
             const catatan = Array.isArray(response.data.result.catatan) ? response.data.result.catatan : [];
 
@@ -139,8 +161,8 @@ const KPIForm = () => {
         } catch (error) {
             console.error('Gagal mengambil detail KPI:', error);
             message.error('Gagal mengambil detail KPI.');
-            setKpiDetails([]); // Important: Set to empty array on error
-            setCatatanList([]); // Important: Set to empty array on error
+            setKpiDetails([]);
+            setCatatanList([]);
 
         } finally {
             setLoadingDetails(false);
@@ -148,7 +170,7 @@ const KPIForm = () => {
     };
 
     const isTemporaryId = (id) => {
-        return typeof id === 'number' && id > 1000000000000; // Adjust the threshold as needed
+        return typeof id === 'number' && id > 1000000000000;
     };
 
 
@@ -189,7 +211,7 @@ const KPIForm = () => {
 
     const handleAddDetail = () => {
         const newDetail = {
-            id: new Date().getTime(), // Temporary ID
+            id: new Date().getTime(),
             deskripsi: '',
             parameter: '',
             target: '',
@@ -215,7 +237,7 @@ const KPIForm = () => {
 
     const handleAddCatatan = () => {
         const newCatatan = {
-            id: new Date().getTime(), // Temporary ID
+            id: new Date().getTime(),
             isi_catatan: ''
         };
         setCatatanList([...catatanList, newCatatan]);
@@ -245,14 +267,7 @@ const KPIForm = () => {
                     value={text}
                     onChange={(e) => handleDetailChange(record, 'deskripsi', e.target.value)}
                     autoSize={{ minRows: 3, maxRows: 5 }}
-                    style={{
-                        width: '100%',
-                        margin: 0,
-                        padding: '4px',
-                        fontSize: '12px',
-                        border: '1px solid #d9d9d9',
-                        borderRadius: '6px',
-                    }}
+                    style={{ width: '100%', margin: 0, padding: '4px', fontSize: '12px', border: '1px solid #d9d9d9', borderRadius: '6px' }}
                 />
             ),
         },
@@ -267,14 +282,7 @@ const KPIForm = () => {
                     value={text}
                     onChange={(e) => handleDetailChange(record, 'parameter', e.target.value)}
                     autoSize={{ minRows: 3, maxRows: 5 }}
-                    style={{
-                        width: '100%',
-                        margin: 0,
-                        padding: '4px',
-                        fontSize: '12px',
-                        border: '1px solid #d9d9d9',
-                        borderRadius: '6px',
-                    }}
+                    style={{ width: '100%', margin: 0, padding: '4px', fontSize: '12px', border: '1px solid #d9d9d9', borderRadius: '6px' }}
                 />
             ),
         },
@@ -289,14 +297,7 @@ const KPIForm = () => {
                     value={text}
                     onChange={(e) => handleDetailChange(record, 'target', e.target.value)}
                     autoSize={{ minRows: 3, maxRows: 10 }}
-                    style={{
-                        width: '100%',
-                        margin: 0,
-                        padding: '4px',
-                        fontSize: '12px',
-                        border: '1px solid #d9d9d9',
-                        borderRadius: '6px',
-                    }}
+                    style={{ width: '100%', margin: 0, padding: '4px', fontSize: '12px', border: '1px solid #d9d9d9', borderRadius: '6px' }}
                 />
             ),
         },
@@ -309,14 +310,7 @@ const KPIForm = () => {
                 <InputNumber
                     value={text}
                     onChange={(value) => handleDetailChange(record, 'bobot', value)}
-                    style={{
-                        width: '100%',
-                        margin: 0,
-                        padding: '4px',
-                        fontSize: '12px',
-                        border: '1px solid #d9d9d9',
-                        borderRadius: '6px',
-                    }}
+                    style={{ width: '100%', margin: 0, padding: '4px', fontSize: '12px', border: '1px solid #d9d9d9', borderRadius: '6px' }}
                 />
             ),
         },
@@ -329,14 +323,7 @@ const KPIForm = () => {
                 <InputNumber
                     value={text}
                     onChange={(value) => handleDetailChange(record, 'realisassi', value)}
-                    style={{
-                        width: '100%',
-                        margin: 0,
-                        padding: '4px',
-                        fontSize: '12px',
-                        border: '1px solid #d9d9d9',
-                        borderRadius: '6px',
-                    }}
+                    style={{ width: '100%', margin: 0, padding: '4px', fontSize: '12px', border: '1px solid #d9d9d9', borderRadius: '6px' }}
                 />
             ),
         },
@@ -349,14 +336,7 @@ const KPIForm = () => {
                 <InputNumber
                     value={text}
                     onChange={(value) => handleDetailChange(record, 'score', value)}
-                    style={{
-                        width: '100%',
-                        margin: 0,
-                        padding: '4px',
-                        fontSize: '12px',
-                        border: '1px solid #d9d9d9',
-                        borderRadius: '6px',
-                    }}
+                    style={{ width: '100%', margin: 0, padding: '4px', fontSize: '12px', border: '1px solid #d9d9d9', borderRadius: '6px' }}
                 />
             ),
         },
@@ -370,14 +350,7 @@ const KPIForm = () => {
                 <Input.TextArea
                     value={text}
                     onChange={(e) => handleDetailChange(record, 'catatan', e.target.value)}
-                    style={{
-                        width: '100%',
-                        margin: 0,
-                        padding: '4px',
-                        fontSize: '12px',
-                        border: '1px solid #d9d9d9',
-                        borderRadius: '6px',
-                    }}
+                    style={{ width: '100%', margin: 0, padding: '4px', fontSize: '12px', border: '1px solid #d9d9d9', borderRadius: '6px' }}
                 />
             ),
         },
@@ -401,24 +374,10 @@ const KPIForm = () => {
                     value={text}
                     onChange={(e) => handleCatatanChange(record, e.target.value)}
                     autoSize={{ minRows: 3, maxRows: 5 }}
-                    style={{
-                        width: '100%',
-                        margin: 0,
-                        padding: '4px',
-                        fontSize: '12px',
-                        border: '1px solid #d9d9d9',
-                        borderRadius: '6px',
-                    }}
+                    style={{ width: '100%', margin: 0, padding: '4px', fontSize: '12px', border: '1px solid #d9d9d9', borderRadius: '6px' }}
                 />
             ),
         },
-        // {
-        //     title: 'Action',
-        //     key: 'action',
-        //     render: (text, record) => (
-        //         <Button danger icon={<DeleteOutlined />} onClick={() => handleDeleteCatatan(record)} />
-        //     ),
-        // },
     ], [handleCatatanChange]);
 
     return (
@@ -469,20 +428,41 @@ const KPIForm = () => {
                         </Col>
                     </Row>
 
-                    <Form.Item
-                        label={<span><FileExcelOutlined /> File Excel</span>}
-                        name="excelFile"
-                        rules={[{ required: true, message: 'Upload file Excel' }]}
-                    >
-                        <Upload
-                            beforeUpload={() => false}
-                            onChange={handleFileChange}
-                            fileList={fileList}
-                            multiple={false}
-                        >
-                            <Button icon={<UploadOutlined />}>Pilih File</Button>
-                        </Upload>
-                    </Form.Item>
+                    <Row gutter={16}>
+                        <Col span={12}>
+                            <Form.Item
+                                label={<span><FileExcelOutlined /> File Excel</span>}
+                                name="excelFile"
+                                rules={[{ required: true, message: 'Upload file Excel' }]}
+                            >
+                                <Upload
+                                    beforeUpload={() => false}
+                                    onChange={handleFileChange}
+                                    fileList={fileList}
+                                    multiple={false}
+                                >
+                                    <Button icon={<UploadOutlined />}>Pilih File</Button>
+                                </Upload>
+                            </Form.Item>
+                        </Col>
+                        <Col span={12}>
+                            <Form.Item
+                                label="Pilih Sheet"
+                                name="sheet"
+                                rules={[{ required: true, message: 'Pilih sheet yang akan diimpor' }]}
+                            >
+                                <Select
+                                    placeholder="Pilih sheet"
+                                    onChange={(value) => setSelectedSheet(value)}
+                                    disabled={fileList.length === 0}
+                                >
+                                    {sheetNames.map(sheet => (
+                                        <Option key={sheet} value={sheet}>{sheet}</Option>
+                                    ))}
+                                </Select>
+                            </Form.Item>
+                        </Col>
+                    </Row>
 
                     <Form.Item>
                         <Button type="primary" htmlType="submit" disabled={uploading} loading={uploading} icon={<CheckCircleOutlined />}>
