@@ -9,7 +9,7 @@ export default function bongkar() {
 
 
   const searchConfig = {
-    entity: 'tambak',
+    entity: 'kpi',
     displayLabels: ['name'],
     searchFields: 'name',
   };
