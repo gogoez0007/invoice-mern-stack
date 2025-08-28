@@ -25,6 +25,7 @@ import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { useDate } from '@/settings';
 import dayjs from 'dayjs';
+import { API_BASE_URL } from '@/config/serverApiConfig';
 
 const { Option } = Select;
 const { Title, Text } = Typography;
@@ -76,7 +77,7 @@ const Review = () => {
         params.year = year;
       }
 
-      const res = await axios.get(`http://localhost:5000/api/review`, { params });
+      const res = await axios.get(`${API_BASE_URL}review`, { params });
       setData(res.data.data);
       setSelectedStatus(null);
       setCurrentPage(1);
