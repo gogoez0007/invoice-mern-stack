@@ -36,16 +36,12 @@ function includeToken() {
     }
 }
 
-/** ====== Util angka (locale Indonesia) — sama dengan yang kamu pakai ======
- *  - formatter: tampilan ribuan '.' dan desimal ','
- *  - parser: buang ribuan & ganti ',' jadi '.'
- *  Pakai di <InputNumber {...numberID} stringMode />
- */
+/** ====== Util angka (locale Indonesia) — sama dengan yang di create ====== */
 const numberID = {
     formatter: (val) => {
         if (val === null || val === undefined || val === '') return '';
         const s = String(val);
-        const norm = s.replace(',', '.'); // normalisasi
+        const norm = s.replace(',', '.');
         const parts = norm.split('.');
         const intPartRaw = parts[0];
         const decPart = parts[1];
@@ -59,7 +55,6 @@ const numberID = {
     },
 };
 
-// parse aman ke number
 const toNum = (v) => {
     const n = Number(v);
     return Number.isFinite(n) ? n : 0;
@@ -67,8 +62,8 @@ const toNum = (v) => {
 
 export default function BongkarFormUpdate({
     translate,
-    itemsByPosition = {},        // existing bongkar grouped by posisi (untuk edit)
-    currentErp = {},             // { id, panen_id, ... }
+    itemsByPosition = {},
+    currentErp = {},
     dateFormat = 'YYYY-MM-DD',
     formatNumber = (n) => (n || 0).toLocaleString('id-ID'),
     onSubmit,
@@ -85,8 +80,6 @@ export default function BongkarFormUpdate({
     const [potPercentageDisabled, setPotPercentageDisabled] = useState(true);
     const [subtotalDisabled, setSubtotalDisabled] = useState(true);
 
-    // Struktur lokal per posisi -> array of rows
-    // Row: {_localKey?, id?, id_detail_panen, berat_bongkar, size, kualitas, persen_molting, harga, subtotal, tanggal, spb_ids?, spb_alokasi?{}}
     const [localDetailBongkar, setLocalDetailBongkar] = useState({});
     const [modifiedDetail, setModifiedDetail] = useState([]);
 
@@ -95,27 +88,23 @@ export default function BongkarFormUpdate({
     const [spbLoading, setSpbLoading] = useState(false);
     const [spbMap, setSpbMap] = useState({}); // id -> no_spb
 
-    const fetchSPB = async (q = '') => {
-        try {
-            setSpbLoading(true);
-            includeToken();
-            const { data } = await axios.get('spb/search', { params: { q } });
-            const list = (data?.result || data?.data || []).map((d) => ({
-                label: d.no_spb, value: d.id,
-            }));
-            setSpbOptions(list);
-            const dict = {};
-            list.forEach((it) => { dict[String(it.value)] = it.label; });
-            setSpbMap(dict);
-        } catch (_) {
-            // ignore
-        } finally {
-            setSpbLoading(false);
-        }
-    };
+    function fetchSPB(q = '') {
+        (async () => {
+            try {
+                setSpbLoading(true);
+                includeToken();
+                const { data } = await axios.get('spb/search', { params: { q } });
+                const list = (data?.result || data?.data || []).map((d) => ({ label: d.no_spb, value: d.id }));
+                setSpbOptions(list);
+                const dict = {};
+                list.forEach((it) => { dict[String(it.value)] = it.label; });
+                setSpbMap(dict);
+            } catch (_) { } finally { setSpbLoading(false); }
+        })();
+    }
     useEffect(() => { fetchSPB(''); }, []);
 
-    // ===== Prefill form dari currentErp (tanpa no_spb) =====
+    // ===== Prefill form =====
     useEffect(() => {
         form.setFieldsValue({
             tanggal_panen: currentErp?.tanggal_panen ? dayjs(currentErp.tanggal_panen) : null,
@@ -130,7 +119,7 @@ export default function BongkarFormUpdate({
         setSubtotalNota(currentErp?.sub_total ?? '');
     }, [currentErp, form]);
 
-    // ===== Seed details dari hasil read (itemsByPosition) =====
+    // ===== Seed details dari hasil read =====
     useEffect(() => {
         const grouped = {};
         Object.keys(itemsByPosition || {}).forEach((pos) => {
@@ -154,6 +143,7 @@ export default function BongkarFormUpdate({
                     persen_molting: it.persen_molting ?? '',
                     harga: it.harga ?? '',
                     subtotal: it.sub_total ?? it.subtotal ?? '',
+                    subtotal_manual: false,
                     spb_ids,
                     spb_alokasi,
                 };
@@ -162,7 +152,7 @@ export default function BongkarFormUpdate({
         setLocalDetailBongkar(grouped);
     }, [itemsByPosition]);
 
-    // ===== Mutual exclude Pot(%) vs Subtotal Nota =====
+    // ===== Mutual exclude Pot vs Subtotal Nota =====
     const updateFormValue = useCallback((field, value) => {
         if (value !== form.getFieldValue(field)) form.setFieldsValue({ [field]: value });
     }, [form]);
@@ -187,7 +177,7 @@ export default function BongkarFormUpdate({
         updateFormValue('master_sub_total', value);
     };
 
-    // ====== Fetch master + detail panen by panen_id (auto) ======
+    // ===== Fetch panen by id =====
     const fetchPanenById = useCallback(async (panenId) => {
         if (!panenId) return;
         try {
@@ -216,7 +206,7 @@ export default function BongkarFormUpdate({
                 const resAlt = await axios.get(`panen/${panenId}`);
                 const p = resAlt?.data;
                 if (p) setPanenData({ ...p, detail: p.detail || p.details || [] });
-            } catch (_) { /* ignore */ }
+            } catch (_) { }
         }
     }, []);
 
@@ -225,7 +215,7 @@ export default function BongkarFormUpdate({
         fetchPanenById(pid);
     }, [currentErp?.panen_id, currentErp?.id_panen, fetchPanenById, form]);
 
-    // ===== Utilities =====
+    // ===== Utils =====
     const recalcSubtotal = (detail) => {
         const berat = toNum(detail.berat_bongkar);
         const harga = toNum(detail.harga);
@@ -245,7 +235,7 @@ export default function BongkarFormUpdate({
         });
     };
 
-    // ===== validasi alokasi SPB saat > 1 =====
+    // ===== validasi alokasi SPB =====
     const validateSPBAllocations = () => {
         const errors = [];
         Object.entries(localDetailBongkar).forEach(([posisi, rows]) => {
@@ -266,11 +256,12 @@ export default function BongkarFormUpdate({
         return errors;
     };
 
-    // ===== Handlers: edit / add / remove =====
+    // ===== Handlers row (termasuk subtotal_manual) =====
     const onChangeRow = (posisi, idx, field, value) => {
         setLocalDetailBongkar((prev) => {
             const next = { ...prev };
-            const row = { ...(next[posisi]?.[idx] || {}) };
+            const row0 = (next[posisi] || [])[idx] || {};
+            const row = { ...row0, [field]: value };
 
             if (field === 'spb_ids') {
                 const selected = value || [];
@@ -287,9 +278,13 @@ export default function BongkarFormUpdate({
                 row.spb_alokasi = currentAlloc;
             } else if (field === 'spb_alokasi') {
                 row.spb_alokasi = value || {};
-            } else {
-                row[field] = value;
-                if (['berat_bongkar', 'harga', 'persen_molting'].includes(field)) row.subtotal = recalcSubtotal(row);
+            } else if (field === 'subtotal') {
+                const empty = value === '' || value === null || value === undefined;
+                row.subtotal_manual = !empty; // kosongkan -> kembali auto
+            } else if (['berat_bongkar', 'harga', 'persen_molting'].includes(field)) {
+                if (!row.subtotal_manual) {
+                    row.subtotal = recalcSubtotal(row);
+                }
             }
 
             const updated = [...(next[posisi] || [])];
@@ -379,6 +374,7 @@ export default function BongkarFormUpdate({
                 persen_molting: '',
                 harga: '',
                 subtotal: '',
+                subtotal_manual: false,
                 spb_ids: [],
                 spb_alokasi: {},
             });
@@ -471,8 +467,8 @@ export default function BongkarFormUpdate({
                 ...values,
                 tanggal_bongkar: values.tanggal_bongkar ? dayjs(values.tanggal_bongkar).format('YYYY-MM-DD') : null,
                 id: currentErp?.id,
-                details: normalizedDetails,           // legacy mode
-                localDetailBongkar: localForPayload,  // new mode (SPB)
+                details: normalizedDetails,
+                localDetailBongkar: localForPayload,
             };
 
             if (onSubmit) onSubmit(payload);
@@ -735,9 +731,9 @@ export default function BongkarFormUpdate({
                                                                                         {...numberID}
                                                                                         stringMode
                                                                                         precision={2}
-                                                                                        disabled
                                                                                         style={{ width: '100%' }}
-                                                                                        value={toNum(row.subtotal).toFixed(2)}
+                                                                                        value={row.subtotal}
+                                                                                        onChange={(v) => onChangeRow(posisi, idx, 'subtotal', v)}
                                                                                     />
                                                                                 </Col>
                                                                                 <Col span={2}>
