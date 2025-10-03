@@ -7,12 +7,13 @@ export default function bongkar() {
   const translate = useLanguage();
   const entity = 'bongkar';
 
-  
+
   const searchConfig = {
-    entity: 'tambak',
-    displayLabels: ['name'],
-    searchFields: 'name',
+    entity: 'bongkar',
+    displayLabels: ['nama_pabrik', 'nopol', 'tanggal_bongkar'],
+    searchFields: ['nama_pabrik'],
   };
+
   const deleteModalLabels = ['number', 'tambak.name'];
   const dataTableColumns = [
     {

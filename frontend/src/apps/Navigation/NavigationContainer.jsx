@@ -116,6 +116,17 @@ function Sidebar() {
       ],
     },
     {
+      key: 'SPB',
+      icon: <BoxPlotTwoTone />,
+      label: translate('Permintaan Barang'),
+      children: [
+        {
+          key: 'spb/list',
+          label: <Link to="/spb">List SPB</Link>,
+        },
+      ],
+    },
+    {
       key: 'tambak',
       icon: <AppstoreTwoTone />,
       label: translate('Data Tambak'),
@@ -193,7 +204,7 @@ function Sidebar() {
     }
 
     if (isAdmin.includes(username)) {
-      const allowedAdminKeys = ['panen', 'bongkar', 'tambak', 'kualitas', 'listDriver'];
+      const allowedAdminKeys = ['panen', 'bongkar', 'tambak', 'kualitas', 'listDriver', 'SPB'];
 
       return items.filter(item => allowedAdminKeys.includes(item.key));
     }

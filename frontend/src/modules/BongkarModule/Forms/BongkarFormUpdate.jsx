@@ -1,563 +1,864 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
-    Card,
-    Typography,
-    Table,
-    Row,
-    Col,
-    Input,
-    DatePicker,
-    Form,
-    Button,
-    Popconfirm,
-    message  // Import message dari antd
+    Form, Input, InputNumber, Button, DatePicker, Select,
+    Row, Col, Card, Modal, Table, Typography, Divider, message, Empty, Tag, Popconfirm
 } from 'antd';
+import {
+    PlusOutlined, MinusCircleOutlined, CheckOutlined,
+    ShoppingOutlined, DatabaseOutlined, FileTextOutlined,
+    PercentageOutlined, DollarOutlined, CalendarOutlined,
+    NumberOutlined, BarcodeOutlined, StarOutlined
+} from '@ant-design/icons';
 import dayjs from 'dayjs';
-import utc from 'dayjs/plugin/utc';
-import timezone from 'dayjs/plugin/timezone';
-import { EditOutlined, CloseOutlined, SaveOutlined, MinusCircleOutlined, PlusOutlined } from '@ant-design/icons';
+import axios from 'axios';
+import { API_BASE_URL } from '@/config/serverApiConfig';
+import storePersist from '@/redux/storePersist';
 
 const { Text } = Typography;
 
-const positionColors = {
-    "Depan": "#2980B9",
-    "Tengah": "#27AE60",
-    "Belakang": "#F39C12"
-};
-
+// ===== Helpers / constants =====
+const positionColors = { Depan: '#FFA500', Tengah: '#4CAF50', Belakang: '#2196F3' };
 const cardStyle = {
-    marginBottom: 16,
+    marginBottom: 20,
+    border: '1px solid #e8e8e8',
     borderRadius: 8,
-    border: '1px solid #ddd',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.09)',
 };
 
-dayjs.extend(utc);
-dayjs.extend(timezone);
+function includeToken() {
+    axios.defaults.baseURL = API_BASE_URL;
+    axios.defaults.withCredentials = true;
+    const auth = storePersist.get('auth');
+    if (auth?.current?.token) {
+        axios.defaults.headers.common['Authorization'] = `Bearer ${auth.current.token}`;
+    } else {
+        delete axios.defaults.headers.common['Authorization'];
+    }
+}
 
-// Set zona waktu default aplikasi Anda (misalnya, 'Asia/Jakarta')
-const timezoneName = 'Asia/Jakarta';
-dayjs.tz.setDefault(timezoneName);
+// ===== Number formatting helpers (tanpa currency) =====
+const nfID = new Intl.NumberFormat('id-ID');
+const formatInput = (val) => {
+    if (val === undefined || val === null || val === '') return '';
+    const num = typeof val === 'number'
+        ? val
+        : Number(String(val).replace(/\./g, '').replace(',', '.'));
+    if (!Number.isFinite(num)) return '';
+    return nfID.format(num); // ribuan dengan titik, desimal koma
+};
+const parseInput = (val) => {
+    if (val === undefined || val === null || val === '') return '';
+    const cleaned = String(val).replace(/\./g, '').replace(',', '.');
+    const num = Number(cleaned);
+    return Number.isNaN(num) ? '' : num;
+};
 
-const BongkarFormUpdate = ({
+export default function BongkarFormUpdate({
     translate,
-    itemsByPosition,
-    currentErp,
-    dateFormat,
-    formatNumber,
-    onSubmit
-}) => {
+    itemsByPosition = {},        // existing bongkar grouped by posisi (untuk edit)
+    currentErp = {},             // { id, panen_id, ... }
+    dateFormat = 'YYYY-MM-DD',
+    formatNumber = (n) => (n || 0).toLocaleString('id-ID'),
+    onSubmit,
+}) {
     const [form] = Form.useForm();
-    const [editingKey, setEditingKey] = useState('');
-    const [modifiedDetail, setModifiedDetail] = useState([]);
-    const [dataSource, setDataSource] = useState([]);
-    const [editCache, setEditCache] = useState({});
-    const inputRef = useRef(null);
+
+    // ===== State =====
+    const [panenData, setPanenData] = useState(null);
+    const [showPanenSelection, setShowPanenSelection] = useState(false);
+    const [currentPosisi, setCurrentPosisi] = useState(null);
 
     const [potPercentage, setPotPercentage] = useState('');
-    const [subtotal, setSubtotal] = useState('');
+    const [subtotalNota, setSubtotalNota] = useState('');
     const [potPercentageDisabled, setPotPercentageDisabled] = useState(true);
     const [subtotalDisabled, setSubtotalDisabled] = useState(true);
 
-    const updateFormValue = useCallback((fieldName, value) => {
-        if (value !== form.getFieldValue(fieldName)) {
-            form.setFieldsValue({ [fieldName]: value });
+    // Struktur lokal per posisi -> array of rows
+    // Row: {_localKey?, id?, id_detail_panen, berat_bongkar, size, kualitas, persen_molting, harga, subtotal, tanggal, spb_ids?, spb_alokasi?{}}
+    const [localDetailBongkar, setLocalDetailBongkar] = useState({});
+    const [modifiedDetail, setModifiedDetail] = useState([]);
+
+    // ====== SPB lookup ======
+    const [spbOptions, setSpbOptions] = useState([]);
+    const [spbLoading, setSpbLoading] = useState(false);
+    const [spbMap, setSpbMap] = useState({}); // id -> no_spb
+
+    const fetchSPB = async (q = '') => {
+        try {
+            setSpbLoading(true);
+            includeToken();
+            const { data } = await axios.get('spb/search', { params: { q } });
+            const list = (data?.result || data?.data || []).map((d) => ({
+                label: d.no_spb, value: d.id,
+            }));
+            setSpbOptions(list);
+            const dict = {};
+            list.forEach((it) => { dict[it.value] = it.label; });
+            setSpbMap(dict);
+        } catch (_) {
+            // ignore
+        } finally {
+            setSpbLoading(false);
         }
+    };
+    useEffect(() => { fetchSPB(''); }, []);
+
+    // ===== Prefill form dari currentErp (tanpa no_spb) =====
+    useEffect(() => {
+        form.setFieldsValue({
+            tanggal_panen: currentErp?.tanggal_panen ? dayjs(currentErp.tanggal_panen) : null,
+            nopol: currentErp?.nopol,
+            nama_pabrik: currentErp?.nama_pabrik || currentErp?.pabrik,
+            tanggal_bongkar: currentErp?.tanggal_bongkar ? dayjs(currentErp.tanggal_bongkar) : null,
+            persen_potongan: currentErp?.persen_potongan,
+            master_sub_total: currentErp?.sub_total,
+            id_panen: currentErp?.panen_id ?? currentErp?.id_panen ?? undefined,
+        });
+        setPotPercentage(currentErp?.persen_potongan ?? '');
+        setSubtotalNota(currentErp?.sub_total ?? '');
+    }, [currentErp, form]);
+
+    // ===== Seed details dari hasil read (itemsByPosition) =====
+    useEffect(() => {
+        const grouped = {};
+        Object.keys(itemsByPosition || {}).forEach((pos) => {
+            grouped[pos] = (itemsByPosition[pos] || []).map((it) => {
+                const rels = Array.isArray(it.spb_relations) ? it.spb_relations : [];
+                const spb_ids = rels.map((r) => r.permintaan_id ?? r.id);
+                const spb_alokasi = {};
+                rels.forEach((r) => { spb_alokasi[String(r.permintaan_id ?? r.id)] = r.alokasi_qty ?? null; });
+
+                return {
+                    _localKey: `seed-${it.id || Math.random()}`,
+                    id: it.id,
+                    posisi: it.posisi || pos,
+                    id_detail_panen: it.detail_panen_id ?? it.detailPanenId ?? null,
+                    detail_bongkar_id: it.detail_bongkar_id ?? it.detailBongkarId ?? it.urutan ?? null,
+                    urutan: it.urutan ?? it.detail_bongkar_id ?? null,
+                    tanggal: it.tanggal || it.created_date || null,
+                    berat_bongkar: it.berat_bongkar ?? '',
+                    size: it.size ?? '',
+                    kualitas: it.kualitas ?? '',
+                    persen_molting: it.persen_molting ?? '',
+                    harga: it.harga ?? '',
+                    subtotal: it.sub_total ?? it.subtotal ?? '',
+                    spb_ids,
+                    spb_alokasi,
+                };
+            });
+        });
+        setLocalDetailBongkar(grouped);
+    }, [itemsByPosition]);
+
+    // ===== Mutual exclude Pot(%) vs Subtotal Nota =====
+    const updateFormValue = useCallback((field, value) => {
+        if (value !== form.getFieldValue(field)) form.setFieldsValue({ [field]: value });
     }, [form]);
 
     useEffect(() => {
-        if (subtotal.length > 0) {
-            updateFormValue('persen_potongan', '');
-        } else {
-            updateFormValue('master_sub_total', '');
+        const hasSubtotal = !(subtotalNota === '' || subtotalNota === null || subtotalNota === undefined);
+        const hasPot = !(potPercentage === '' || potPercentage === null || potPercentage === undefined);
+
+        if (hasSubtotal) updateFormValue('persen_potongan', '');
+        else updateFormValue('master_sub_total', '');
+
+        setPotPercentageDisabled(hasSubtotal);
+        setSubtotalDisabled(hasPot);
+    }, [potPercentage, subtotalNota, updateFormValue]);
+
+    const handlePotPercentageChange = (value) => {
+        setPotPercentage(value);
+        updateFormValue('persen_potongan', value);
+    };
+    const handleSubtotalChange = (value) => {
+        setSubtotalNota(value);
+        updateFormValue('master_sub_total', value);
+    };
+
+    // ====== Fetch master + detail panen by panen_id (auto) ======
+    const fetchPanenById = useCallback(async (panenId) => {
+        if (!panenId) return;
+        try {
+            includeToken();
+            const res = await axios.get(`panen/read/${panenId}`);
+            const payload = res?.data?.result || res?.data?.data || res?.data;
+            if (!payload) return;
+
+            const normalized = {
+                id: payload.id ?? panenId,
+                nopol: payload.nopol,
+                staff: payload.staff,
+                lokasi: payload.lokasi,
+                nama_perusahaan: payload.nama_perusahaan,
+                detail: (payload.detail || payload.details || []).map((d) => ({
+                    id: d.id,
+                    created_date: d.created_date || d.tanggal,
+                    berat: d.berat ?? d.weight,
+                    size: d.size,
+                    posisi: d.posisi,
+                })),
+            };
+            setPanenData(normalized);
+        } catch (e) {
+            try {
+                const resAlt = await axios.get(`panen/${panenId}`);
+                const p = resAlt?.data;
+                if (p) setPanenData({ ...p, detail: p.detail || p.details || [] });
+            } catch (_) { /* ignore */ }
         }
-
-        setPotPercentageDisabled(subtotal.length > 0);
-        setSubtotalDisabled(potPercentage.length > 0);
-    }, [potPercentage, subtotal]);
-
-
-    const handlePotPercentageChange = useCallback((e) => {
-        const val = e.target.value;
-        setPotPercentage(val);
-        updateFormValue('persen_potongan', val);
-    }, [updateFormValue]);
-
-    const handleSubtotalChange = useCallback((e) => {
-        const val = e.target.value;
-        setSubtotal(val);
-        updateFormValue('master_sub_total', val);
-    }, [updateFormValue]);
+    }, []);
 
     useEffect(() => {
-        form.setFieldsValue({
-            nama_pabrik: currentErp?.nama_pabrik,
-            tanggal_bongkar: currentErp?.tanggal_bongkar ? dayjs(currentErp?.tanggal_bongkar) : null,
-            nopol: currentErp?.nopol,
-            staff: currentErp?.staff,
-            lokasi: currentErp?.lokasi,
-            nama_perusahaan: currentErp?.nama_perusahaan,
-            petambak: currentErp?.petambak,
-            persen_potongan: currentErp?.persen_potongan,
-            master_sub_total: currentErp.sub_total,
-            no_spb: currentErp.no_spb
+        const pid = currentErp?.panen_id ?? currentErp?.id_panen ?? form.getFieldValue('id_panen');
+        fetchPanenById(pid);
+    }, [currentErp?.panen_id, currentErp?.id_panen, fetchPanenById, form]);
+
+    // ===== Utilities =====
+    const recalcSubtotal = (detail) => {
+        const berat = parseFloat(detail.berat_bongkar) || 0;
+        const harga = parseFloat(detail.harga) || 0;
+        const molting = parseFloat(detail.persen_molting) || 0;
+        return berat * harga - berat * harga * (molting / 100);
+    };
+
+    const upsertModified = (predicate, patch) => {
+        setModifiedDetail((prev) => {
+            const i = prev.findIndex(predicate);
+            if (i > -1) {
+                const copy = [...prev];
+                copy[i] = { ...copy[i], ...patch };
+                return copy;
+            }
+            return [...prev, patch];
         });
-    }, [currentErp, form]);
+    };
 
-    useEffect(() => {
-        const newDataSource = [];
-        Object.keys(itemsByPosition).forEach(posisi => {
-            const details = itemsByPosition[posisi] || [];
-            details.forEach(item => {
-                newDataSource.push({ ...item, key: item.id });
+    // ===== validasi alokasi SPB saat > 1 =====
+    const validateSPBAllocations = () => {
+        const errors = [];
+        Object.entries(localDetailBongkar).forEach(([posisi, rows]) => {
+            (rows || []).forEach((row, idx) => {
+                const ids = row.spb_ids || [];
+                if (ids.length > 1) {
+                    const alloc = row.spb_alokasi || {};
+                    for (const id of ids) {
+                        const key = String(id);
+                        const val = Number(alloc[key]);
+                        if (!Number.isFinite(val) || val < 0) {
+                            errors.push(`Posisi ${posisi} baris ${idx + 1}: alokasi untuk SPB ${spbMap[key] || key} harus angka ≥ 0`);
+                        }
+                    }
+                }
             });
         });
-        setDataSource(newDataSource);
-    }, [itemsByPosition]);
-
-    useEffect(() => {
-        if (editingKey && inputRef.current) {
-            inputRef.current.focus();
-        }
-    }, [editingKey]);
-
-    const isEditing = (record) => record.key === editingKey;
-
-    const edit = (record) => {
-        form.setFieldsValue({
-            ...record,
-            tanggal: record.tanggal ? dayjs(record.tanggal) : null,
-        });
-        setEditCache({ ...record })
-        setEditingKey(record.key);
+        return errors;
     };
 
-    const cancel = () => {
-        const newData = [...dataSource];
-        const index = newData.findIndex((item) => editCache.key === item.key);
-        if (index > -1) {
-            newData.splice(index, 1, editCache);
-            setDataSource(newData);
-            setEditingKey('');
+    // ===== Handlers: edit / add / remove =====
+    const onChangeRow = (posisi, idx, field, value) => {
+        setLocalDetailBongkar((prev) => {
+            const next = { ...prev };
+            const row = { ...(next[posisi]?.[idx] || {}) };
+
+            if (field === 'spb_ids') {
+                const selected = value || [];
+                const currentAlloc = row.spb_alokasi || {};
+                Object.keys(currentAlloc).forEach((k) => {
+                    const nk = String(k);
+                    if (!selected.includes(Number(nk)) && !selected.includes(nk)) delete currentAlloc[nk];
+                });
+                selected.forEach((sid) => {
+                    const nk = String(sid);
+                    if (currentAlloc[nk] === undefined) currentAlloc[nk] = 0;
+                });
+                row.spb_ids = selected;
+                row.spb_alokasi = currentAlloc;
+            } else if (field === 'spb_alokasi') {
+                row.spb_alokasi = value || {};
+            } else {
+                row[field] = value;
+                if (['berat_bongkar', 'harga', 'persen_molting'].includes(field)) row.subtotal = recalcSubtotal(row);
+            }
+
+            const updated = [...(next[posisi] || [])];
+            updated[idx] = row;
+            next[posisi] = updated;
+
+            const pinnedDetailId = row.id_detail_panen ?? null;
+            const patchCommon = {
+                posisi: row.posisi || posisi,
+                detail_panen_id: pinnedDetailId,
+                detail_bongkar_id: row.detail_bongkar_id ?? row.urutan ?? null,
+                tanggal: row.tanggal || null,
+                berat_bongkar: row.berat_bongkar,
+                size: row.size,
+                kualitas: row.kualitas,
+                persen_molting: row.persen_molting,
+                harga: row.harga,
+                sub_total: row.subtotal,
+                spb_ids: row.spb_ids || [],
+                spb_alokasi: row.spb_alokasi || {},
+            };
+
+            if (row.id) {
+                upsertModified((d) => d.id === row.id && d.action !== 'delete', {
+                    action: 'edit',
+                    id: row.id,
+                    ...patchCommon,
+                });
+            } else {
+                upsertModified((d) => d.action === 'add' && d._localKey === row._localKey, {
+                    action: 'add',
+                    id: currentErp?.id,
+                    _localKey: row._localKey,
+                    ...patchCommon,
+                });
+            }
+            return next;
+        });
+    };
+
+    const removeRow = (posisi, idx) => {
+        const row = localDetailBongkar[posisi]?.[idx];
+        if (!row) return;
+
+        if (row.id) {
+            upsertModified((d) => d.id === row.id, { action: 'delete', id: row.id });
         } else {
-            setEditingKey('');
+            setModifiedDetail((prev) => prev.filter((d) => d._localKey !== row._localKey));
         }
 
-    };
-
-    const save = async (key) => {
-        try {
-            const row = await form.validateFields();
-            const newData = [...dataSource];
-            const index = newData.findIndex((item) => key === item.key);
-
-            if (index > -1) {
-                const item = newData[index];
-                newData.splice(index, 1, {
-                    ...item,
-                    ...row,
-                });
-
-                setModifiedDetail(prev => {
-                    const existingIndex = prev.findIndex(item => item.key === key);
-                    if (existingIndex > -1) {
-                        const updated = [...prev];
-                        const { key, posisi, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = { ...item, ...row };
-                        updated[existingIndex] = { ...detailData, tanggal: row.tanggal, action: prev[existingIndex].action || 'edit', key: key, posisi: item.posisi, id: item.id };
-                        return updated;
-                    } else {
-                        const { key, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = { ...item, ...row };
-                        return [...prev, { ...detailData, tanggal: row.tanggal, action: 'edit', key: key, posisi: item.posisi, id: item.id }];
-                    }
-                });
-                setDataSource(newData);
-                setEditingKey('');
-
-            } else {
-                newData.push(row);
-
-                setModifiedDetail(prev => {
-                    const { key, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = newData;
-                    return [...prev, { ...detailData, tanggal: newData.tanggal, posisi: posisi, key: key, action: action }];
-                });
-                setDataSource(newData);
-                setEditingKey('');
-
-            }
-        } catch (errInfo) {
-            console.log('Validate Failed:', errInfo);
-        }
-    };
-
-    const handleDelete = (key) => {
-        const newData = dataSource.filter(item => item.key !== key);
-        setDataSource(newData);
-        setModifiedDetail(prev => {
-            const existingIndex = prev.findIndex(item => item.key === key);
-            if (existingIndex > -1) {
-                return prev.map(item => (item.key === key ? { ...item, action: 'delete' } : item));
-            } else {
-                const deletedItem = dataSource.find(item => item.key === key);
-                return [...prev, { ...deletedItem, action: 'delete' }];
-            }
+        setLocalDetailBongkar((prev) => {
+            const next = { ...prev };
+            next[posisi] = (next[posisi] || []).filter((_, i) => i !== idx);
+            return next;
         });
     };
 
-    const getMaxDetailPanenId = (posisi) => {
-        const filteredDataSource = dataSource.filter(item => item.posisi === posisi);
-        if (filteredDataSource.length === 0) {
-            return 0; // Atau nilai default lain yang sesuai
-        }
-        const maxId = Math.max(...filteredDataSource.map(item => item.detail_panen_id || 0));
-        return maxId;
-    };
-
-    const handleAdd = (posisi) => {
-        const maxDetailPanenId = getMaxDetailPanenId(posisi);
-        const newDetailPanenId = maxDetailPanenId + 1;
-
-        const newKey = Date.now();
-        const newData = {
-            key: newKey,
-            tanggal: dayjs(),
-            berat_bongkar: '',
-            size: '',
-            kualitas: '', // Tambahkan field kualitas
-            persen_molting: '',
-            harga: '',
-            sub_total: '',
-            posisi: posisi,
-            action: 'add',
-            id: currentErp.id, // Tambahkan di sini
-            detail_panen_id: newDetailPanenId
-        };
-        const newDataSource = [...dataSource, newData];
-        setDataSource(newDataSource);
-        const { key, action, nama_pabrik, tanggal, nopol, staff, lokasi, nama_perusahaan, petambak, ...detailData } = newData;
-        setModifiedDetail(prev => [...prev, { ...detailData, tanggal: newData.tanggal, posisi: posisi, key: key, action: action }]);
-        edit(newData);
-    };
-
-    const handleDeleteNew = (key) => {
-        const newData = dataSource.filter(item => item.key !== key);
-        setDataSource(newData);
-        setModifiedDetail(prev => prev.filter(item => item.key !== key));
-    };
-
-    // Fungsi Validasi
-    const validateBeforeSubmit = () => {
-        if (editingKey) {
-            message.error(translate('Selesaikan atau batalkan edit baris sebelum menyimpan.'));
-            return false;
-        }
-        return true;
-    };
-
-    const handleSubmit = () => {
-        // Validasi sebelum submit
-        if (!validateBeforeSubmit()) {
+    const openPanenModal = (pos) => {
+        if (!panenData?.detail || panenData.detail.length === 0) {
+            message.warning(translate?.('Data panen belum tersedia (butuh panen_id yang valid)') || 'Data panen belum tersedia');
             return;
         }
-
-        form.validateFields().then(values => {
-            const formattedFormData = {
-                ...values,
-                tanggal_bongkar: values.tanggal_bongkar ? dayjs(values.tanggal_bongkar).tz(timezoneName).format('YYYY-MM-DD') : null,
-                id: currentErp.id, // Tambahkan currentErp.id di sini
-            };
-
-            const formattedModifiedDetail = modifiedDetail.map(item => ({
-                ...item,
-                tanggal: item.tanggal ? dayjs(item.tanggal).tz(timezoneName).format('YYYY-MM-DD') : null,
-            }));
-
-            const payload = {
-                ...formattedFormData,
-                details: formattedModifiedDetail
-            };
-            // console.log(payload);
-
-            if (onSubmit) {
-                onSubmit(payload);
-            }
-        }).catch(errorInfo => {
-            console.log('Failed:', errorInfo);
-        });
+        setCurrentPosisi(pos);
+        setShowPanenSelection(true);
     };
-    const columns = [
+
+    const handleSelectPanenDetail = (selected) => {
+        if (!currentPosisi) return;
+        setShowPanenSelection(false);
+
+        const lk = `${Date.now()}-${Math.random()}`;
+
+        setLocalDetailBongkar((prev) => {
+            const next = { ...prev };
+            const list = [...(next[currentPosisi] || [])];
+            list.push({
+                _localKey: lk,
+                id: undefined,
+                posisi: currentPosisi,
+                id_detail_panen: selected.id,
+                detail_bongkar_id: null,
+                urutan: null,
+                tanggal: selected.created_date || selected.tanggal || null,
+                berat_bongkar: '',
+                size: '',
+                kualitas: '',
+                persen_molting: '',
+                harga: '',
+                subtotal: '',
+                spb_ids: [],
+                spb_alokasi: {},
+            });
+            next[currentPosisi] = list;
+            return next;
+        });
+
+        setModifiedDetail((prev) => [
+            ...prev,
+            {
+                action: 'add',
+                posisi: currentPosisi,
+                id: currentErp?.id,
+                _localKey: lk,
+                detail_panen_id: selected.id,
+                detail_bongkar_id: null,
+                tanggal: selected.created_date || selected.tanggal || null,
+                berat_bongkar: '',
+                size: '',
+                kualitas: '',
+                persen_molting: '',
+                harga: '',
+                sub_total: '',
+                spb_ids: [],
+                spb_alokasi: {},
+            },
+        ]);
+    };
+
+    // ===== panen table (modal) =====
+    const panenColumns = [
         {
             title: translate('Tanggal'),
-            dataIndex: 'tanggal',
+            dataIndex: 'created_date',
             key: 'tanggal',
-            editable: true,
-            width: '150px',
-            render: (date) => (date ? dayjs(date).format(dateFormat) : '-'),
+            render: (v, r) => (r.created_date || r.tanggal ? dayjs(r.created_date || r.tanggal).format(dateFormat) : '-'),
         },
-        {
-            title: translate('Berat (Kg)'),
-            dataIndex: 'berat_bongkar',
-            key: 'berat_bongkar',
-            editable: true,
-        },
-        {
-            title: translate('Size'),
-            dataIndex: 'size',
-            key: 'size',
-            editable: true,
-        },
-        // Kolom Kualitas Ditambahkan Di Sini
-        {
-            title: translate('Kualitas'),
-            dataIndex: 'kualitas',
-            key: 'kualitas',
-            editable: true,
-        },
-        {
-            title: translate('Molting (%)'),
-            dataIndex: 'persen_molting',
-            key: 'persen_molting',
-            editable: true,
-        },
-        {
-            title: translate('Harga'),
-            dataIndex: 'harga',
-            key: 'harga',
-            editable: true,
-        },
-        {
-            title: translate('Subtotal'),
-            dataIndex: 'sub_total',
-            key: 'sub_total',
-            editable: true,
-            render: (text, record) => {
-                const subtotal = record.sub_total;
-                return formatNumber(subtotal);
-            },
-        },
+        { title: translate('Berat (Kg)'), dataIndex: 'berat', key: 'berat' },
+        { title: translate('Size'), dataIndex: 'size', key: 'size' },
+        { title: translate('Posisi'), dataIndex: 'posisi', key: 'posisi' },
         {
             title: 'Action',
-            dataIndex: 'Action',
-            width: '100px',
-            render: (_, record) => {
-                const editable = isEditing(record);
-                const isNew = record.action === 'add';
-                return editable ? (
-                    <span>
-                        <Button
-                            onClick={() => save(record.key)}
-                            style={{ marginRight: 8 }}
-                            type="primary"
-                            icon={<SaveOutlined />}
-                            size="small"
-                        />
-                        <Popconfirm title="Sure to cancel?" onConfirm={cancel}>
-                            <Button icon={<CloseOutlined />} size="small" danger />
-                        </Popconfirm>
-                    </span>
-                ) : (
-                    <span>
-                        <Button
-                            disabled={editingKey !== ''}
-                            onClick={() => edit(record)}
-                            style={{ marginRight: 8 }}
-                            icon={<EditOutlined />}
-                            size="small"
-                        />
-                        <Popconfirm title="Sure to delete?" onConfirm={() => (isNew ? handleDeleteNew(record.key) : handleDelete(record.key))}>
-                            <Button icon={<MinusCircleOutlined />} size="small" danger />
-                        </Popconfirm>
-                    </span>
-                );
-            },
+            key: 'action',
+            render: (_, rec) => (
+                <Button type="primary" size="small" icon={<CheckOutlined />} onClick={() => handleSelectPanenDetail(rec)}>
+                    {translate('Pilih')}
+                </Button>
+            ),
         },
     ];
 
-    const mergedColumns = columns.map((col) => {
-        if (!col.editable) {
-            return col;
-        }
+    // ===== Submit =====
+    const handleSubmit = () => {
+        form.validateFields().then((values) => {
+            const errs = validateSPBAllocations();
+            if (errs.length) {
+                message.error(errs[0]);
+                return;
+            }
 
-        return {
-            ...col,
-            render: (text, record) => {
-                const editing = isEditing(record);
-                return editing ? (
-                    <Form.Item
-                        style={{ margin: 0 }}
-                        name={col.dataIndex}
-                        rules={[{ required: true, message: `Please Input ${col.title}!` }]}
-                        getValueProps={(value) => {
-                            if (col.dataIndex === 'tanggal' && value) {
-                                return { value: dayjs(value) };
-                            }
-                            return { value };
-                        }}
-                    >
-                        {col.dataIndex === 'tanggal' ? (
-                            <DatePicker style={{ width: '100%' }} format={dateFormat} />
-                        ) : (
-                            <Input
-                                ref={inputRef}
-                                type={col.dataIndex === 'berat_bongkar' || col.dataIndex === 'harga' || col.dataIndex === 'sub_total' ? 'number' : 'text'}
-                                style={{ width: col.dataIndex === 'size' || col.dataIndex === 'persen_molting' || col.dataIndex === 'harga' || col.dataIndex === 'berat_bongkar' ? '80px' : '100%' }}
-                            />
-                        )}
-                    </Form.Item>
-                ) : (
-                    col.render ? col.render(text, record) : text
-                );
-            },
-        };
-    });
+            const panenDateMap = {};
+            if (panenData?.detail) for (const d of panenData.detail) panenDateMap[d.id] = d.created_date || d.tanggal || null;
 
-    const totalsByPosition = useMemo(() => {
-        const totals = {};
-        Object.keys(itemsByPosition).forEach(posisi => {
-            const filteredDataSource = dataSource.filter(item => item.posisi === posisi);
-            const totalBerat = filteredDataSource.reduce((sum, item) => sum + (parseFloat(item.berat_bongkar) || 0), 0);
-            const totalSubtotal = filteredDataSource.reduce((sum, item) => sum + (parseFloat(item.sub_total) || 0), 0);
-            totals[posisi] = { totalBerat, totalSubtotal };
+            const normalizedDetails = modifiedDetail.map((d) => {
+                const pinnedDetailId = d.detail_panen_id ?? d.id_detail_panen ?? null;
+                return {
+                    ...d,
+                    detail_panen_id: pinnedDetailId,
+                    tanggal: d.tanggal || (pinnedDetailId ? panenDateMap[pinnedDetailId] : null),
+                };
+            });
+
+            const localForPayload = {};
+            Object.keys(localDetailBongkar || {}).forEach((pos) => {
+                localForPayload[pos] = (localDetailBongkar[pos] || []).map((r) => ({
+                    id_detail_panen: r.id_detail_panen ?? null,
+                    tanggal: r.tanggal || (r.id_detail_panen ? panenDateMap[r.id_detail_panen] : null),
+                    berat_bongkar: r.berat_bongkar,
+                    size: r.size,
+                    kualitas: r.kualitas,
+                    persen_molting: r.persen_molting,
+                    harga: r.harga,
+                    subtotal: r.subtotal,
+                    spb_ids: r.spb_ids || [],
+                    spb_alokasi: r.spb_alokasi || {},
+                }));
+            });
+
+            const payload = {
+                ...values,
+                tanggal_bongkar: values.tanggal_bongkar ? dayjs(values.tanggal_bongkar).format('YYYY-MM-DD') : null,
+                id: currentErp?.id,
+                details: normalizedDetails,           // legacy mode
+                localDetailBongkar: localForPayload,  // new mode (SPB)
+            };
+
+            if (onSubmit) onSubmit(payload);
         });
-        return totals;
-    }, [dataSource, itemsByPosition]);
+    };
+
+    // ===== Derived =====
+    const allPositions = useMemo(
+        () =>
+            Array.from(
+                new Set([
+                    ...Object.keys(itemsByPosition || {}),
+                    ...(panenData?.detail ? panenData.detail.map((d) => d.posisi) : []),
+                ])
+            ).filter(Boolean),
+        [itemsByPosition, panenData]
+    );
+
+    const getTotalsPanen = (posisi) =>
+        (panenData?.detail || [])
+            .filter((d) => d.posisi === posisi)
+            .reduce((acc, curr) => acc + (parseFloat(curr.berat) || 0), 0);
+
+    const getTotalsBongkar = (posisi) =>
+        (localDetailBongkar[posisi] || []).reduce((acc, d) => acc + (parseFloat(d.berat_bongkar) || 0), 0);
+
+    const calculateSubtotalPosisi = (posisi) =>
+        (localDetailBongkar[posisi] || []).reduce((acc, d) => acc + (parseFloat(d.subtotal) || 0), 0);
+
+    const panenOptionsForCurrentPosisi = useMemo(() => {
+        if (!currentPosisi || !panenData?.detail) return [];
+        return (panenData.detail || []).filter((d) => d.posisi === currentPosisi);
+    }, [currentPosisi, panenData]);
 
     return (
-        <div style={{ padding: '0 10px' }}>
-            <Form
-                form={form}
-                layout="vertical"
-            >
-                <Row gutter={16} style={{ fontWeight: 'bold', background: '#f0f0f0', padding: '10px', borderBottom: '1px solid #ddd' }}>
-                    <Col span={3}>{translate('Pabrik')}</Col>
-                    <Col span={3}>{translate('Tanggal Bongkar')}</Col>
-                    <Col span={2}>{translate('Potongan (%)')}</Col>
-                    <Col span={3}>{translate('Subtotal (Nota)')}</Col>
-                    <Col span={3}>{translate('Lokasi')}</Col>
-                    <Col span={4}>{translate('Perusahaan')}</Col>
-                    <Col span={2}>{translate('Petambak')}</Col>
-                    <Col span={2}>{translate('No Polisi')}</Col>
-                    <Col span={2}>{translate('Staff')}</Col>
-                </Row>
-                <Row gutter={16} style={{ padding: '10px' }}>
-                    <Col span={3}>
-                        <Form.Item name="nama_pabrik" >
-                            <Input />
-                        </Form.Item>
-                    </Col>
-                    <Col span={3}>
-                        <Form.Item name="tanggal_bongkar">
-                            <DatePicker style={{ width: '100%' }} format={dateFormat} />
-                        </Form.Item>
-                    </Col>
-                    <Col span={2}>
-                        <Form.Item name="persen_potongan" >
-                            <Input
-                                disabled={potPercentageDisabled}
-                                onChange={handlePotPercentageChange}
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={3}>
-                        <Form.Item name="master_sub_total" >
-                            <Input
-                                disabled={subtotalDisabled}
-                                onChange={handleSubtotalChange}
-                            />
-                        </Form.Item>
-                    </Col>
-                    <Col span={3}>{currentErp.lokasi}</Col>
-                    <Col span={4}>{currentErp.nama_perusahaan}</Col>
-                    <Col span={2}>{currentErp.petambak}</Col>
-                    <Col span={2}>{currentErp.nopol}</Col>
-                    <Col span={2}>{currentErp.staff}</Col>
-                </Row>
-                <Row gutter={12} style={{ padding: '10px' }}>
-                    <Col span={3} style={{ fontWeight: 'bold', padding: '10px', display: 'flex' }}>{translate('No SPB')}</Col>
-                    <Col span={5}>
-                        <Form.Item name="no_spb" >
-                            <Input />
-                        </Form.Item>
-                    </Col>
-                </Row>
+        <div style={{ padding: 10 }}>
+            <Form form={form} layout="vertical">
+                {/* Info master panen */}
+                {panenData && (
+                    <Card style={{ marginBottom: 16 }}>
+                        <Row gutter={16} style={{ fontWeight: 'bold', marginBottom: 8 }}>
+                            <Col span={6}><FileTextOutlined style={{ marginRight: 8 }} />{translate('Lokasi')}</Col>
+                            <Col span={6}><FileTextOutlined style={{ marginRight: 8 }} />{translate('Staff')}</Col>
+                            <Col span={6}><FileTextOutlined style={{ marginRight: 8 }} />{translate('Perusahaan')}</Col>
+                            <Col span={6}><FileTextOutlined style={{ marginRight: 8 }} />{translate('No Polisi')}</Col>
+                        </Row>
+                        <Row gutter={16}>
+                            <Col span={6}><Tag color="processing">{currentErp?.lokasi ?? panenData.lokasi}</Tag></Col>
+                            <Col span={6}><Tag color="success">{currentErp?.staff ?? panenData.staff}</Tag></Col>
+                            <Col span={6}><Tag color="blue">{currentErp?.nama_perusahaan ?? panenData.nama_perusahaan}</Tag></Col>
+                            <Col span={6}><Tag color="purple">{currentErp?.nopol ?? panenData.nopol}</Tag></Col>
+                        </Row>
+                    </Card>
+                )}
 
-                {Object.keys(itemsByPosition).map(posisi => {
-                    const { totalBerat, totalSubtotal } = totalsByPosition[posisi] || { totalBerat: 0, totalSubtotal: 0 };
+                {/* Pabrik / Tgl Bongkar / Pot / Subtotal */}
+                <Card style={{ marginBottom: 16 }}>
+                    <Row gutter={16}>
+                        <Col span={6}>
+                            <Form.Item
+                                name="nama_pabrik"
+                                label={<span><ShoppingOutlined style={{ marginRight: 8 }} />{translate('Nama Pabrik')}</span>}
+                                rules={[{ required: true, message: 'Nama pabrik harus diisi' }]}
+                            >
+                                <Input />
+                            </Form.Item>
+                        </Col>
+                        <Col span={6}>
+                            <Form.Item
+                                name="tanggal_bongkar"
+                                label={<span><CalendarOutlined style={{ marginRight: 8 }} />{translate('Tanggal Bongkar')}</span>}
+                                rules={[{ required: true, message: 'Tanggal bongkar harus diisi' }]}
+                            >
+                                <DatePicker style={{ width: '100%' }} />
+                            </Form.Item>
+                        </Col>
+                        <Col span={5}>
+                            <Form.Item
+                                name="persen_potongan"
+                                label={<span><PercentageOutlined style={{ marginRight: 8 }} />{translate('Pot (%)')}</span>}
+                            >
+                                <InputNumber
+                                    disabled={potPercentageDisabled}
+                                    style={{ width: '100%' }}
+                                    precision={2}
+                                    formatter={formatInput}
+                                    parser={parseInput}
+                                    onChange={handlePotPercentageChange}
+                                />
+                            </Form.Item>
+                        </Col>
+                        <Col span={7}>
+                            <Form.Item
+                                name="master_sub_total"
+                                label={<span><DollarOutlined style={{ marginRight: 8 }} />{translate('Subtotal (Nota)')}</span>}
+                            >
+                                <InputNumber
+                                    disabled={subtotalDisabled}
+                                    style={{ width: '100%' }}
+                                    precision={2}
+                                    formatter={formatInput}
+                                    parser={parseInput}
+                                    onChange={handleSubtotalChange}
+                                />
+                            </Form.Item>
+                        </Col>
+                    </Row>
+                </Card>
 
-                    return (
-                        <Card
-                            key={posisi}
-                            style={{
-                                ...cardStyle,
-                                backgroundColor: "#f0f0f0",
-                            }}
-                            title={
-                                <Row justify="space-between" align="middle">
-                                    <Col>
-                                        <span
-                                            style={{
-                                                textAlign: 'center',
-                                                fontWeight: 'bold',
-                                                padding: '10px',
-                                                backgroundColor: positionColors[posisi] || "#f0f0f0",
-                                                borderRadius: '5px',
-                                                display: "block",
-                                                color: '#ffffff'
-                                            }}
-                                        >
+                {/* ===== Per posisi ===== */}
+                <Row gutter={16}>
+                    {panenData?.detail && [...new Set(panenData.detail.map(d => d.posisi))].map((posisi) => {
+                        const details = localDetailBongkar[posisi] || [];
+                        const panenDetails = panenData.detail.filter(d => d.posisi === posisi);
+                        const totalSubtotal = calculateSubtotalPosisi(posisi);
+
+                        return (
+                            <Col span={24} key={posisi}>
+                                <Card
+                                    style={{ ...cardStyle, borderTop: `3px solid ${positionColors[posisi] || '#888'}` }}
+                                    title={
+                                        <Text strong style={{ color: positionColors[posisi] || '#555' }}>
+                                            <DatabaseOutlined style={{ marginRight: 8 }} />
                                             {translate(posisi)}
-                                        </span>
-                                    </Col>
-                                </Row>
-                            }
-                        >
-                            <Row gutter={16} align="middle" justify="space-between">
-                                <Col>
-                                    <p><strong>Data Bongkar:</strong></p>
-                                </Col>
-                                <Col>
-                                    <Button type='dashed' icon={<PlusOutlined />} size="small" onClick={() => handleAdd(posisi)}>
-                                        Add data
-                                    </Button>
-                                </Col>
-                            </Row>
-                            <Row gutter={16}>
-                                <Col span={24}>
-                                    <Table
-                                        components={{
-                                            body: {
-                                                cell: ({ children, ...restProps }) => {
-                                                    return <td {...restProps}>{children}</td>;
-                                                },
-                                            },
-                                        }}
-                                        bordered
-                                        dataSource={dataSource.filter(item => item.posisi === posisi)}
-                                        columns={mergedColumns}
-                                        rowClassName="editable-row"
-                                        pagination={false}
-                                    />
-                                </Col>
-                            </Row>
+                                        </Text>
+                                    }
+                                >
+                                    {/* Header kolom */}
+                                    <div style={{ marginBottom: 16 }}>
+                                        <div style={{ display: 'flex', marginBottom: 8, fontWeight: 'bold' }}>
+                                            <div style={{ width: 100 }}>
+                                                <CalendarOutlined style={{ marginRight: 8 }} />
+                                                Tanggal
+                                            </div>
+                                            <div style={{ width: 80 }}>
+                                                <NumberOutlined style={{ marginRight: 8 }} />
+                                                Berat
+                                            </div>
+                                            <div style={{ width: 80 }}>
+                                                <BarcodeOutlined style={{ marginRight: 8 }} />
+                                                Size
+                                            </div>
+                                            <div style={{ flex: 1, marginLeft: 24 }}>
+                                                <Row gutter={8}>
+                                                    <Col span={3}><NumberOutlined style={{ marginRight: 8 }} />Berat</Col>
+                                                    <Col span={3}><BarcodeOutlined style={{ marginRight: 8 }} />Size</Col>
+                                                    <Col span={3}><StarOutlined style={{ marginRight: 8 }} />Kualitas</Col>
+                                                    <Col span={3}><PercentageOutlined style={{ marginRight: 8 }} />Molting</Col>
+                                                    <Col span={5}><DollarOutlined style={{ marginRight: 8 }} />Harga</Col>
+                                                    <Col span={5}><FileTextOutlined style={{ marginRight: 8 }} />Subtotal</Col>
+                                                    <Col span={2}></Col>
+                                                </Row>
+                                            </div>
+                                        </div>
 
-                            <div style={{
-                                borderTop: "2px solid #ccc",
-                                paddingTop: "10px",
-                                marginTop: "15px",
-                                fontWeight: "bold",
-                                textAlign: "center"
-                            }}>
-                                TotalBerat: {formatNumber(totalBerat)} Kg   |   Total : Rp {formatNumber(totalSubtotal)}
-                            </div>
-                        </Card>
-                    );
-                })}
-                <Form.Item>
-                    <Button type="primary" onClick={handleSubmit}>
+                                        {/* Isi */}
+                                        {panenDetails.length ? (
+                                            panenDetails.map((detailPanen, panenIndex) => {
+                                                const related = details.filter(d => d.id_detail_panen === detailPanen.id);
+
+                                                return (
+                                                    <div key={`p-${panenIndex}`} style={{ display: 'flex', flexDirection: 'column' }}>
+                                                        {/* Baris panen (kiri) */}
+                                                        <div
+                                                            style={{
+                                                                display: 'flex',
+                                                                padding: '8px 0',
+                                                                alignItems: 'center',
+                                                                borderBottom: '1px solid #eee'
+                                                            }}
+                                                        >
+                                                            <div style={{ width: 100 }}>
+                                                                {detailPanen.created_date ? dayjs(detailPanen.created_date).format(dateFormat) : '-'}
+                                                            </div>
+                                                            <div style={{ width: 80 }}>{detailPanen.berat ?? '-'}</div>
+                                                            <div style={{ width: 80 }}>{detailPanen.size ?? '-'}</div>
+                                                        </div>
+
+                                                        {/* Deretan baris bongkar terkait */}
+                                                        {related.length ? (
+                                                            related.map((row, i) => {
+                                                                const idx = (localDetailBongkar[posisi] || []).indexOf(row);
+
+                                                                return (
+                                                                    <div
+                                                                        key={`b-${detailPanen.id}-${i}`}
+                                                                        style={{
+                                                                            display: 'flex',
+                                                                            padding: '8px 0',
+                                                                            alignItems: 'center',
+                                                                            background: i % 2 === 0 ? '#f9f9f9' : '#fff'
+                                                                        }}
+                                                                    >
+                                                                        {/* spacer kiri */}
+                                                                        <div style={{ width: 260 }} />
+                                                                        {/* kanan: input bongkar */}
+                                                                        <div style={{ flex: 1 }}>
+                                                                            <Row gutter={8}>
+                                                                                <Col span={3}>
+                                                                                    <InputNumber
+                                                                                        style={{ width: '100%' }}
+                                                                                        value={row.berat_bongkar}
+                                                                                        precision={2}
+                                                                                        formatter={formatInput}
+                                                                                        parser={parseInput}
+                                                                                        onChange={(v) => onChangeRow(posisi, idx, 'berat_bongkar', v)}
+                                                                                    />
+                                                                                </Col>
+                                                                                <Col span={3}>
+                                                                                    <InputNumber
+                                                                                        style={{ width: '100%' }}
+                                                                                        value={row.size}
+                                                                                        precision={2}
+                                                                                        formatter={formatInput}
+                                                                                        parser={parseInput}
+                                                                                        onChange={(v) => onChangeRow(posisi, idx, 'size', v)}
+                                                                                    />
+                                                                                </Col>
+                                                                                <Col span={3}>
+                                                                                    <Input
+                                                                                        style={{ width: '100%' }}
+                                                                                        value={row.kualitas}
+                                                                                        onChange={(e) => onChangeRow(posisi, idx, 'kualitas', e.target.value)}
+                                                                                    />
+                                                                                </Col>
+                                                                                <Col span={3}>
+                                                                                    <InputNumber
+                                                                                        style={{ width: '100%' }}
+                                                                                        value={row.persen_molting}
+                                                                                        precision={2}
+                                                                                        formatter={formatInput}
+                                                                                        parser={parseInput}
+                                                                                        onChange={(v) => onChangeRow(posisi, idx, 'persen_molting', v)}
+                                                                                    />
+                                                                                </Col>
+                                                                                <Col span={5}>
+                                                                                    <InputNumber
+                                                                                        style={{ width: '100%' }}
+                                                                                        value={row.harga}
+                                                                                        precision={2}
+                                                                                        formatter={formatInput}
+                                                                                        parser={parseInput}
+                                                                                        onChange={(v) => onChangeRow(posisi, idx, 'harga', v)}
+                                                                                    />
+                                                                                </Col>
+                                                                                <Col span={5}>
+                                                                                    <InputNumber
+                                                                                        style={{ width: '100%' }}
+                                                                                        value={row.subtotal}
+                                                                                        precision={2}
+                                                                                        formatter={formatInput}
+                                                                                        parser={parseInput}
+                                                                                        readOnly
+                                                                                    />
+                                                                                </Col>
+                                                                                <Col span={2}>
+                                                                                    <Popconfirm
+                                                                                        title={translate('Hapus baris ini?')}
+                                                                                        okText={translate('Hapus')}
+                                                                                        cancelText={translate('Batal')}
+                                                                                        onConfirm={() => removeRow(posisi, idx)}
+                                                                                    >
+                                                                                        <Button type="text" danger icon={<MinusCircleOutlined />} />
+                                                                                    </Popconfirm>
+                                                                                </Col>
+                                                                            </Row>
+
+                                                                            {/* === Relasi SPB per baris === */}
+                                                                            <div style={{ marginTop: 8 }}>
+                                                                                <div style={{ fontSize: 12, marginBottom: 6 }}>
+                                                                                    <FileTextOutlined style={{ marginRight: 6 }} />
+                                                                                    Nomor SPB (bisa pilih lebih dari satu)
+                                                                                </div>
+                                                                                <Select
+                                                                                    mode="multiple"
+                                                                                    allowClear
+                                                                                    showSearch
+                                                                                    placeholder="Pilih SPB…"
+                                                                                    value={row.spb_ids || []}
+                                                                                    options={spbOptions}
+                                                                                    loading={spbLoading}
+                                                                                    filterOption={false}
+                                                                                    onSearch={(txt) => fetchSPB(txt)}
+                                                                                    onChange={(vals) => onChangeRow(posisi, idx, 'spb_ids', vals)}
+                                                                                    style={{ width: '100%' }}
+                                                                                />
+                                                                                {(row.spb_ids || []).length > 1 && (
+                                                                                    <div style={{ background: '#fff', border: '1px dashed #ddd', padding: 8, marginTop: 8, borderRadius: 6 }}>
+                                                                                        <Text strong>Alokasi kuantitas per SPB</Text>
+                                                                                        <Row gutter={8} style={{ marginTop: 8 }}>
+                                                                                            {(row.spb_ids || []).map((sid) => {
+                                                                                                const key = String(sid);
+                                                                                                const alloc = row.spb_alokasi || {};
+                                                                                                return (
+                                                                                                    <Col xs={24} md={12} lg={8} key={key} style={{ marginBottom: 8 }}>
+                                                                                                        <InputNumber
+                                                                                                            addonBefore={spbMap[key] || `SPB ${key}`}
+                                                                                                            style={{ width: '100%' }}
+                                                                                                            min={0}
+                                                                                                            value={alloc[key]}
+                                                                                                            precision={2}
+                                                                                                            formatter={formatInput}
+                                                                                                            parser={parseInput}
+                                                                                                            onChange={(v) => {
+                                                                                                                const next = { ...(row.spb_alokasi || {}) };
+                                                                                                                next[key] = v;
+                                                                                                                onChangeRow(posisi, idx, 'spb_alokasi', next);
+                                                                                                            }}
+                                                                                                        />
+                                                                                                    </Col>
+                                                                                                );
+                                                                                            })}
+                                                                                        </Row>
+                                                                                    </div>
+                                                                                )}
+                                                                            </div>
+                                                                            {/* === End SPB block === */}
+                                                                        </div>
+                                                                    </div>
+                                                                );
+                                                            })
+                                                        ) : (
+                                                            <div style={{ padding: '8px 0', color: '#999' }}>
+                                                                <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={translate('Belum ada bongkar untuk panen ini')} />
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                );
+                                            })
+                                        ) : (
+                                            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={translate('Belum ada data panen di posisi ini')} />
+                                        )}
+
+                                        {/* Tombol Tambah Bongkar */}
+                                        <Button
+                                            type="dashed"
+                                            onClick={() => openPanenModal(posisi)}
+                                            icon={<PlusOutlined />}
+                                            style={{ width: '100%', marginTop: 16 }}
+                                        >
+                                            {translate('Tambah Bongkar')}
+                                        </Button>
+                                    </div>
+
+                                    <Divider />
+
+                                    {/* Totals */}
+                                    <Row gutter={16}>
+                                        <Col span={12}>
+                                            <Text strong>
+                                                <NumberOutlined style={{ marginRight: 8 }} />
+                                                {translate('Total Panen')}: {formatNumber(getTotalsPanen(posisi))} Kg
+                                            </Text>
+                                        </Col>
+                                        <Col span={12}>
+                                            <Text strong>
+                                                <NumberOutlined style={{ marginRight: 8 }} />
+                                                {translate('Total Bongkar')}: {formatNumber(getTotalsBongkar(posisi))} Kg
+                                            </Text>
+                                        </Col>
+                                    </Row>
+                                    <Row style={{ marginTop: 8 }}>
+                                        <Col span={24}>
+                                            <Text strong>
+                                                <DollarOutlined style={{ marginRight: 8 }} />
+                                                {translate('Total Harga')}: {formatNumber(totalSubtotal)}
+                                            </Text>
+                                        </Col>
+                                    </Row>
+                                </Card>
+                            </Col>
+                        );
+                    })}
+                </Row>
+
+                {/* Simpan */}
+                <Form.Item style={{ marginTop: 20 }}>
+                    <Button type="primary" onClick={handleSubmit} icon={<CheckOutlined />} size="large">
                         {translate('Simpan')}
                     </Button>
                 </Form.Item>
+
+                {/* Modal pilih panen */}
+                <Modal
+                    title={<span><DatabaseOutlined style={{ marginRight: 8 }} />{translate('Pilih Data Panen')}</span>}
+                    open={showPanenSelection}
+                    onCancel={() => setShowPanenSelection(false)}
+                    footer={null}
+                    width={800}
+                >
+                    <Table
+                        columns={panenColumns}
+                        dataSource={panenOptionsForCurrentPosisi}
+                        rowKey={(r) => r.id}
+                        pagination={false}
+                    />
+                </Modal>
             </Form>
         </div>
     );
-};
-
-export default BongkarFormUpdate;
+}

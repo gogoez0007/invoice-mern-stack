@@ -1,25 +1,36 @@
-import React, { useState, useEffect, useRef, useCallback  } from 'react';
-import { Form, Input, InputNumber, Button, Select, DatePicker, Row, Col, Card, Descriptions, Divider } from 'antd';
-import { PlusOutlined, MinusCircleOutlined, CheckOutlined, ArrowLeftOutlined } from '@ant-design/icons';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
+import {
+    Form, Input, InputNumber, Button, Select, DatePicker,
+    Row, Col, Card, Modal, Table, Typography, Divider, Popconfirm, message, Empty
+} from 'antd';
+import {
+    PlusOutlined, MinusCircleOutlined, CheckOutlined,
+    ShoppingOutlined, TruckOutlined,
+    DatabaseOutlined, FileTextOutlined, PercentageOutlined,
+    DollarOutlined, CalendarOutlined, NumberOutlined,
+    BarcodeOutlined, StarOutlined, CloudOutlined
+} from '@ant-design/icons';
 import useLanguage from '@/locale/useLanguage';
 import axios from 'axios';
 import dayjs from 'dayjs';
 import AutoCompleteAsync from '@/components/AutoCompleteAsync';
-import calculate from '@/utils/calculate'; // Import library calculate
+import calculate from '@/utils/calculate';
 import { API_BASE_URL } from '@/config/serverApiConfig';
 import storePersist from '@/redux/storePersist';
 
-const { TextArea } = Input;
+const { Text } = Typography;
 
 const cardStyle = {
     marginBottom: '20px',
     border: '1px solid #e8e8e8',
-    borderRadius: '40',
+    borderRadius: '8px',
+    boxShadow: '0 2px 8px rgba(0,0,0,0.09)'
 };
+
 const positionColors = {
-    Depan: "#E6C200",   // Soft Gold (lebih elegan dari emas terang)
-    Tengah: "#A4D0A4",  // Pastel Green (lebih lembut)
-    Belakang: "#A4C7E6" // Soft Blue (lebih kalem)
+    Depan: '#FFA500',
+    Tengah: '#4CAF50',
+    Belakang: '#2196F3'
 };
 
 export default function BongkarForm({
@@ -33,12 +44,55 @@ export default function BongkarForm({
     const [panenData, setPanenData] = useState(null);
     const [loadingPanen, setLoadingPanen] = useState(false);
     const [idTambak, setIdTambak] = useState(null);
-    
+    const [showPanenSelection, setShowPanenSelection] = useState(false);
+    const [currentPosisi, setCurrentPosisi] = useState(null);
+
     const [potPercentage, setPotPercentage] = useState('');
     const [subtotal, setSubtotal] = useState('');
     const [potPercentageDisabled, setPotPercentageDisabled] = useState(true);
     const [subtotalDisabled, setSubtotalDisabled] = useState(true);
 
+    // detail bongkar per posisi (pakai strukturmu)
+    const [localDetailBongkar, setLocalDetailBongkar] = useState({}); // :contentReference[oaicite:4]{index=4}
+
+    // ========== SPB (searchable, multi) ==========
+    const [spbOptions, setSpbOptions] = useState([]);
+    const [spbLoading, setSpbLoading] = useState(false);
+    const [spbMap, setSpbMap] = useState({}); // cache id->no_spb utk label alokasi
+
+    function includeToken() {
+        axios.defaults.baseURL = API_BASE_URL;
+        axios.defaults.withCredentials = true;
+        const auth = storePersist.get('auth');
+        if (auth) {
+            axios.defaults.headers.common['Authorization'] = `Bearer ${auth.current.token}`;
+        } else {
+            delete axios.defaults.headers.common['Authorization'];
+        }
+    }
+
+    const fetchSPB = async (q = '') => {
+        try {
+            setSpbLoading(true);
+            includeToken();
+            const { data } = await axios.get('spb/search', { params: { q } });
+            const list = (data?.result || data?.data || []).map((d) => ({
+                label: d.no_spb,
+                value: d.id,
+            }));
+            setSpbOptions(list);
+            const dict = {};
+            list.forEach((it) => { dict[it.value] = it.label; });
+            setSpbMap(dict);
+        } catch {
+            // silent
+        } finally {
+            setSpbLoading(false);
+        }
+    };
+    useEffect(() => { fetchSPB(''); }, []);
+
+    // ===== Pot(%) vs Subtotal toggle (struktur aslimu) =====
     const updateFormValue = useCallback((fieldName, value) => {
         if (value !== form.getFieldValue(fieldName)) {
             form.setFieldsValue({ [fieldName]: value });
@@ -48,8 +102,7 @@ export default function BongkarForm({
     useEffect(() => {
         setPotPercentageDisabled(subtotal.length > 0);
         setSubtotalDisabled(potPercentage.length > 0);
-    }, [potPercentage, subtotal]);
-
+    }, [potPercentage, subtotal]); // :contentReference[oaicite:5]{index=5}
 
     const handlePotPercentageChange = useCallback((e) => {
         const val = e.target.value;
@@ -63,47 +116,35 @@ export default function BongkarForm({
         updateFormValue('sub_total', val);
     }, [updateFormValue]);
 
-    // State baru untuk menyimpan detail bongkar secara lokal (untuk perhitungan)
-    const [localDetailBongkar, setLocalDetailBongkar] = useState({});
-    
-    function includeToken() {
-    axios.defaults.baseURL = API_BASE_URL;
-
-    axios.defaults.withCredentials = true;
-    const auth = storePersist.get('auth');
-
-    if (auth) {
-        axios.defaults.headers.common['Authorization'] = `Bearer ${auth.current.token}`;
-    }
-    }
-
+    // ===== Ambil data panen (asli) =====
     const handleGetPanenData = async () => {
         setLoadingPanen(true);
         try {
             const nopol = form.getFieldValue('nopol');
-            const tanggal = form.getFieldValue('tanggal_panen') ? dayjs(form.getFieldValue('tanggal_panen')).format('YYYY-MM-DD') : null;
+            const tanggal = form.getFieldValue('tanggal_panen')
+                ? dayjs(form.getFieldValue('tanggal_panen')).format('YYYY-MM-DD')
+                : null;
 
             if (!nopol || !tanggal || !idTambak) {
                 console.error('Nopol dan tanggal bongkar harus diisi');
                 return;
             }
-                    
+
             includeToken();
-            const response = await axios.get(`panen/getDetailPanenbyNopol?nopol=${nopol}&tanggal=${tanggal}&id_tambak=${idTambak}`)
+            const response = await axios.get(`panen/getDetailPanenbyNopol?nopol=${nopol}&tanggal=${tanggal}&id_tambak=${idTambak}`);
 
             if (response.data.success && response.data.result.length > 0) {
                 const dataPanen = response.data.result[0];
                 setPanenData(dataPanen);
 
-                // Isi form dengan data dari API
                 form.setFieldsValue({
                     nopol: dataPanen.nopol,
                     driver: dataPanen.driver,
                     staff: dataPanen.staff,
-                    id_panen: dataPanen.id // Set ID Panen di form
+                    id_panen: dataPanen.id
                 });
 
-                // Inisialisasi localDetailBongkar dengan posisi saja (tanpa detail awal)
+                // seed struktur posisi (tanpa baris)
                 const initialLocalDetailBongkar = {};
                 dataPanen.detail.forEach(detail => {
                     const posisi = detail.posisi;
@@ -112,8 +153,6 @@ export default function BongkarForm({
                     }
                 });
                 setLocalDetailBongkar(initialLocalDetailBongkar);
-
-
             } else {
                 setPanenData(null);
                 console.log('Data panen tidak ditemukan');
@@ -125,98 +164,112 @@ export default function BongkarForm({
         }
     };
 
+    // ===== Agregasi/Hitung (asli) =====
     const getTotals = (posisi, useBongkarData = false) => {
         let total = 0;
-
         if (!panenData?.detail) return 0;
 
         if (useBongkarData) {
-            // Menghitung total berat dari localDetailBongkar
             const details = localDetailBongkar[posisi] || [];
-            total = details.reduce((acc, detail) => {
-                return acc + (parseFloat(detail.berat_bongkar) || 0);
-            }, 0);
+            total = details.reduce((acc, detail) => acc + (parseFloat(detail.berat_bongkar) || 0), 0);
         } else {
             total = panenData.detail
                 .filter(d => d.posisi === posisi)
                 .reduce((acc, curr) => acc + parseFloat(curr.berat), 0);
         }
-
         return total;
     };
 
-    // Fungsi untuk menghitung subtotal berdasarkan localDetailBongkar
     const calculateSubtotal = (posisi) => {
         let total = 0;
         const details = localDetailBongkar[posisi] || [];
-
         details.forEach(detail => {
-            const berat = parseFloat(detail.berat_bongkar) || 0;
-            const harga = parseFloat(detail.harga) || 0;
-            const persen_molting = parseFloat(detail.persen_molting) || 0;
-            const subtotal = parseFloat(detail.subtotal) || 0;
-
-            //Pastikan nilai persen_molting tidak NaN
-            const molting = isNaN(persen_molting) ? 0 : persen_molting;
-
-            // subtotal = calculate.add(subtotal, (berat * harga)-(berat * harga * (molting / 100)));
-            total = calculate.add(total, subtotal);
+            const st = parseFloat(detail.subtotal) || 0;
+            total = calculate.add(total, st);
         });
-
         return total;
     };
 
-    // Fungsi untuk menghandle perubahan pada input detail bongkar
+    // ===== Mutasi baris detail (DITAMBAH: spb_ids + spb_alokasi) =====
     const handleLocalDetailChange = (posisi, index, field, value) => {
         setLocalDetailBongkar(prev => {
             const updatedDetails = { ...prev };
-            if (!updatedDetails[posisi]) {
-                updatedDetails[posisi] = [];
+            if (!updatedDetails[posisi]) updatedDetails[posisi] = [];
+            if (!updatedDetails[posisi][index]) updatedDetails[posisi][index] = {};
+
+            // init struktur alokasi saat pertama kali ada spb dipilih
+            if (field === 'spb_ids') {
+                const selected = value || [];
+                const currentAlloc = updatedDetails[posisi][index].spb_alokasi || {};
+                // hapus alokasi yang tidak dipilih lagi
+                Object.keys(currentAlloc).forEach(id => {
+                    if (!selected.includes(Number(id)) && !selected.includes(id)) {
+                        delete currentAlloc[id];
+                    }
+                });
+                // siapkan kunci alokasi untuk spb yang baru dipilih
+                selected.forEach(id => {
+                    const key = String(id);
+                    if (currentAlloc[key] === undefined) currentAlloc[key] = 0;
+                });
+                updatedDetails[posisi][index] = {
+                    ...updatedDetails[posisi][index],
+                    spb_ids: selected,
+                    spb_alokasi: currentAlloc
+                };
+                return updatedDetails;
             }
-            if (!updatedDetails[posisi][index]) {
-                updatedDetails[posisi][index] = {};
+
+            // perubahan biasa
+            updatedDetails[posisi][index] = {
+                ...updatedDetails[posisi][index],
+                [field]: value
+            };
+
+            // hitung ulang subtotal kalau field terkait berubah
+            if (field === 'berat_bongkar' || field === 'harga' || field === 'persen_molting') {
+                const berat = parseFloat(updatedDetails[posisi][index].berat_bongkar) || 0;
+                const harga = parseFloat(updatedDetails[posisi][index].harga) || 0;
+                const molting = parseFloat(updatedDetails[posisi][index].persen_molting) || 0;
+                const calculatedSubtotal = (berat * harga) - (berat * harga * (molting / 100));
+                updatedDetails[posisi][index].subtotal = calculatedSubtotal;
             }
-            updatedDetails[posisi][index] = { ...updatedDetails[posisi][index], [field]: value };
 
             return updatedDetails;
         });
     };
 
-    // Fungsi untuk menambahkan detail bongkar baru
-    const handleLocalAddDetailBongkar = (posisi) => {
+    const handleAddDetailClick = (posisi) => {
+        setCurrentPosisi(posisi);
+        setShowPanenSelection(true);
+    };
+
+    const handleSelectPanenDetail = (selectedPanenDetail) => {
+        setShowPanenSelection(false);
         setLocalDetailBongkar(prev => {
             const updatedDetails = { ...prev };
-            if (!updatedDetails[posisi]) {
-                updatedDetails[posisi] = [];
-            }
+            if (!updatedDetails[currentPosisi]) updatedDetails[currentPosisi] = [];
 
-            const detailPanenUntukPosisi = panenData.detail.filter(d => d.posisi === posisi);
-            const currentIndex = updatedDetails[posisi].length; // Index detail yang akan ditambahkan
-
-            let detailPanenId;
-
-            // Jika index masih dalam rentang detail panen, ambil ID sesuai index
-            if (currentIndex < detailPanenUntukPosisi.length) {
-                detailPanenId = detailPanenUntukPosisi[currentIndex].id;
-            } else {
-                // Jika melebihi, gunakan ID panen terakhir
-                detailPanenId = detailPanenUntukPosisi[detailPanenUntukPosisi.length - 1]?.id || null; // Ambil ID detail panen terakhir atau null jika tidak ada
-            }
-
-            updatedDetails[posisi] = [...updatedDetails[posisi], {
-                id_detail_panen: detailPanenId,
-                berat_bongkar: '',
-                size: '',
-                kualitas: '', // Tambahkan field untuk input kualitas
-                persen_molting: '',
-                harga: '',
-                subtotal: ''
-            }];
+            updatedDetails[currentPosisi] = [
+                ...updatedDetails[currentPosisi],
+                {
+                    id_detail_panen: selectedPanenDetail.id,
+                    // berat_bongkar: selectedPanenDetail.berat,
+                    // size: selectedPanenDetail.size,
+                    berat_bongkar: '',
+                    size: '',
+                    kualitas: '',
+                    persen_molting: '',
+                    harga: '',
+                    subtotal: '',
+                    spb_ids: [],
+                    spb_alokasi: {} // { [spbId]: qty }
+                }
+            ];
             return updatedDetails;
         });
     };
 
-    // Fungsi untuk menghapus detail bongkar
     const handleLocalRemoveDetailBongkar = (posisi, index) => {
         setLocalDetailBongkar(prev => {
             const updatedDetails = { ...prev };
@@ -225,57 +278,106 @@ export default function BongkarForm({
         });
     };
 
+    // ===== notif parent (asli) =====
     const isInitialRender = useRef(true);
-
     useEffect(() => {
         if (isInitialRender.current) {
             isInitialRender.current = false;
             return;
         }
-
         if (onValuesChange) {
             onValuesChange({}, form.getFieldsValue());
         }
     }, [onValuesChange]);
+
+    // ===== modal pilih detail panen (asli) =====
+    const panenColumns = [
+        { title: 'Tanggal', dataIndex: 'created_date', key: 'created_date' },
+        { title: 'Berat (Kg)', dataIndex: 'berat', key: 'berat' },
+        { title: 'Size', dataIndex: 'size', key: 'size' },
+        { title: 'Posisi', dataIndex: 'posisi', key: 'posisi' },
+        {
+            title: 'Action',
+            key: 'action',
+            render: (_, record) => (
+                <Button type="primary" icon={<CheckOutlined />} onClick={() => handleSelectPanenDetail(record)}>
+                    Pilih
+                </Button>
+            ),
+        },
+    ];
+
+    // ===== Validasi alokasi SPB per baris (dipanggil saat submit) =====
+    const validateSPBAllocations = () => {
+        const errors = [];
+        Object.entries(localDetailBongkar).forEach(([posisi, rows]) => {
+            (rows || []).forEach((row, idx) => {
+                const ids = row.spb_ids || [];
+                if (ids.length > 1) {
+                    const alloc = row.spb_alokasi || {};
+                    for (const id of ids) {
+                        const key = String(id);
+                        const val = Number(alloc[key]);
+                        if (!Number.isFinite(val)) {
+                            errors.push(`Posisi ${posisi} baris ${idx + 1}: alokasi untuk SPB ${spbMap[key] || key} harus angka`);
+                        }
+                        if (val < 0) {
+                            errors.push(`Posisi ${posisi} baris ${idx + 1}: alokasi untuk SPB ${spbMap[key] || key} tidak boleh negatif`);
+                        }
+                    }
+                    // OPSIONAL (aktifkan bila mau memastikan total alokasi = berat_bongkar):
+                    // const sumAlloc = ids.reduce((a, id) => a + Number(alloc[String(id)] || 0), 0);
+                    // const berat = Number(row.berat_bongkar || 0);
+                    // if (Math.abs(sumAlloc - berat) > 1e-9) {
+                    //   errors.push(`Posisi ${posisi} baris ${idx + 1}: total alokasi (${sumAlloc}) harus sama dengan berat bongkar (${berat})`);
+                    // }
+                }
+            });
+        });
+        return errors;
+    };
 
     return (
         <Form
             form={form}
             layout="vertical"
             onFinish={(values) => {
-                onSubmit({ ...values, panenData, localDetailBongkar });// Kirim data form ke CreateItem
+                // Validasi alokasi sebelum submit
+                const errs = validateSPBAllocations();
+                if (errs.length) {
+                    message.error(errs[0]);
+                    return;
+                }
+                // kirim payload (struktur submit aslimu) :contentReference[oaicite:6]{index=6}
+                onSubmit({ ...values, panenData, localDetailBongkar });
             }}
         >
+            {/* FILTER PENGAMBILAN DATA PANEN */}
             <Row gutter={16}>
-                <Col span={12}>
+                <Col span={8}>
                     <Form.Item
                         name="tanggal_panen"
-                        label={translate('Tanggal Panen')}
+                        label={<span><CalendarOutlined style={{ marginRight: 8 }} />{translate('Tanggal Panen')}</span>}
                         rules={[{ required: true, message: 'Tanggal panen harus diisi' }]}
                     >
                         <DatePicker style={{ width: '100%' }} />
                     </Form.Item>
                 </Col>
-                <Col span={12}>
+                <Col span={8}>
                     <Form.Item
                         name="nopol"
-                        label={translate('Nomor Polisi')}
+                        label={<span><TruckOutlined style={{ marginRight: 8 }} />{translate('Nomor Polisi')}</span>}
                         rules={[{ required: true, message: 'Nomor polisi harus diisi' }]}
                     >
                         <Input />
                     </Form.Item>
                 </Col>
-                <Col span={12}>
+                <Col span={8}>
                     <Form.Item
                         name="id_tambak"
-                        label={translate('Tambak')}
-                        rules={[
-                            {
-                                required: true,
-                            },
-                        ]}
+                        label={<span><DatabaseOutlined style={{ marginRight: 8 }} />{translate('Tambak')}</span>}
+                        rules={[{ required: true }]}
                     >
-
                         <AutoCompleteAsync
                             entity={'tambak'}
                             displayLabels={['nama_perusahaan']}
@@ -285,44 +387,46 @@ export default function BongkarForm({
                     </Form.Item>
                 </Col>
                 <Col span={12}>
-                    <Form.Item
-                        name="id_panen"
-                        hidden={true}
-                    >
+                    <Form.Item name="id_panen" hidden>
                         <Input />
                     </Form.Item>
                 </Col>
             </Row>
 
-            <Button type="primary" onClick={handleGetPanenData} loading={loadingPanen}>
+            <Button
+                type="primary"
+                onClick={handleGetPanenData}
+                loading={loadingPanen}
+                icon={<CloudOutlined />}
+                style={{ marginBottom: 16 }}
+            >
                 {translate('Ambil Data Panen')}
             </Button>
 
+            {/* INFO PANEN + MASTER INPUT */}
             {panenData && (
-                <div >
-                    <div className="space30"></div>
-                    {/* <hr /> */}
-                    <Row gutter={16} style={{ fontWeight: 'bold', background: '#f0f0f0', padding: '10px', borderBottom: '1px solid #ddd' }}>
-                        <Col span={6}>{translate('Lokasi')}</Col>
-                        <Col span={6}>{translate('Staff')}</Col>
-                        <Col span={6}>{translate('Perusahaan')}</Col>
-                        <Col span={6}>{translate('No Polisi')}</Col>
-                    </Row>
-                    <Row gutter={16} style={{ padding: '10px' }}>
-                        <Col span={6}>{panenData.lokasi}</Col>
-                        <Col span={6}>{panenData.staff}</Col>
-                        <Col span={6}>{panenData.nama_perusahaan}</Col>
-                        <Col span={6}>{panenData.nopol}</Col>
-                    </Row>
-                    <hr />
+                <div>
+                    <Card style={{ marginBottom: 16 }}>
+                        <Row gutter={16} style={{ fontWeight: 'bold', marginBottom: 8 }}>
+                            <Col span={6}><FileTextOutlined style={{ marginRight: 8 }} />{translate('Lokasi')}</Col>
+                            <Col span={6}><FileTextOutlined style={{ marginRight: 8 }} />{translate('Staff')}</Col>
+                            <Col span={6}><FileTextOutlined style={{ marginRight: 8 }} />{translate('Perusahaan')}</Col>
+                            <Col span={6}><FileTextOutlined style={{ marginRight: 8 }} />{translate('No Polisi')}</Col>
+                        </Row>
+                        <Row gutter={16}>
+                            <Col span={6}>{panenData.lokasi}</Col>
+                            <Col span={6}>{panenData.staff}</Col>
+                            <Col span={6}>{panenData.nama_perusahaan}</Col>
+                            <Col span={6}>{panenData.nopol}</Col>
+                        </Row>
+                    </Card>
 
-                    <div className="space30"></div>
-                    <div>
+                    <Card style={{ marginBottom: 16 }}>
                         <Row gutter={16}>
                             <Col span={6}>
                                 <Form.Item
                                     name="pabrik"
-                                    label={translate('Nama Pabrik')}
+                                    label={<span><ShoppingOutlined style={{ marginRight: 8 }} />{translate('Nama Pabrik')}</span>}
                                     rules={[{ required: true, message: 'Nama pabrik harus diisi' }]}
                                 >
                                     <Input />
@@ -331,7 +435,7 @@ export default function BongkarForm({
                             <Col span={6}>
                                 <Form.Item
                                     name="tanggal_bongkar"
-                                    label={translate('Tanggal Bongkar')}
+                                    label={<span><CalendarOutlined style={{ marginRight: 8 }} />{translate('Tanggal Bongkar')}</span>}
                                     rules={[{ required: true, message: 'Tanggal bongkar harus diisi' }]}
                                 >
                                     <DatePicker style={{ width: '100%' }} />
@@ -340,211 +444,277 @@ export default function BongkarForm({
                             <Col span={5}>
                                 <Form.Item
                                     name="persen_potongan"
-                                    label={translate('Pot (%)')}
+                                    label={<span><PercentageOutlined style={{ marginRight: 8 }} />{translate('Pot (%)')}</span>}
                                 >
-                                    <Input
-                                        disabled={potPercentageDisabled}
-                                        onChange={handlePotPercentageChange}
-                                    />
+                                    <Input disabled={potPercentageDisabled} onChange={handlePotPercentageChange} />
                                 </Form.Item>
                             </Col>
                             <Col span={6}>
                                 <Form.Item
                                     name="sub_total"
-                                    label={translate('Subtotal (Nota)')}
+                                    label={<span><DollarOutlined style={{ marginRight: 8 }} />{translate('Subtotal (Nota)')}</span>}
                                 >
-                                     <Input
-                                        disabled={subtotalDisabled}
-                                        onChange={handleSubtotalChange}
-                                    />
+                                    <Input disabled={subtotalDisabled} onChange={handleSubtotalChange} />
                                 </Form.Item>
                             </Col>
                         </Row>
-                    </div>
+                    </Card>
                 </div>
             )}
+
+            {/* MODAL PILIH DETAIL PANEN */}
+            <Modal
+                title={<span><DatabaseOutlined style={{ marginRight: 8 }} />Pilih Data Panen</span>}
+                open={showPanenSelection}
+                onCancel={() => setShowPanenSelection(false)}
+                footer={null}
+                width={800}
+            >
+                <Table
+                    columns={panenColumns}
+                    dataSource={panenData?.detail?.filter(d => d.posisi === currentPosisi) || []}
+                    rowKey="id"
+                    pagination={false}
+                />
+            </Modal>
+
+            {/* PER POSISI */}
             <Row gutter={16}>
                 {panenData?.detail && [...new Set(panenData.detail.map(d => d.posisi))].map(posisi => {
-                    // Hitung Total Subtotal untuk posisi ini
                     const totalSubtotal = calculateSubtotal(posisi);
                     const details = localDetailBongkar[posisi] || [];
+                    const panenDetails = panenData.detail.filter(d => d.posisi === posisi);
 
                     return (
-
                         <Col span={24} key={posisi}>
                             <Card
-                                style={{
-                                    ...cardStyle,
-                                    backgroundColor: "#f0f0f0",
-                                    body: { paddingBottom: "10px" }
-                                }}
-
-                                title={ // Judul sebagai Card Header
-                                    <Row justify="space-between" align="middle">
-                                        <Col>
-                                            <span
-                                                style={{
-                                                    textAlign: 'center',
-                                                    fontWeight: 'bold',
-                                                    padding: '8px',
-                                                    backgroundColor: positionColors[posisi] || "#f0f0f0",
-                                                    borderRadius: '5px',
-                                                    display: "block",
-                                                    color: '#ffffff'
-                                                }}
-                                            >
-                                                {translate(posisi)}
-                                            </span>
-                                        </Col>
-                                    </Row>
+                                style={{ ...cardStyle, borderTop: `3px solid ${positionColors[posisi] || '#888'}` }}
+                                title={
+                                    <Text strong style={{ color: positionColors[posisi] || '#555' }}>
+                                        <DatabaseOutlined style={{ marginRight: 8 }} />
+                                        {translate(posisi)}
+                                    </Text>
                                 }
                             >
-                                <Row gutter={16}>
-                                    {/* Data Panen di Kiri */}
-                                    <Col span={6}>
-                                        <p style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                            <strong>Data Panen:</strong>
-
-                                        </p>
-                                        <Row gutter={8} style={{ borderBottom: '1px solid #ddd', paddingBottom: '5px', marginBottom: '5px', fontWeight: 'bold' }}>
-                                            <Col span={8}>Tanggal</Col>
-                                            <Col span={8}>Berat (Kg)</Col>
-                                            <Col span={8}>Size</Col>
-                                        </Row>
-                                        {panenData && panenData.detail && panenData.detail
-                                            .filter(d => d.posisi === posisi)
-                                            .map((detailPanen, index) => (
-                                                <Row key={index} gutter={8} style={{ borderBottom: '1px solid #eee', paddingBottom: '3px', marginBottom: '3px', position: 'relative' }}>
-                                                    <Col span={8}>{detailPanen.created_date}</Col>
-                                                    <Col span={8}>{detailPanen.berat}</Col>
-                                                    <Col span={8}>{detailPanen.size}</Col>
-                                                </Row>
-                                            ))}
-                                    </Col>
-
-                                    {/* Divider Dashed di Tengah */}
-                                    <Col span={1} style={{ display: 'flex', justifyContent: 'center' }}>
-                                        <div style={{
-                                            borderRight: '2px dashed #999',
-                                            height: '100%',
-                                            minHeight: '120px'
-                                        }} />
-                                    </Col>
-
-                                    {/* Data Bongkar di Kanan */}
-                                    <Col span={16}>
-                                        <p><strong>Data Bongkar:</strong></p>
-                                        {/* Input Detail Bongkar (Awalnya Kosong) */}
-                                        <Row gutter={16} style={{ fontWeight: 'bold', marginBottom: '5px' }}>
-                                            <Col span={4}>{translate('Berat (Kg)')}</Col>
-                                            <Col span={4}>{translate('Size')}</Col>
-                                            <Col span={3}>{translate('Kualitas')}</Col>
-                                            <Col span={3}>{translate('Molting (%)')}</Col>
-                                            <Col span={4}>{translate('Harga')}</Col>
-                                            <Col span={4}>{translate('Subtotal')}</Col>
-                                            <Col span={1}></Col>
-                                        </Row>
-
-                                        {details.map((detail, index) => (
-                                            <Row gutter={16} align="middle" key={index}>
-                                                <Col span={4}>
-                                                    <Form.Item>
-                                                        <InputNumber
-                                                            style={{ width: '100%' }}
-                                                            value={detail.berat_bongkar}
-                                                            onChange={(value) => handleLocalDetailChange(posisi, index, 'berat_bongkar', value)}
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={4}>
-                                                    <Form.Item>
-                                                        <InputNumber
-                                                            style={{ width: '100%' }}
-                                                            value={detail.size}
-                                                            onChange={(value) => handleLocalDetailChange(posisi, index, 'size', value)}
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                {/* Input Text Baru (Kualitas) */}
-                                                <Col span={3}>
-                                                    <Form.Item>
-                                                        <Input
-                                                            style={{ width: '100%' }}
-                                                            value={detail.kualitas}
-                                                            onChange={(e) => handleLocalDetailChange(posisi, index, 'kualitas', e.target.value)}
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={3}>
-                                                    <Form.Item>
-                                                        <InputNumber
-                                                            style={{ width: '100%' }}
-                                                            value={detail.persen_molting}
-                                                            onChange={(value) => handleLocalDetailChange(posisi, index, 'persen_molting', value)}
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={4}>
-                                                    <Form.Item>
-                                                        <InputNumber
-                                                            style={{ width: '100%' }}
-                                                            value={detail.harga}
-                                                            onChange={(value) => handleLocalDetailChange(posisi, index, 'harga', value)}
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={4}>
-                                                    <Form.Item>
-                                                        <InputNumber
-                                                            style={{ width: '100%' }}
-                                                            value={detail.subtotal}
-                                                            onChange={(value) => handleLocalDetailChange(posisi, index, 'subtotal', value)}
-                                                        />
-                                                    </Form.Item>
-                                                </Col>
-                                                <Col span={1}>
-                                                    <Button
-                                                        type="danger"
-                                                        icon={<MinusCircleOutlined />}
-                                                        style={{ height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '-20px' }}
-                                                        onClick={() => handleLocalRemoveDetailBongkar(posisi, index)} />
-                                                </Col>
+                                {/* Header kolom */}
+                                <div style={{ marginBottom: 16 }}>
+                                    <div style={{ display: 'flex', marginBottom: 8, fontWeight: 'bold' }}>
+                                        {/* kiri (data panen) */}
+                                        <div style={{ width: 100 }}>
+                                            <CalendarOutlined style={{ marginRight: 8 }} />
+                                            Tanggal
+                                        </div>
+                                        <div style={{ width: 80 }}>
+                                            <NumberOutlined style={{ marginRight: 8 }} />
+                                            Berat
+                                        </div>
+                                        <div style={{ width: 80 }}>
+                                            <BarcodeOutlined style={{ marginRight: 8 }} />
+                                            Size
+                                        </div>
+                                        {/* kanan (input bongkar) */}
+                                        <div style={{ flex: 1, marginLeft: 24 }}>
+                                            <Row gutter={8}>
+                                                <Col span={3}><NumberOutlined style={{ marginRight: 8 }} />Berat</Col>
+                                                <Col span={3}><BarcodeOutlined style={{ marginRight: 8 }} />Size</Col>
+                                                <Col span={3}><StarOutlined style={{ marginRight: 8 }} />Kualitas</Col>
+                                                <Col span={3}><PercentageOutlined style={{ marginRight: 8 }} />Molting</Col>
+                                                <Col span={5}><DollarOutlined style={{ marginRight: 8 }} />Harga</Col>
+                                                <Col span={5}><FileTextOutlined style={{ marginRight: 8 }} />Subtotal</Col>
+                                                <Col span={2}></Col>
                                             </Row>
-                                        ))}
+                                        </div>
+                                    </div>
 
-                                        <Button type="dashed" onClick={() => handleLocalAddDetailBongkar(posisi)} icon={<PlusOutlined />}>
-                                            {translate('Add Detail')}
-                                        </Button>
+                                    {/* Isi per detail panen */}
+                                    {panenDetails.length ? (
+                                        panenDetails.map((detailPanen, panenIndex) => {
+                                            const relatedBongkars = details.filter(d => d.id_detail_panen === detailPanen.id);
+                                            return (
+                                                <div key={`p-${panenIndex}`} style={{ display: 'flex', flexDirection: 'column' }}>
+                                                    {/* Baris panen (kiri) */}
+                                                    <div
+                                                        style={{
+                                                            display: 'flex',
+                                                            padding: '8px 0',
+                                                            alignItems: 'center',
+                                                            borderBottom: '1px solid #eee'
+                                                        }}
+                                                    >
+                                                        <div style={{ width: 100 }}>{detailPanen.created_date}</div>
+                                                        <div style={{ width: 80 }}>{detailPanen.berat}</div>
+                                                        <div style={{ width: 80 }}>{detailPanen.size}</div>
+                                                    </div>
+
+                                                    {/* Baris bongkar terkait (kanan) */}
+                                                    {relatedBongkars.length ? relatedBongkars.map((row, idx) => {
+                                                        const detailIndex = details.findIndex(d => d.id_detail_panen === detailPanen.id && d === row);
+                                                        const alloc = row.spb_alokasi || {};
+                                                        return (
+                                                            <div
+                                                                key={`b-${idx}`}
+                                                                style={{ display: 'flex', padding: '8px 0', alignItems: 'center', background: idx % 2 === 0 ? '#f9f9f9' : '#fff' }}
+                                                            >
+                                                                <div style={{ width: 260 }} />
+                                                                <div style={{ flex: 1 }}>
+                                                                    {/* Row input angka utama */}
+                                                                    <Row gutter={8}>
+                                                                        <Col span={3}>
+                                                                            <InputNumber
+                                                                                style={{ width: '100%' }}
+                                                                                value={row.berat_bongkar}
+                                                                                onChange={(v) => handleLocalDetailChange(posisi, detailIndex, 'berat_bongkar', v)}
+                                                                            />
+                                                                        </Col>
+                                                                        <Col span={3}>
+                                                                            <InputNumber
+                                                                                style={{ width: '100%' }}
+                                                                                value={row.size}
+                                                                                onChange={(v) => handleLocalDetailChange(posisi, detailIndex, 'size', v)}
+                                                                            />
+                                                                        </Col>
+                                                                        <Col span={3}>
+                                                                            <Input
+                                                                                style={{ width: '100%' }}
+                                                                                value={row.kualitas}
+                                                                                onChange={(e) => handleLocalDetailChange(posisi, detailIndex, 'kualitas', e.target.value)}
+                                                                            />
+                                                                        </Col>
+                                                                        <Col span={3}>
+                                                                            <InputNumber
+                                                                                style={{ width: '100%' }}
+                                                                                value={row.persen_molting}
+                                                                                onChange={(v) => handleLocalDetailChange(posisi, detailIndex, 'persen_molting', v)}
+                                                                            />
+                                                                        </Col>
+                                                                        <Col span={5}>
+                                                                            <InputNumber
+                                                                                style={{ width: '100%' }}
+                                                                                value={row.harga}
+                                                                                onChange={(v) => handleLocalDetailChange(posisi, detailIndex, 'harga', v)}
+                                                                            />
+                                                                        </Col>
+                                                                        <Col span={5}>
+                                                                            <InputNumber
+                                                                                style={{ width: '100%' }}
+                                                                                value={row.subtotal}
+                                                                                readOnly
+                                                                            />
+                                                                        </Col>
+                                                                        <Col span={2}>
+                                                                            <Popconfirm
+                                                                                title={translate('Hapus baris ini?')}
+                                                                                okText={translate('Hapus')}
+                                                                                cancelText={translate('Batal')}
+                                                                                onConfirm={() => handleLocalRemoveDetailBongkar(posisi, detailIndex)}
+                                                                            >
+                                                                                <Button type="text" danger icon={<MinusCircleOutlined />} />
+                                                                            </Popconfirm>
+                                                                        </Col>
+                                                                    </Row>
+
+                                                                    {/* Select SPB (multi) */}
+                                                                    <Row gutter={8} style={{ marginTop: 8 }}>
+                                                                        <Col span={24}>
+                                                                            <div style={{ fontSize: 12, marginBottom: 6 }}>
+                                                                                <FileTextOutlined style={{ marginRight: 6 }} />
+                                                                                Nomor SPB (bisa lebih dari satu)
+                                                                            </div>
+                                                                            <Select
+                                                                                mode="multiple"
+                                                                                allowClear
+                                                                                showSearch
+                                                                                placeholder="Pilih SPB…"
+                                                                                value={row.spb_ids || []}
+                                                                                options={spbOptions}
+                                                                                loading={spbLoading}
+                                                                                filterOption={false}
+                                                                                onSearch={(txt) => fetchSPB(txt)}
+                                                                                onChange={(vals) => handleLocalDetailChange(posisi, detailIndex, 'spb_ids', vals)}
+                                                                                style={{ width: '100%' }}
+                                                                            />
+                                                                        </Col>
+                                                                    </Row>
+
+                                                                    {/* Alokasi per SPB (muncul jika > 1) */}
+                                                                    {(row.spb_ids || []).length > 1 && (
+                                                                        <div style={{ background: '#fff', border: '1px dashed #ddd', padding: 8, marginTop: 8, borderRadius: 6 }}>
+                                                                            <Text strong>Alokasi kuantitas per SPB</Text>
+                                                                            <Row gutter={8} style={{ marginTop: 8 }}>
+                                                                                {(row.spb_ids || []).map((sid) => {
+                                                                                    const key = String(sid);
+                                                                                    return (
+                                                                                        <Col xs={24} md={12} lg={8} key={key} style={{ marginBottom: 8 }}>
+                                                                                            <InputNumber
+                                                                                                addonBefore={spbMap[key] || `SPB ${key}`}
+                                                                                                style={{ width: '100%' }}
+                                                                                                min={0}
+                                                                                                value={alloc?.[key]}
+                                                                                                onChange={(v) => {
+                                                                                                    const next = { ...(row.spb_alokasi || {}) };
+                                                                                                    next[key] = v;
+                                                                                                    handleLocalDetailChange(posisi, detailIndex, 'spb_alokasi', next);
+                                                                                                }}
+                                                                                            />
+                                                                                        </Col>
+                                                                                    );
+                                                                                })}
+                                                                            </Row>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    }) : (
+                                                        <div style={{ padding: '8px 0', color: '#999' }}>
+                                                            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={translate('Belum ada bongkar untuk panen ini')} />
+                                                        </div>
+                                                    )}
+
+                                                    {/* Tombol tambah baris bongkar */}
+                                                    <Button
+                                                        type="dashed"
+                                                        onClick={() => handleAddDetailClick(posisi)}
+                                                        icon={<PlusOutlined />}
+                                                        style={{ width: '100%', marginTop: 16 }}
+                                                    >
+                                                        {translate('Tambah Bongkar')}
+                                                    </Button>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <div style={{ padding: '8px 0', color: '#999' }}>
+                                            <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={translate('Belum ada data panen di posisi ini')} />
+                                        </div>
+                                    )}
+                                </div>
+
+                                <Divider />
+
+                                {/* Totals */}
+                                <Row gutter={16}>
+                                    <Col span={12}>
+                                        <Text strong>
+                                            <NumberOutlined style={{ marginRight: 8 }} />
+                                            {translate('Total Panen')}: {getTotals(posisi)} Kg
+                                        </Text>
+                                    </Col>
+                                    <Col span={12}>
+                                        <Text strong>
+                                            <NumberOutlined style={{ marginRight: 8 }} />
+                                            {translate('Total Bongkar')}: {getTotals(posisi, true)} Kg
+                                        </Text>
                                     </Col>
                                 </Row>
-
-                                {/* Footer Card untuk Total Panen & Bongkar */}
-                                <div style={{
-                                    borderTop: "2px solid #ccc",
-                                    paddingTop: "10px",
-                                    marginTop: "15px",
-                                    fontWeight: "bold",
-                                    textAlign: "center"
-                                }}>
-                                    <Row>
-                                        <Col span={8} style={{ textAlign: "left" }}>Total Panen: {getTotals(posisi)} Kg</Col>
-                                        <Col span={3} style={{ textAlign: "left" }}>Total Bongkar </Col>
-                                        <Col span={1} style={{ textAlign: "left" }}> : </Col>
-                                        <Col span={8} style={{ textAlign: "left" }}> {getTotals(posisi, true)} Kg</Col>
-                                    </Row>
-                                    <Row>
-                                        <Col span={8} />
-                                        <Col span={3} style={{ textAlign: "left" }}>Total Harga </Col>
-                                        <Col span={1} style={{ textAlign: "left" }}> : </Col>
-                                        <Col span={8} style={{ textAlign: "left", fontWeight: "bold" }}>
-                                            {new Intl.NumberFormat('id-ID', {
-                                                style: 'decimal',
-                                                minimumFractionDigits: 2,
-                                                maximumFractionDigits: 2
-                                            }).format(totalSubtotal)}
-                                        </Col>
-                                    </Row>
-                                </div>
+                                <Row style={{ marginTop: 8 }}>
+                                    <Col span={24}>
+                                        <Text strong>
+                                            <DollarOutlined style={{ marginRight: 8 }} />
+                                            {translate('Total Harga')}: {new Intl.NumberFormat('id-ID', { style: 'decimal', minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(totalSubtotal)}
+                                        </Text>
+                                    </Col>
+                                </Row>
                             </Card>
                         </Col>
                     );
@@ -553,7 +723,7 @@ export default function BongkarForm({
 
             {panenData && (
                 <Form.Item style={{ marginTop: 20 }}>
-                    <Button type="primary" htmlType="submit">
+                    <Button type="primary" htmlType="submit" icon={<CheckOutlined />} size="large">
                         {translate('Simpan')}
                     </Button>
                 </Form.Item>

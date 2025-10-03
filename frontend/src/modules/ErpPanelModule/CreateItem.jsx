@@ -49,7 +49,7 @@ export default function CreateItem({ config, CreateForm }) {
 
     const [detailBongkar, setDetailBongkar] = useState({}); // Angkat state detailBongkar
 
-     const handleAddDetailBongkar = (posisi) => {
+    const handleAddDetailBongkar = (posisi) => {
         setDetailBongkar(prevDetailBongkar => {
             const existingDetails = prevDetailBongkar[posisi] || [];
             return {
@@ -59,14 +59,14 @@ export default function CreateItem({ config, CreateForm }) {
         });
     };
 
-     const handleDetailChange = (posisi, index, field, value) => {
+    const handleDetailChange = (posisi, index, field, value) => {
         setDetailBongkar(prevDetailBongkar => {
             const updatedDetails = [...(prevDetailBongkar[posisi] || [])];
             updatedDetails[index] = { ...updatedDetails[index], [field]: value };
             return { ...prevDetailBongkar, [posisi]: updatedDetails };
         });
     };
-    
+
 
     const handleRemoveDetailBongkar = (posisi, index) => {
         setDetailBongkar(prevDetailBongkar => {

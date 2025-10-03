@@ -58,7 +58,14 @@ const SummaryPercentage = lazy(() => import('@/pages/Review/summaryPercentage'))
 //KPI
 const Kpi = lazy(() => import('@/pages/Kpi'));
 const KpiCreate = lazy(() => import('@/pages/Kpi/KpiCreate'));
-const KpiUpdate = lazy(() => import('@/pages/Kpi/KpiUpdate'))
+const KpiUpdate = lazy(() => import('@/pages/Kpi/KpiUpdate'));
+
+//Spb
+const Spb = lazy(() => import('@/pages/Spb'));
+const SpbCreate = lazy(() => import('@/pages/Spb/SpbCreate'));
+const SpbUpdate = lazy(() => import('@/pages/Spb/SpbUpdate'));
+const SpbRead = lazy(() => import('@/pages/Spb/SPBRead'));
+const SPBAnalytics = lazy(() => import('@/pages/Spb/SPBAnalytics'));
 
 let routes = {
   expense: [],
@@ -241,6 +248,26 @@ let routes = {
     {
       path: '/review/summary_percentage',
       element: <SummaryPercentage />,
+    },
+    {
+      path: '/spb',
+      element: <Spb />,
+    },
+    {
+      path: '/spb/create',
+      element: <SpbCreate />,
+    },
+    {
+      path: '/spb/update/:id',
+      element: <SpbUpdate />,
+    },
+    {
+      path: '/spb/read/:id',
+      element: <SpbRead />,
+    },
+    {
+      path: '/spb/analytics',
+      element: <SPBAnalytics />,
     },
     {
       path: '*',

@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect, useState } from 'react';
 import {
   EyeOutlined,
   EditOutlined,
@@ -10,7 +10,7 @@ import {
   ArrowRightOutlined,
   ArrowLeftOutlined,
 } from '@ant-design/icons';
-import { Dropdown, Table, Button } from 'antd';
+import { Dropdown, Table, Button, Input } from 'antd';
 import { PageHeader } from '@ant-design/pro-layout';
 
 import AutoCompleteAsync from '@/components/AutoCompleteAsync';
@@ -51,6 +51,7 @@ export default function DataTable({ config, extra = [] }) {
 
   const { erpContextAction } = useErpContext();
   const { modal } = erpContextAction;
+  const [currentPagination, setCurrentPagination] = useState({ current: 1, pageSize: 10 });
 
   const items = [
     {
@@ -168,8 +169,10 @@ export default function DataTable({ config, extra = [] }) {
     };
   }, []);
 
-  const filterTable = (value) => {
-    const options = { equal: value, filter: searchConfig?.entity };
+  const filterTable = (e) => {
+    const value = e.target.value;
+    setCurrentPagination({ current: 1, pageSize: currentPagination.pageSize });
+    const options = { q: value, fields: searchConfig?.searchFields || '', page: 1, items: currentPagination.pageSize };
     dispatch(erp.list({ entity, options }));
   };
 
@@ -181,15 +184,11 @@ export default function DataTable({ config, extra = [] }) {
         onBack={() => window.history.back()}
         backIcon={<ArrowLeftOutlined />}
         extra={[
-          <AutoCompleteAsync
-            key={`${uniqueId()}`}
-            entity={searchConfig?.entity}
-            displayLabels={['name']}
-            searchFields={'name'}
+          <Input
+            key={`searchFilterDataTable}`}
             onChange={filterTable}
-            // redirectLabel={'Add New Client'}
-            // withRedirect
-            // urlToRedirect={'/customer'}
+            placeholder={translate('search')}
+            allowClear
           />,
           <Button onClick={handelDataTableLoad} key={`${uniqueId()}`} icon={<RedoOutlined />}>
             {translate('Refresh')}
