@@ -582,7 +582,7 @@ export default function BongkarFormUpdate({
                                 <Card
                                     style={{ ...cardStyle, borderTop: `3px solid ${positionColors[posisi] || '#888'}` }}
                                     title={
-                                        <Text strong style={{ color: positionColors[posisi] || '#555' }}>
+                                        <Text strong style={{ color: positionColors[posisi] || '#555', fontSize: 24 }}>
                                             <DatabaseOutlined style={{ marginRight: 8 }} />
                                             {translate(posisi)}
                                         </Text>
