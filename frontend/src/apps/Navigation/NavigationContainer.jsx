@@ -35,7 +35,7 @@ function Sidebar() {
   const currentAdmin = useSelector(selectCurrentAdmin);
 
   const isReviewer = ['cynthia', 'welli'];
-  const isAdmin = ['hindri3578', 'dini3515'];
+  const isAdmin = ['hindri3578', 'dini3515','herry3515'];
   const isHR = ['silvya3515', 'jogi9104']; // tambahkan isHR
 
   const [collapsed, setCollapsed] = useState(isNavMenuClose);
