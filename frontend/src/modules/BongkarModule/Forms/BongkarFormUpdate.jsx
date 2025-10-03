@@ -36,21 +36,33 @@ function includeToken() {
     }
 }
 
-// ===== Number formatting helpers (tanpa currency) =====
-const nfID = new Intl.NumberFormat('id-ID');
-const formatInput = (val) => {
-    if (val === undefined || val === null || val === '') return '';
-    const num = typeof val === 'number'
-        ? val
-        : Number(String(val).replace(/\./g, '').replace(',', '.'));
-    if (!Number.isFinite(num)) return '';
-    return nfID.format(num); // ribuan dengan titik, desimal koma
+/** ====== Util angka (locale Indonesia) — sama dengan yang kamu pakai ======
+ *  - formatter: tampilan ribuan '.' dan desimal ','
+ *  - parser: buang ribuan & ganti ',' jadi '.'
+ *  Pakai di <InputNumber {...numberID} stringMode />
+ */
+const numberID = {
+    formatter: (val) => {
+        if (val === null || val === undefined || val === '') return '';
+        const s = String(val);
+        const norm = s.replace(',', '.'); // normalisasi
+        const parts = norm.split('.');
+        const intPartRaw = parts[0];
+        const decPart = parts[1];
+        const intOnly = (intPartRaw || '').replace(/[^\d-]/g, '');
+        const intFmt = intOnly.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return decPart !== undefined ? `${intFmt},${decPart}` : intFmt;
+    },
+    parser: (val) => {
+        if (typeof val !== 'string') return val;
+        return val.replace(/\./g, '').replace(',', '.');
+    },
 };
-const parseInput = (val) => {
-    if (val === undefined || val === null || val === '') return '';
-    const cleaned = String(val).replace(/\./g, '').replace(',', '.');
-    const num = Number(cleaned);
-    return Number.isNaN(num) ? '' : num;
+
+// parse aman ke number
+const toNum = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
 };
 
 export default function BongkarFormUpdate({
@@ -93,7 +105,7 @@ export default function BongkarFormUpdate({
             }));
             setSpbOptions(list);
             const dict = {};
-            list.forEach((it) => { dict[it.value] = it.label; });
+            list.forEach((it) => { dict[String(it.value)] = it.label; });
             setSpbMap(dict);
         } catch (_) {
             // ignore
@@ -215,9 +227,9 @@ export default function BongkarFormUpdate({
 
     // ===== Utilities =====
     const recalcSubtotal = (detail) => {
-        const berat = parseFloat(detail.berat_bongkar) || 0;
-        const harga = parseFloat(detail.harga) || 0;
-        const molting = parseFloat(detail.persen_molting) || 0;
+        const berat = toNum(detail.berat_bongkar);
+        const harga = toNum(detail.harga);
+        const molting = toNum(detail.persen_molting);
         return berat * harga - berat * harga * (molting / 100);
     };
 
@@ -243,7 +255,7 @@ export default function BongkarFormUpdate({
                     const alloc = row.spb_alokasi || {};
                     for (const id of ids) {
                         const key = String(id);
-                        const val = Number(alloc[key]);
+                        const val = toNum(alloc[key]);
                         if (!Number.isFinite(val) || val < 0) {
                             errors.push(`Posisi ${posisi} baris ${idx + 1}: alokasi untuk SPB ${spbMap[key] || key} harus angka ≥ 0`);
                         }
@@ -482,13 +494,13 @@ export default function BongkarFormUpdate({
     const getTotalsPanen = (posisi) =>
         (panenData?.detail || [])
             .filter((d) => d.posisi === posisi)
-            .reduce((acc, curr) => acc + (parseFloat(curr.berat) || 0), 0);
+            .reduce((acc, curr) => acc + toNum(curr.berat), 0);
 
     const getTotalsBongkar = (posisi) =>
-        (localDetailBongkar[posisi] || []).reduce((acc, d) => acc + (parseFloat(d.berat_bongkar) || 0), 0);
+        (localDetailBongkar[posisi] || []).reduce((acc, d) => acc + toNum(d.berat_bongkar), 0);
 
     const calculateSubtotalPosisi = (posisi) =>
-        (localDetailBongkar[posisi] || []).reduce((acc, d) => acc + (parseFloat(d.subtotal) || 0), 0);
+        (localDetailBongkar[posisi] || []).reduce((acc, d) => acc + toNum(d.subtotal), 0);
 
     const panenOptionsForCurrentPosisi = useMemo(() => {
         if (!currentPosisi || !panenData?.detail) return [];
@@ -543,11 +555,13 @@ export default function BongkarFormUpdate({
                                 label={<span><PercentageOutlined style={{ marginRight: 8 }} />{translate('Pot (%)')}</span>}
                             >
                                 <InputNumber
+                                    {...numberID}
+                                    stringMode
+                                    precision={2}
+                                    step="0.01"
+                                    min={0}
                                     disabled={potPercentageDisabled}
                                     style={{ width: '100%' }}
-                                    precision={2}
-                                    formatter={formatInput}
-                                    parser={parseInput}
                                     onChange={handlePotPercentageChange}
                                 />
                             </Form.Item>
@@ -558,11 +572,13 @@ export default function BongkarFormUpdate({
                                 label={<span><DollarOutlined style={{ marginRight: 8 }} />{translate('Subtotal (Nota)')}</span>}
                             >
                                 <InputNumber
+                                    {...numberID}
+                                    stringMode
+                                    precision={2}
+                                    step="0.01"
+                                    min={0}
                                     disabled={subtotalDisabled}
                                     style={{ width: '100%' }}
-                                    precision={2}
-                                    formatter={formatInput}
-                                    parser={parseInput}
                                     onChange={handleSubtotalChange}
                                 />
                             </Form.Item>
@@ -661,21 +677,25 @@ export default function BongkarFormUpdate({
                                                                             <Row gutter={8}>
                                                                                 <Col span={3}>
                                                                                     <InputNumber
+                                                                                        {...numberID}
+                                                                                        stringMode
+                                                                                        precision={2}
+                                                                                        step="0.01"
+                                                                                        min={0}
                                                                                         style={{ width: '100%' }}
                                                                                         value={row.berat_bongkar}
-                                                                                        precision={2}
-                                                                                        formatter={formatInput}
-                                                                                        parser={parseInput}
                                                                                         onChange={(v) => onChangeRow(posisi, idx, 'berat_bongkar', v)}
                                                                                     />
                                                                                 </Col>
                                                                                 <Col span={3}>
                                                                                     <InputNumber
+                                                                                        {...numberID}
+                                                                                        stringMode
+                                                                                        precision={2}
+                                                                                        step="0.1"
+                                                                                        min={0}
                                                                                         style={{ width: '100%' }}
                                                                                         value={row.size}
-                                                                                        precision={2}
-                                                                                        formatter={formatInput}
-                                                                                        parser={parseInput}
                                                                                         onChange={(v) => onChangeRow(posisi, idx, 'size', v)}
                                                                                     />
                                                                                 </Col>
@@ -688,32 +708,36 @@ export default function BongkarFormUpdate({
                                                                                 </Col>
                                                                                 <Col span={3}>
                                                                                     <InputNumber
+                                                                                        {...numberID}
+                                                                                        stringMode
+                                                                                        precision={2}
+                                                                                        step="0.01"
+                                                                                        min={0}
                                                                                         style={{ width: '100%' }}
                                                                                         value={row.persen_molting}
-                                                                                        precision={2}
-                                                                                        formatter={formatInput}
-                                                                                        parser={parseInput}
                                                                                         onChange={(v) => onChangeRow(posisi, idx, 'persen_molting', v)}
                                                                                     />
                                                                                 </Col>
                                                                                 <Col span={5}>
                                                                                     <InputNumber
+                                                                                        {...numberID}
+                                                                                        stringMode
+                                                                                        precision={2}
+                                                                                        step="0.01"
+                                                                                        min={0}
                                                                                         style={{ width: '100%' }}
                                                                                         value={row.harga}
-                                                                                        precision={2}
-                                                                                        formatter={formatInput}
-                                                                                        parser={parseInput}
                                                                                         onChange={(v) => onChangeRow(posisi, idx, 'harga', v)}
                                                                                     />
                                                                                 </Col>
                                                                                 <Col span={5}>
                                                                                     <InputNumber
-                                                                                        style={{ width: '100%' }}
-                                                                                        value={row.subtotal}
+                                                                                        {...numberID}
+                                                                                        stringMode
                                                                                         precision={2}
-                                                                                        formatter={formatInput}
-                                                                                        parser={parseInput}
-                                                                                        readOnly
+                                                                                        disabled
+                                                                                        style={{ width: '100%' }}
+                                                                                        value={toNum(row.subtotal).toFixed(2)}
                                                                                     />
                                                                                 </Col>
                                                                                 <Col span={2}>
@@ -757,13 +781,14 @@ export default function BongkarFormUpdate({
                                                                                                 return (
                                                                                                     <Col xs={24} md={12} lg={8} key={key} style={{ marginBottom: 8 }}>
                                                                                                         <InputNumber
+                                                                                                            {...numberID}
+                                                                                                            stringMode
+                                                                                                            precision={2}
+                                                                                                            step="0.01"
+                                                                                                            min={0}
                                                                                                             addonBefore={spbMap[key] || `SPB ${key}`}
                                                                                                             style={{ width: '100%' }}
-                                                                                                            min={0}
                                                                                                             value={alloc[key]}
-                                                                                                            precision={2}
-                                                                                                            formatter={formatInput}
-                                                                                                            parser={parseInput}
                                                                                                             onChange={(v) => {
                                                                                                                 const next = { ...(row.spb_alokasi || {}) };
                                                                                                                 next[key] = v;

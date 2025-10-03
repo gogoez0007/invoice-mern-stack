@@ -33,6 +33,35 @@ const positionColors = {
     Belakang: '#2196F3'
 };
 
+/** ====== Util angka (locale Indonesia) ======
+ *  - formatter: tampilan ribuan '.' dan desimal ','
+ *  - parser: buang ribuan & ganti ',' jadi '.'
+ *  Pakai di <InputNumber {...numberID} stringMode />
+ */
+const numberID = {
+    formatter: (val) => {
+        if (val === null || val === undefined || val === '') return '';
+        const s = String(val);
+        const norm = s.replace(',', '.'); // normalisasi
+        const parts = norm.split('.');
+        const intPartRaw = parts[0];
+        const decPart = parts[1];
+        const intOnly = (intPartRaw || '').replace(/[^\d-]/g, '');
+        const intFmt = intOnly.replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+        return decPart !== undefined ? `${intFmt},${decPart}` : intFmt;
+    },
+    parser: (val) => {
+        if (typeof val !== 'string') return val;
+        return val.replace(/\./g, '').replace(',', '.');
+    },
+};
+
+// parse aman ke number
+const toNum = (v) => {
+    const n = Number(v);
+    return Number.isFinite(n) ? n : 0;
+};
+
 export default function BongkarForm({
     subTotal,
     offerTotal,
@@ -47,18 +76,18 @@ export default function BongkarForm({
     const [showPanenSelection, setShowPanenSelection] = useState(false);
     const [currentPosisi, setCurrentPosisi] = useState(null);
 
-    const [potPercentage, setPotPercentage] = useState('');
-    const [subtotal, setSubtotal] = useState('');
+    const [potPercentage, setPotPercentage] = useState(''); // stringMode
+    const [subtotal, setSubtotal] = useState('');           // stringMode
     const [potPercentageDisabled, setPotPercentageDisabled] = useState(true);
     const [subtotalDisabled, setSubtotalDisabled] = useState(true);
 
-    // detail bongkar per posisi (pakai strukturmu)
-    const [localDetailBongkar, setLocalDetailBongkar] = useState({}); // :contentReference[oaicite:4]{index=4}
+    // detail bongkar per posisi
+    const [localDetailBongkar, setLocalDetailBongkar] = useState({});
 
     // ========== SPB (searchable, multi) ==========
     const [spbOptions, setSpbOptions] = useState([]);
     const [spbLoading, setSpbLoading] = useState(false);
-    const [spbMap, setSpbMap] = useState({}); // cache id->no_spb utk label alokasi
+    const [spbMap, setSpbMap] = useState({}); // id -> no_spb
 
     function includeToken() {
         axios.defaults.baseURL = API_BASE_URL;
@@ -82,7 +111,7 @@ export default function BongkarForm({
             }));
             setSpbOptions(list);
             const dict = {};
-            list.forEach((it) => { dict[it.value] = it.label; });
+            list.forEach((it) => { dict[String(it.value)] = it.label; });
             setSpbMap(dict);
         } catch {
             // silent
@@ -92,7 +121,7 @@ export default function BongkarForm({
     };
     useEffect(() => { fetchSPB(''); }, []);
 
-    // ===== Pot(%) vs Subtotal toggle (struktur aslimu) =====
+    // ===== Pot(%) vs Subtotal toggle =====
     const updateFormValue = useCallback((fieldName, value) => {
         if (value !== form.getFieldValue(fieldName)) {
             form.setFieldsValue({ [fieldName]: value });
@@ -100,23 +129,24 @@ export default function BongkarForm({
     }, [form]);
 
     useEffect(() => {
-        setPotPercentageDisabled(subtotal.length > 0);
-        setSubtotalDisabled(potPercentage.length > 0);
-    }, [potPercentage, subtotal]); // :contentReference[oaicite:5]{index=5}
+        setPotPercentageDisabled((subtotal ?? '').length > 0);
+        setSubtotalDisabled((potPercentage ?? '').length > 0);
+    }, [potPercentage, subtotal]);
 
-    const handlePotPercentageChange = useCallback((e) => {
-        const val = e.target.value;
-        setPotPercentage(val);
-        updateFormValue('persen_potongan', val);
+    // handler untuk InputNumber (bukan e.target.value)
+    const handlePotPercentageChange = useCallback((val) => {
+        const v = (val ?? '');
+        setPotPercentage(v);
+        updateFormValue('persen_potongan', v);
     }, [updateFormValue]);
 
-    const handleSubtotalChange = useCallback((e) => {
-        const val = e.target.value;
-        setSubtotal(val);
-        updateFormValue('sub_total', val);
+    const handleSubtotalChange = useCallback((val) => {
+        const v = (val ?? '');
+        setSubtotal(v);
+        updateFormValue('sub_total', v);
     }, [updateFormValue]);
 
-    // ===== Ambil data panen (asli) =====
+    // ===== Ambil data panen =====
     const handleGetPanenData = async () => {
         setLoadingPanen(true);
         try {
@@ -146,7 +176,7 @@ export default function BongkarForm({
 
                 // seed struktur posisi (tanpa baris)
                 const initialLocalDetailBongkar = {};
-                dataPanen.detail.forEach(detail => {
+                (dataPanen.detail || []).forEach((detail) => {
                     const posisi = detail.posisi;
                     if (!initialLocalDetailBongkar[posisi]) {
                         initialLocalDetailBongkar[posisi] = [];
@@ -164,33 +194,29 @@ export default function BongkarForm({
         }
     };
 
-    // ===== Agregasi/Hitung (asli) =====
+    // ===== Agregasi/Hitung =====
     const getTotals = (posisi, useBongkarData = false) => {
-        let total = 0;
         if (!panenData?.detail) return 0;
-
         if (useBongkarData) {
             const details = localDetailBongkar[posisi] || [];
-            total = details.reduce((acc, detail) => acc + (parseFloat(detail.berat_bongkar) || 0), 0);
+            return details.reduce((acc, detail) => acc + toNum(detail.berat_bongkar), 0);
         } else {
-            total = panenData.detail
-                .filter(d => d.posisi === posisi)
-                .reduce((acc, curr) => acc + parseFloat(curr.berat), 0);
+            return panenData.detail
+                .filter((d) => d.posisi === posisi)
+                .reduce((acc, curr) => acc + toNum(curr.berat), 0);
         }
-        return total;
     };
 
     const calculateSubtotal = (posisi) => {
         let total = 0;
         const details = localDetailBongkar[posisi] || [];
         details.forEach(detail => {
-            const st = parseFloat(detail.subtotal) || 0;
-            total = calculate.add(total, st);
+            total = calculate.add(total, toNum(detail.subtotal));
         });
         return total;
     };
 
-    // ===== Mutasi baris detail (DITAMBAH: spb_ids + spb_alokasi) =====
+    // ===== Mutasi baris detail (termasuk spb_ids + spb_alokasi) =====
     const handleLocalDetailChange = (posisi, index, field, value) => {
         setLocalDetailBongkar(prev => {
             const updatedDetails = { ...prev };
@@ -208,9 +234,9 @@ export default function BongkarForm({
                     }
                 });
                 // siapkan kunci alokasi untuk spb yang baru dipilih
-                selected.forEach(id => {
+                selected.forEach((id) => {
                     const key = String(id);
-                    if (currentAlloc[key] === undefined) currentAlloc[key] = 0;
+                    if (currentAlloc[key] === undefined) currentAlloc[key] = '';
                 });
                 updatedDetails[posisi][index] = {
                     ...updatedDetails[posisi][index],
@@ -227,12 +253,13 @@ export default function BongkarForm({
             };
 
             // hitung ulang subtotal kalau field terkait berubah
-            if (field === 'berat_bongkar' || field === 'harga' || field === 'persen_molting') {
-                const berat = parseFloat(updatedDetails[posisi][index].berat_bongkar) || 0;
-                const harga = parseFloat(updatedDetails[posisi][index].harga) || 0;
-                const molting = parseFloat(updatedDetails[posisi][index].persen_molting) || 0;
-                const calculatedSubtotal = (berat * harga) - (berat * harga * (molting / 100));
-                updatedDetails[posisi][index].subtotal = calculatedSubtotal;
+            if (['berat_bongkar', 'harga', 'persen_molting'].includes(field)) {
+                const berat = toNum(updatedDetails[posisi][index].berat_bongkar);
+                const harga = toNum(updatedDetails[posisi][index].harga);
+                const molting = toNum(updatedDetails[posisi][index].persen_molting);
+                const gross = berat * harga;
+                const pot = gross * (molting / 100);
+                updatedDetails[posisi][index].subtotal = gross - pot;
             }
 
             return updatedDetails;
@@ -246,6 +273,7 @@ export default function BongkarForm({
 
     const handleSelectPanenDetail = (selectedPanenDetail) => {
         setShowPanenSelection(false);
+        if (!currentPosisi) return;
         setLocalDetailBongkar(prev => {
             const updatedDetails = { ...prev };
             if (!updatedDetails[currentPosisi]) updatedDetails[currentPosisi] = [];
@@ -254,16 +282,14 @@ export default function BongkarForm({
                 ...updatedDetails[currentPosisi],
                 {
                     id_detail_panen: selectedPanenDetail.id,
-                    // berat_bongkar: selectedPanenDetail.berat,
-                    // size: selectedPanenDetail.size,
-                    berat_bongkar: '',
-                    size: '',
+                    berat_bongkar: null,   // InputNumber happy dengan null
+                    size: null,
                     kualitas: '',
-                    persen_molting: '',
-                    harga: '',
-                    subtotal: '',
+                    persen_molting: null,
+                    harga: null,
+                    subtotal: 0,
                     spb_ids: [],
-                    spb_alokasi: {} // { [spbId]: qty }
+                    spb_alokasi: {} // { [spbId]: qty (stringMode) }
                 }
             ];
             return updatedDetails;
@@ -278,7 +304,7 @@ export default function BongkarForm({
         });
     };
 
-    // ===== notif parent (asli) =====
+    // ===== notif parent =====
     const isInitialRender = useRef(true);
     useEffect(() => {
         if (isInitialRender.current) {
@@ -288,9 +314,9 @@ export default function BongkarForm({
         if (onValuesChange) {
             onValuesChange({}, form.getFieldsValue());
         }
-    }, [onValuesChange]);
+    }, [onValuesChange, form]);
 
-    // ===== modal pilih detail panen (asli) =====
+    // ===== modal pilih detail panen =====
     const panenColumns = [
         { title: 'Tanggal', dataIndex: 'created_date', key: 'created_date' },
         { title: 'Berat (Kg)', dataIndex: 'berat', key: 'berat' },
@@ -317,7 +343,7 @@ export default function BongkarForm({
                     const alloc = row.spb_alokasi || {};
                     for (const id of ids) {
                         const key = String(id);
-                        const val = Number(alloc[key]);
+                        const val = toNum(alloc[key]); // stringMode → parse
                         if (!Number.isFinite(val)) {
                             errors.push(`Posisi ${posisi} baris ${idx + 1}: alokasi untuk SPB ${spbMap[key] || key} harus angka`);
                         }
@@ -325,9 +351,9 @@ export default function BongkarForm({
                             errors.push(`Posisi ${posisi} baris ${idx + 1}: alokasi untuk SPB ${spbMap[key] || key} tidak boleh negatif`);
                         }
                     }
-                    // OPSIONAL (aktifkan bila mau memastikan total alokasi = berat_bongkar):
-                    // const sumAlloc = ids.reduce((a, id) => a + Number(alloc[String(id)] || 0), 0);
-                    // const berat = Number(row.berat_bongkar || 0);
+                    // Opsional: pastikan total alokasi = berat_bongkar
+                    // const sumAlloc = ids.reduce((a, id) => a + toNum(alloc[String(id)]), 0);
+                    // const berat = toNum(row.berat_bongkar);
                     // if (Math.abs(sumAlloc - berat) > 1e-9) {
                     //   errors.push(`Posisi ${posisi} baris ${idx + 1}: total alokasi (${sumAlloc}) harus sama dengan berat bongkar (${berat})`);
                     // }
@@ -342,13 +368,11 @@ export default function BongkarForm({
             form={form}
             layout="vertical"
             onFinish={(values) => {
-                // Validasi alokasi sebelum submit
                 const errs = validateSPBAllocations();
                 if (errs.length) {
                     message.error(errs[0]);
                     return;
                 }
-                // kirim payload (struktur submit aslimu) :contentReference[oaicite:6]{index=6}
                 onSubmit({ ...values, panenData, localDetailBongkar });
             }}
         >
@@ -446,7 +470,16 @@ export default function BongkarForm({
                                     name="persen_potongan"
                                     label={<span><PercentageOutlined style={{ marginRight: 8 }} />{translate('Pot (%)')}</span>}
                                 >
-                                    <Input disabled={potPercentageDisabled} onChange={handlePotPercentageChange} />
+                                    <InputNumber
+                                        {...numberID}
+                                        stringMode
+                                        precision={2}
+                                        step="0.01"
+                                        min={0}
+                                        disabled={potPercentageDisabled}
+                                        onChange={handlePotPercentageChange}
+                                        style={{ width: '100%' }}
+                                    />
                                 </Form.Item>
                             </Col>
                             <Col span={6}>
@@ -454,7 +487,16 @@ export default function BongkarForm({
                                     name="sub_total"
                                     label={<span><DollarOutlined style={{ marginRight: 8 }} />{translate('Subtotal (Nota)')}</span>}
                                 >
-                                    <Input disabled={subtotalDisabled} onChange={handleSubtotalChange} />
+                                    <InputNumber
+                                        {...numberID}
+                                        stringMode
+                                        precision={2}
+                                        step="0.01"
+                                        min={0}
+                                        disabled={subtotalDisabled}
+                                        onChange={handleSubtotalChange}
+                                        style={{ width: '100%' }}
+                                    />
                                 </Form.Item>
                             </Col>
                         </Row>
@@ -472,7 +514,7 @@ export default function BongkarForm({
             >
                 <Table
                     columns={panenColumns}
-                    dataSource={panenData?.detail?.filter(d => d.posisi === currentPosisi) || []}
+                    dataSource={panenData?.detail?.filter((d) => d.posisi === currentPosisi) || []}
                     rowKey="id"
                     pagination={false}
                 />
@@ -480,10 +522,10 @@ export default function BongkarForm({
 
             {/* PER POSISI */}
             <Row gutter={16}>
-                {panenData?.detail && [...new Set(panenData.detail.map(d => d.posisi))].map(posisi => {
+                {panenData?.detail && [...new Set(panenData.detail.map((d) => d.posisi))].map((posisi) => {
                     const totalSubtotal = calculateSubtotal(posisi);
                     const details = localDetailBongkar[posisi] || [];
-                    const panenDetails = panenData.detail.filter(d => d.posisi === posisi);
+                    const panenDetails = panenData.detail.filter((d) => d.posisi === posisi);
 
                     return (
                         <Col span={24} key={posisi}>
@@ -529,7 +571,7 @@ export default function BongkarForm({
                                     {/* Isi per detail panen */}
                                     {panenDetails.length ? (
                                         panenDetails.map((detailPanen, panenIndex) => {
-                                            const relatedBongkars = details.filter(d => d.id_detail_panen === detailPanen.id);
+                                            const relatedBongkars = details.filter((d) => d.id_detail_panen === detailPanen.id);
                                             return (
                                                 <div key={`p-${panenIndex}`} style={{ display: 'flex', flexDirection: 'column' }}>
                                                     {/* Baris panen (kiri) */}
@@ -548,7 +590,7 @@ export default function BongkarForm({
 
                                                     {/* Baris bongkar terkait (kanan) */}
                                                     {relatedBongkars.length ? relatedBongkars.map((row, idx) => {
-                                                        const detailIndex = details.findIndex(d => d.id_detail_panen === detailPanen.id && d === row);
+                                                        const detailIndex = details.findIndex((d) => d.id_detail_panen === detailPanen.id && d === row);
                                                         const alloc = row.spb_alokasi || {};
                                                         return (
                                                             <div
@@ -561,6 +603,11 @@ export default function BongkarForm({
                                                                     <Row gutter={8}>
                                                                         <Col span={3}>
                                                                             <InputNumber
+                                                                                {...numberID}
+                                                                                stringMode
+                                                                                precision={2}
+                                                                                step="0.01"
+                                                                                min={0}
                                                                                 style={{ width: '100%' }}
                                                                                 value={row.berat_bongkar}
                                                                                 onChange={(v) => handleLocalDetailChange(posisi, detailIndex, 'berat_bongkar', v)}
@@ -568,6 +615,11 @@ export default function BongkarForm({
                                                                         </Col>
                                                                         <Col span={3}>
                                                                             <InputNumber
+                                                                                {...numberID}
+                                                                                stringMode
+                                                                                precision={2}
+                                                                                step="0.1"
+                                                                                min={0}
                                                                                 style={{ width: '100%' }}
                                                                                 value={row.size}
                                                                                 onChange={(v) => handleLocalDetailChange(posisi, detailIndex, 'size', v)}
@@ -582,6 +634,11 @@ export default function BongkarForm({
                                                                         </Col>
                                                                         <Col span={3}>
                                                                             <InputNumber
+                                                                                {...numberID}
+                                                                                stringMode
+                                                                                precision={2}
+                                                                                step="0.01"
+                                                                                min={0}
                                                                                 style={{ width: '100%' }}
                                                                                 value={row.persen_molting}
                                                                                 onChange={(v) => handleLocalDetailChange(posisi, detailIndex, 'persen_molting', v)}
@@ -589,6 +646,11 @@ export default function BongkarForm({
                                                                         </Col>
                                                                         <Col span={5}>
                                                                             <InputNumber
+                                                                                {...numberID}
+                                                                                stringMode
+                                                                                precision={2}
+                                                                                step="0.01"
+                                                                                min={0}
                                                                                 style={{ width: '100%' }}
                                                                                 value={row.harga}
                                                                                 onChange={(v) => handleLocalDetailChange(posisi, detailIndex, 'harga', v)}
@@ -596,9 +658,12 @@ export default function BongkarForm({
                                                                         </Col>
                                                                         <Col span={5}>
                                                                             <InputNumber
+                                                                                {...numberID}
+                                                                                stringMode
+                                                                                precision={2}
+                                                                                disabled
                                                                                 style={{ width: '100%' }}
-                                                                                value={row.subtotal}
-                                                                                readOnly
+                                                                                value={toNum(row.subtotal).toFixed(2)}
                                                                             />
                                                                         </Col>
                                                                         <Col span={2}>
@@ -645,11 +710,17 @@ export default function BongkarForm({
                                                                                     const key = String(sid);
                                                                                     return (
                                                                                         <Col xs={24} md={12} lg={8} key={key} style={{ marginBottom: 8 }}>
+                                                                                            <div style={{ fontSize: 12, marginBottom: 4 }}>
+                                                                                                {spbMap[key] || `SPB ${key}`}
+                                                                                            </div>
                                                                                             <InputNumber
-                                                                                                addonBefore={spbMap[key] || `SPB ${key}`}
-                                                                                                style={{ width: '100%' }}
+                                                                                                {...numberID}
+                                                                                                stringMode
+                                                                                                precision={2}
+                                                                                                step="0.01"
                                                                                                 min={0}
-                                                                                                value={alloc?.[key]}
+                                                                                                style={{ width: '100%' }}
+                                                                                                value={(row.spb_alokasi && row.spb_alokasi[key]) || null}
                                                                                                 onChange={(v) => {
                                                                                                     const next = { ...(row.spb_alokasi || {}) };
                                                                                                     next[key] = v;
