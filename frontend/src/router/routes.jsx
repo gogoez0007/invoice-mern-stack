@@ -66,6 +66,7 @@ const SpbCreate = lazy(() => import('@/pages/Spb/SpbCreate'));
 const SpbUpdate = lazy(() => import('@/pages/Spb/SpbUpdate'));
 const SpbRead = lazy(() => import('@/pages/Spb/SPBRead'));
 const SPBAnalytics = lazy(() => import('@/pages/Spb/SPBAnalytics'));
+const ManageAttendance = lazy(() => import('@/pages/ManageAttendance'));
 
 let routes = {
   expense: [],
@@ -268,6 +269,10 @@ let routes = {
     {
       path: '/spb/analytics',
       element: <SPBAnalytics />,
+    },
+    {
+      path: '/attendance/manage',
+      element: <ManageAttendance />,
     },
     {
       path: '*',
