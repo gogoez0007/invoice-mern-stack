@@ -87,6 +87,9 @@ export default function BongkarFormUpdate({
     const [spbOptions, setSpbOptions] = useState([]);
     const [spbLoading, setSpbLoading] = useState(false);
     const [spbMap, setSpbMap] = useState({}); // id -> no_spb
+    // Pantau nilai tanggal_bongkar dari Form
+    const tanggalBongkarWatch = Form.useWatch('tanggal_bongkar', form);
+
 
     function fetchSPB(q = '') {
         (async () => {
@@ -296,7 +299,7 @@ export default function BongkarFormUpdate({
                 posisi: row.posisi || posisi,
                 detail_panen_id: pinnedDetailId,
                 detail_bongkar_id: row.detail_bongkar_id ?? row.urutan ?? null,
-                tanggal: row.tanggal || null,
+                tanggal: tanggalBongkarWatch || null,
                 berat_bongkar: row.berat_bongkar,
                 size: row.size,
                 kualitas: row.kualitas,
@@ -356,6 +359,7 @@ export default function BongkarFormUpdate({
         setShowPanenSelection(false);
 
         const lk = `${Date.now()}-${Math.random()}`;
+        const tanggalBongkar = tanggalBongkarWatch || dayjs();
 
         setLocalDetailBongkar((prev) => {
             const next = { ...prev };
@@ -367,7 +371,7 @@ export default function BongkarFormUpdate({
                 id_detail_panen: selected.id,
                 detail_bongkar_id: null,
                 urutan: null,
-                tanggal: selected.created_date || selected.tanggal || null,
+                tanggal: tanggalBongkar,
                 berat_bongkar: '',
                 size: '',
                 kualitas: '',
@@ -391,7 +395,7 @@ export default function BongkarFormUpdate({
                 _localKey: lk,
                 detail_panen_id: selected.id,
                 detail_bongkar_id: null,
-                tanggal: selected.created_date || selected.tanggal || null,
+                tanggal: tanggalBongkar,
                 berat_bongkar: '',
                 size: '',
                 kualitas: '',
@@ -403,6 +407,34 @@ export default function BongkarFormUpdate({
             },
         ]);
     };
+
+    // OTOMATIS: setiap kali tanggal_bongkar berubah, samakan ke SEMUA detail
+    useEffect(() => {
+        if (!tanggalBongkarWatch) return;
+
+        // 1) Sinkron ke grid lokal (localDetailBongkar)
+        setLocalDetailBongkar(prev => {
+            const next = {};
+            Object.keys(prev || {}).forEach(pos => {
+                next[pos] = (prev[pos] || []).map(r => ({ ...r, tanggal: tanggalBongkarWatch }));
+            });
+            return next;
+        });
+
+        // 2) Sinkron ke daftar perubahan (modifiedDetail)
+        setModifiedDetail(prev =>
+            prev.map(item => {
+                if (item.action === 'delete') return item; // jangan ubah yang sudah ditandai delete
+                return {
+                    ...item,
+                    tanggal: tanggalBongkarWatch,
+                    action: item.action || (item.id ? 'edit' : 'add'),
+                };
+            })
+        );
+    }, [tanggalBongkarWatch]);
+
+
 
     // ===== panen table (modal) =====
     const panenColumns = [
@@ -435,6 +467,9 @@ export default function BongkarFormUpdate({
                 return;
             }
 
+            const tanggalBongkar = form.getFieldValue('tanggal_bongkar') || dayjs();
+            const tanggalBongkarStr = dayjs(tanggalBongkar).format('YYYY-MM-DD');
+
             const panenDateMap = {};
             if (panenData?.detail) for (const d of panenData.detail) panenDateMap[d.id] = d.created_date || d.tanggal || null;
 
@@ -443,15 +478,16 @@ export default function BongkarFormUpdate({
                 return {
                     ...d,
                     detail_panen_id: pinnedDetailId,
-                    tanggal: d.tanggal || (pinnedDetailId ? panenDateMap[pinnedDetailId] : null),
+                    tanggal: tanggalBongkarStr,
                 };
             });
 
             const localForPayload = {};
+
             Object.keys(localDetailBongkar || {}).forEach((pos) => {
                 localForPayload[pos] = (localDetailBongkar[pos] || []).map((r) => ({
                     id_detail_panen: r.id_detail_panen ?? null,
-                    tanggal: r.tanggal || (r.id_detail_panen ? panenDateMap[r.id_detail_panen] : null),
+                    tanggal: tanggalBongkarStr,
                     berat_bongkar: r.berat_bongkar,
                     size: r.size,
                     kualitas: r.kualitas,
