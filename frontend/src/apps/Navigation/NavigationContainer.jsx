@@ -181,8 +181,16 @@ function Sidebar() {
           label: <Link to="/shift">Shift</Link>,
         },
         {
+          key: 'shift_schedule',
+          label: <Link to="/shift/shift_schedule">Schedule Shift</Link>,
+        },
+        {
           key: 'manage_attendance',
           label: <Link to="/attendance/manage">Manage Attendance</Link>,
+        },
+        {
+          key: 'manage_employee',
+          label: <Link to="/employee/manage">Manage Karyawan</Link>,
         },
       ],
     },

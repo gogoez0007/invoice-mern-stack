@@ -40,6 +40,7 @@ const Supir = lazy(() => import('@/pages/Supir'));
 const Kualitas = lazy(() => import('@/pages/Kualitas'));
 const Lokasi = lazy(() => import('@/pages/Lokasi'));
 const Shift = lazy(() => import('@/pages/Shift'));
+const ScheduleShift = lazy(() => import('@/pages/Shift/ScheduleShifts'));
 const Karyawan = lazy(() => import('@/pages/Karyawan'));
 //Panen
 const Panen = lazy(() => import('@/pages/Panen'));
@@ -67,6 +68,7 @@ const SpbUpdate = lazy(() => import('@/pages/Spb/SpbUpdate'));
 const SpbRead = lazy(() => import('@/pages/Spb/SPBRead'));
 const SPBAnalytics = lazy(() => import('@/pages/Spb/SPBAnalytics'));
 const ManageAttendance = lazy(() => import('@/pages/ManageAttendance'));
+const ManageEmployees = lazy(() => import('@/pages/Karyawan/manageEmployee'));
 
 let routes = {
   expense: [],
@@ -199,6 +201,10 @@ let routes = {
       element: <Shift />,
     },
     {
+      path: '/shift/shift_schedule',
+      element: <ScheduleShift />,
+    },
+    {
       path: '/karyawan',
       element: <Karyawan />,
     },
@@ -273,6 +279,10 @@ let routes = {
     {
       path: '/attendance/manage',
       element: <ManageAttendance />,
+    },
+    {
+      path: '/employee/manage',
+      element: <ManageEmployees />,
     },
     {
       path: '*',
