@@ -19,6 +19,10 @@ export default function AttendanceTable() {
   const DAY_HEADER_FSIZE_DOW = Math.round(12 * SCALE);   // font-size "Sen/Min"
   const DAY_HEADER_FSIZE_DATE = Math.round(13 * SCALE);  // font-size tanggal
 
+  // --- helpers untuk leave ---
+  const isLeaveCell = (val) => /^\s*\[[^\]]+\]\s*$/.test(String(val || ""));
+  const stripBrackets = (val) => String(val || "").replace(/^\s*\[|\]\s*$/g, "");
+
   // filter state
   const [nameFilter, setNameFilter] = useState("");
   const [entitasFilter, setEntitasFilter] = useState(undefined);
@@ -234,7 +238,7 @@ export default function AttendanceTable() {
     },
   ];
 
-  // kolom hari: 1.2x lebih besar
+  // kolom hari: 1.2x lebih besar + styling khusus untuk leave
   const dayColumns = useMemo(() => {
     return Array.from({ length: daysInMonth }, (_, i) => {
       const d = date.date(i + 1);
@@ -264,21 +268,47 @@ export default function AttendanceTable() {
         onHeaderCell: () => ({
           style: { ...headStyle, borderInline: "1px solid #f0f0f0", padding: DAY_HEADER_PAD }, // 1.2x
         }),
-        onCell: () => ({
-          style: {
-            background: isWeekend ? "#fafafa" : "#ffffff",
+        // gunakan record agar bisa baca nilai cell untuk styling leave
+        onCell: (record) => {
+          const raw = record[`day_${i + 1}`];
+          const leave = isLeaveCell(raw);
+          const base = {
             paddingTop: DAY_CELL_PAD_Y,    // 1.2x
             paddingBottom: DAY_CELL_PAD_Y, // 1.2x
-          },
-        }),
-        render: (text) => (
-          <span style={{ fontWeight: text && text !== "-" ? 600 : 400 }}>
-            {text || "-"}
-          </span>
-        ),
+            background: isWeekend ? "#fafafa" : "#ffffff",
+          };
+          return {
+            style: leave
+              ? {
+                ...base,
+                background: "linear-gradient(180deg,#fffbe6,#fff1b8)", // kuning lembut
+                color: "#ad6800", // teks kecokelatan
+                fontWeight: 700,
+                borderInline: "1px solid #ffe58f",
+              }
+              : base,
+          };
+        },
+        render: (text) => {
+          const leave = isLeaveCell(text);
+          const display = leave ? stripBrackets(text) : (text || "-");
+          return (
+            <span style={{ fontWeight: display && display !== "-" ? 600 : 400 }}>
+              {display}
+            </span>
+          );
+        },
       };
     });
-  }, [daysInMonth, date, DAY_CELL_WIDTH, DAY_CELL_PAD_Y, DAY_HEADER_PAD, DAY_HEADER_FSIZE_DOW, DAY_HEADER_FSIZE_DATE]);
+  }, [
+    daysInMonth,
+    date,
+    DAY_CELL_WIDTH,
+    DAY_CELL_PAD_Y,
+    DAY_HEADER_PAD,
+    DAY_HEADER_FSIZE_DOW,
+    DAY_HEADER_FSIZE_DATE,
+  ]);
 
   const columns = [...baseColumns, ...dayColumns];
 
@@ -364,6 +394,7 @@ export default function AttendanceTable() {
         <Space size="small" wrap>
           <Tag color="red">Minggu</Tag>
           <Tag color="geekblue">Sabtu</Tag>
+          <Tag color="gold">Leave Request</Tag>
         </Space>
       </div>
 
