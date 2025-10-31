@@ -11,17 +11,42 @@ export default function AttendanceTable() {
   const [loading, setLoading] = useState(false);
   const [date, setDate] = useState(dayjs()); // default: bulan ini
 
+  // === HOLIDAY META (dari backend) ===
+  const [holidayMeta, setHolidayMeta] = useState([]); // [{date,isHoliday,codes,names}]
+  const holidayIndex = useMemo(() => {
+    const idx = {};
+    for (const h of holidayMeta || []) {
+      const d = dayjs(h.date);
+      if (!d.isValid()) continue;
+      if (d.isSame(date, "month")) idx[d.date()] = h; // key = tanggal (1..n)
+    }
+    return idx;
+  }, [holidayMeta, date]);
+
   // ====== SCALE 1.2x untuk cell absensi ======
   const SCALE = 1.2;
-  const DAY_CELL_WIDTH = Math.round(54 * SCALE);         // sebelumnya 54
-  const DAY_HEADER_PAD = Math.round(6 * SCALE);          // padding header kolom hari
-  const DAY_CELL_PAD_Y = Math.round(8 * SCALE);          // padding vertikal sel harian
-  const DAY_HEADER_FSIZE_DOW = Math.round(12 * SCALE);   // font-size "Sen/Min"
-  const DAY_HEADER_FSIZE_DATE = Math.round(13 * SCALE);  // font-size tanggal
+  const DAY_CELL_WIDTH = Math.round(54 * SCALE);
+  const DAY_HEADER_PAD = Math.round(6 * SCALE);
+  const DAY_CELL_PAD_Y = Math.round(8 * SCALE);
+  const DAY_HEADER_FSIZE_DOW = Math.round(12 * SCALE);
+  const DAY_HEADER_FSIZE_DATE = Math.round(13 * SCALE);
 
-  // --- helpers untuk leave ---
-  const isLeaveCell = (val) => /^\s*\[[^\]]+\]\s*$/.test(String(val || ""));
-  const stripBrackets = (val) => String(val || "").replace(/^\s*\[|\]\s*$/g, "");
+  // --- helpers untuk leave/holiday ---
+  const getBracketCodes = (val) => {
+    const m = /^\s*\[([^\]]+)\]/.exec(String(val || ""));
+    return m ? m[1].split("+").map((s) => s.trim()) : [];
+  };
+  // LEAVE = bracket TAPI buka KECUALI jika kodenya LN/CB
+  const isLeaveCell = (val) => {
+    const m = /^\s*\[([^\]]+)\]\s*$/.exec(String(val || ""));
+    if (!m) return false;
+    const codes = m[1].split("+").map((s) => s.trim());
+    return !codes.every((c) => c === "LN" || c === "CB"); // kalau semua LN/CB → bukan leave
+  };
+  const hasHolidayCode = (val) => {
+    const codes = getBracketCodes(val);
+    return codes.some((c) => c === "LN" || c === "CB");
+  };
 
   // filter state
   const [nameFilter, setNameFilter] = useState("");
@@ -33,13 +58,24 @@ export default function AttendanceTable() {
   const fetchData = async (selectedDate) => {
     setLoading(true);
     try {
-      const response = await request.attendance_summary({
+      const resp = await request.attendance_summary({
         entity: "attendance",
         options: { bulan: selectedDate.format("MM"), tahun: selectedDate.format("YYYY") },
       });
 
+      // robust terhadap bentuk respons: bisa {data: {...}} atau langsung {...}
+      const payload = resp?.data ?? resp;
+
+      const rowsSrc =
+        Array.isArray(payload) ? payload
+          : Array.isArray(payload?.data) ? payload.data
+            : [];
+
+      const holSrc = payload?.holidayDates ?? []; // [{date,isHoliday,codes,names}]
+      setHolidayMeta(holSrc);
+
       const transformedData =
-        response?.data?.map((item) => {
+        rowsSrc.map((item) => {
           const attendanceDays = (item.attendance || []).reduce((acc, value, index) => {
             acc[`day_${index + 1}`] = value ?? "-";
             return acc;
@@ -58,6 +94,8 @@ export default function AttendanceTable() {
     } catch (error) {
       console.error("Error fetching data:", error);
       message.error("Gagal mengambil data.");
+      setRawData([]);
+      setHolidayMeta([]);
     } finally {
       setLoading(false);
     }
@@ -152,8 +190,21 @@ export default function AttendanceTable() {
     );
   };
 
-  // warna header hari
+  // warna header hari (ditambah: libur LN/CB override)
   const getHeaderStyleByDay = (d) => {
+    const hol = holidayIndex[d.date()];
+    if (hol?.isHoliday) {
+      // LN/CB: colorful lembut dengan border tipis
+      return {
+        background: hol.codes?.includes("LN") && hol.codes?.includes("CB")
+          ? "linear-gradient(180deg,#fff0f6,#fffbe6)"      // LN+CB
+          : hol.codes?.includes("LN")
+            ? "linear-gradient(180deg,#fff0f6,#fff7f3)"    // LN
+            : "linear-gradient(180deg,#fffbe6,#fff7e6)",   // CB
+        color: "#1f1f1f",
+        borderBottom: "1px solid #ffd666",
+      };
+    }
     if (d.day() === 0) {
       return { background: "linear-gradient(180deg,#ffeaea, #fff5f5)", color: "#d4380d" }; // Minggu
     }
@@ -238,71 +289,116 @@ export default function AttendanceTable() {
     },
   ];
 
-  // kolom hari: 1.2x lebih besar + styling khusus untuk leave
+  // kolom hari: 1.2x lebih besar + styling: LEAVE > HOLIDAY > Weekend/Normal
   const dayColumns = useMemo(() => {
     return Array.from({ length: daysInMonth }, (_, i) => {
       const d = date.date(i + 1);
       const isWeekend = d.day() === 0 || d.day() === 6;
+      const hol = holidayIndex[d.date()];
       const headStyle = getHeaderStyleByDay(d);
 
-      return {
-        title: (
-          <div style={{ lineHeight: 1.1, textAlign: "center" }}>
-            <div
-              style={{
-                fontSize: DAY_HEADER_FSIZE_DOW, // 1.2x
-                fontWeight: 700,
-                textTransform: "uppercase",
-                opacity: 0.85,
-              }}
-            >
-              {d.format("ddd")}
-            </div>
-            <div style={{ fontSize: DAY_HEADER_FSIZE_DATE }}>{d.format("D")}</div>
+      const titleContent = (
+        <div style={{ lineHeight: 1.1, textAlign: "center" }}>
+          <div
+            style={{
+              fontSize: DAY_HEADER_FSIZE_DOW,
+              fontWeight: 700,
+              textTransform: "uppercase",
+              opacity: 0.85,
+            }}
+          >
+            {d.format("ddd")}
           </div>
-        ),
+          <div style={{ fontSize: DAY_HEADER_FSIZE_DATE }}>{d.format("D")}</div>
+          {hol?.isHoliday && (
+            <div style={{ marginTop: 2 }}>
+              {hol.codes?.map((c) => (
+                <Tag
+                  key={c}
+                  color={c === "LN" ? "magenta" : "gold"}
+                  style={{ padding: "0 6px", margin: "2px 2px 0", fontSize: 11, lineHeight: "18px" }}
+                >
+                  {c}
+                </Tag>
+              ))}
+            </div>
+          )}
+        </div>
+      );
+
+      return {
+        title: hol?.isHoliday && hol?.names?.length
+          ? <Tooltip title={hol.names.join(", ")}>{titleContent}</Tooltip>
+          : titleContent,
         dataIndex: `day_${i + 1}`,
         key: `day_${i + 1}`,
-        width: DAY_CELL_WIDTH,      // 1.2x
+        width: DAY_CELL_WIDTH,
         align: "center",
         onHeaderCell: () => ({
-          style: { ...headStyle, borderInline: "1px solid #f0f0f0", padding: DAY_HEADER_PAD }, // 1.2x
+          style: { ...headStyle, borderInline: "1px solid #f0f0f0", padding: DAY_HEADER_PAD },
         }),
-        // gunakan record agar bisa baca nilai cell untuk styling leave
         onCell: (record) => {
           const raw = record[`day_${i + 1}`];
           const leave = isLeaveCell(raw);
+          const holidayDay = !!hol?.isHoliday || hasHolidayCode(raw);
+
+          // base style
           const base = {
-            paddingTop: DAY_CELL_PAD_Y,    // 1.2x
-            paddingBottom: DAY_CELL_PAD_Y, // 1.2x
+            paddingTop: DAY_CELL_PAD_Y,
+            paddingBottom: DAY_CELL_PAD_Y,
             background: isWeekend ? "#fafafa" : "#ffffff",
           };
-          return {
-            style: leave
-              ? {
+
+          // priority: leave > holiday > base
+          if (leave) {
+            return {
+              style: {
                 ...base,
-                background: "linear-gradient(180deg,#fffbe6,#fff1b8)", // kuning lembut
-                color: "#ad6800", // teks kecokelatan
+                background: "linear-gradient(180deg,#fffbe6,#fff1b8)",
+                color: "#ad6800",
                 fontWeight: 700,
                 borderInline: "1px solid #ffe58f",
-              }
-              : base,
-          };
+              },
+            };
+          }
+          if (holidayDay) {
+            return {
+              style: {
+                ...base,
+                background: "linear-gradient(180deg,#f6ffed,#e6fffb)",
+                color: "#135200",
+                fontWeight: 600,
+                borderInline: "1px solid #b7eb8f",
+              },
+            };
+          }
+          return { style: base };
         },
         render: (text) => {
           const leave = isLeaveCell(text);
-          const display = leave ? stripBrackets(text) : (text || "-");
-          return (
-            <span style={{ fontWeight: display && display !== "-" ? 600 : 400 }}>
-              {display}
-            </span>
-          );
+          const isHoliday = hasHolidayCode(text);
+          // tampilkan tanpa bracket bila leave/holiday-only
+          if (leave || isHoliday) {
+            const codes = getBracketCodes(text).join("+");
+            // jika ada jam sesudah prefix, tetap render semuanya
+            const after = String(text || "").replace(/^\s*\[[^\]]+\]\s*/, "").trim();
+            return (
+              <span style={{ fontWeight: 700 }}>
+                {codes}
+                {after ? ` ${after}` : ""}
+              </span>
+            );
+          }
+          const display = text || "-";
+          return <span style={{ fontWeight: display !== "-" ? 600 : 400 }}>{display}</span>;
         },
       };
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     daysInMonth,
     date,
+    holidayIndex,
     DAY_CELL_WIDTH,
     DAY_CELL_PAD_Y,
     DAY_HEADER_PAD,
@@ -317,8 +413,7 @@ export default function AttendanceTable() {
       {/* Header berwarna */}
       <div
         style={{
-          background:
-            "linear-gradient(135deg, #1677ff 0%, #69b1ff 40%, #95de64 100%)",
+          background: "linear-gradient(135deg, #1677ff 0%, #69b1ff 40%, #95de64 100%)",
           color: "#fff",
           padding: "14px 16px",
           borderRadius: 14,
@@ -333,8 +428,8 @@ export default function AttendanceTable() {
           Ringkasan Absensi — {date.format("MMMM YYYY")}
         </div>
         <div style={{ opacity: 0.9, fontSize: 12 }}>
-          <Tooltip title="Hari Sabtu & Minggu ditandai berbeda">
-            <span>Weekend highlighted</span>
+          <Tooltip title="Hari Sabtu & Minggu ditandai berbeda. Libur LN/CB juga disorot.">
+            <span>Weekend & Holiday highlighted</span>
           </Tooltip>
         </div>
       </div>
@@ -395,6 +490,8 @@ export default function AttendanceTable() {
           <Tag color="red">Minggu</Tag>
           <Tag color="geekblue">Sabtu</Tag>
           <Tag color="gold">Leave Request</Tag>
+          <Tag color="magenta">LN</Tag>
+          <Tag color="gold">CB</Tag>
         </Space>
       </div>
 

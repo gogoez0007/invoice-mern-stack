@@ -192,6 +192,10 @@ function Sidebar() {
           key: 'manage_employee',
           label: <Link to="/employee/manage">Manage Karyawan</Link>,
         },
+        {
+          key: 'holidays',
+          label: <Link to="/holidays">Manage Hari Libur</Link>,
+        },
       ],
     },
   ];
