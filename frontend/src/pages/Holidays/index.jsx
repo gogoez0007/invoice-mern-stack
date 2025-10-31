@@ -1,49 +1,49 @@
 // src/pages/HolidayCalendarYear.jsx
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState, useCallback } from "react";
 import {
-    Badge,
-    Button,
-    Card,
-    Calendar,
-    DatePicker,
-    Divider,
-    Empty,
-    Form,
-    Input,
-    Modal,
-    Popconfirm,
-    Select,
-    Space,
-    Spin,
-    Table,
-    Tag,
-    Tooltip,
-    Typography,
-    message,
+    Badge, Button, Card, Calendar, ConfigProvider, DatePicker, Divider, Empty, Form, Input, Modal, Popconfirm, Select, Space, Spin, Table, Tag, Tooltip, Typography, message
 } from "antd";
 import {
-    CalendarOutlined,
-    PlusOutlined,
-    EditOutlined,
-    DeleteOutlined,
-    ReloadOutlined,
-    SaveOutlined,
-    SearchOutlined,
-    FilterOutlined,
-    LeftOutlined,
-    RightOutlined,
-    DoubleLeftOutlined,
-    DoubleRightOutlined,
-    AimOutlined,
+    AimOutlined, CalendarOutlined, CoffeeOutlined, DeleteOutlined, DoubleLeftOutlined, DoubleRightOutlined, EditOutlined, FilterOutlined, FlagOutlined, LeftOutlined, PlusOutlined, ReloadOutlined, RightOutlined, SaveOutlined, SearchOutlined
 } from "@ant-design/icons";
 import axios from "axios";
 import dayjs from "dayjs";
+import updateLocale from "dayjs/plugin/updateLocale";
+import "dayjs/locale/id"; // <-- locale Indonesia untuk dayjs
+import idID from "antd/locale/id_ID";
 import { API_BASE_URL } from "@/config/serverApiConfig";
 import storePersist from "@/redux/storePersist";
 
-const { Title, Text } = Typography;
+// ================== KONFIGURASI LOKAL DAY.JS (SIMPLE & STABIL) ==================
+dayjs.extend(updateLocale);
+dayjs.locale("id"); // Set locale untuk nama bulan
+dayjs.updateLocale("id", {
+    weekStart: 1, // Paling penting untuk alignment kalender
+    // Paksa nama hari full agar konsisten di seluruh format custom
+    weekdays: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
+    weekdaysShort: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
+    weekdaysMin: ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"],
+});
+// =================================================================================
 
-// ====== Auth header helper ======
+// ✅ SOLUSI PASTI: BUAT FUNGSI FORMAT MANUAL
+const NAMA_HARI = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+
+function formatTanggalLengkap(tanggal) {
+    const d = dayjs(tanggal);
+    const namaHari = NAMA_HARI[d.day()]; // Ambil nama hari dari array kita
+    return `${namaHari}, ${d.format("DD MMMM YYYY")}`;
+}
+
+const { Title, Text } = Typography;
+const fmt = (d) => dayjs(d).format("YYYY-MM-DD");
+
+const JENIS_META = {
+    LIBUR_NASIONAL: { label: "Libur Nasional", color: "magenta", icon: <FlagOutlined /> },
+    CUTI_BERSAMA: { label: "Cuti Bersama", color: "gold", icon: <CoffeeOutlined /> },
+};
+const JENIS_OPTIONS = Object.entries(JENIS_META).map(([value, { label }]) => ({ value, label }));
+
 function includeToken() {
     axios.defaults.baseURL = API_BASE_URL;
     axios.defaults.withCredentials = true;
@@ -55,149 +55,100 @@ function includeToken() {
     }
 }
 
-const JENIS_META = {
-    LIBUR_NASIONAL: { label: "Libur Nasional", color: "magenta" },
-    CUTI_BERSAMA: { label: "Cuti Bersama", color: "gold" },
-};
-const JENIS_OPTIONS = Object.entries(JENIS_META).map(([value, { label }]) => ({
-    value,
-    label,
-}));
-
-const fmt = (d) => dayjs(d).format("YYYY-MM-DD");
-
 export default function HolidayCalendarYear() {
-    // Kalender (panel) yang ditampilkan
-    const [monthVal, setMonthVal] = useState(dayjs());
-
-    // Data libur (1 tahun penuh dari year pada monthVal)
     const [loading, setLoading] = useState(false);
-    const [yearRows, setYearRows] = useState([]); // seluruh libur dalam tahun
-    const [mapByDate, setMapByDate] = useState({}); // { 'YYYY-MM-DD': [rows] }
-
-    // Modal form/create-edit
+    const [monthVal, setMonthVal] = useState(dayjs());
+    const [yearRows, setYearRows] = useState([]);
+    const [mapByDate, setMapByDate] = useState({});
     const [modalOpen, setModalOpen] = useState(false);
     const [modalBusy, setModalBusy] = useState(false);
-    const [selectedDate, setSelectedDate] = useState(null); // dayjs
-    const [editing, setEditing] = useState(null); // row object
+    const [editing, setEditing] = useState(null);
+    const [selectedDate, setSelectedDate] = useState(null);
     const [form] = Form.useForm();
-
-    // Filter list tahunan (✅ hanya dideklarasikan sekali)
     const [filterJenis, setFilterJenis] = useState(null);
     const [search, setSearch] = useState("");
 
     const currentYear = monthVal.year();
-    const rangeYear = useMemo(
-        () => ({
-            from: dayjs(`${currentYear}-01-01`).format("YYYY-MM-DD"),
-            to: dayjs(`${currentYear}-12-31`).format("YYYY-MM-DD"),
-        }),
-        [currentYear]
-    );
+    const rangeYear = useMemo(() => ({
+        from: dayjs(`${currentYear}-01-01`).format("YYYY-MM-DD"),
+        to: dayjs(`${currentYear}-12-31`).format("YYYY-MM-DD"),
+    }), [currentYear]);
 
-    const buildMap = (rows) => {
-        const m = {};
-        for (const r of rows || []) {
-            const key = fmt(r.tanggal);
-            if (!m[key]) m[key] = [];
-            m[key].push(r);
-        }
-        return m;
-    };
+    // ====== Override locale AntD supaya header hari = FULL ======
+    const antdLocaleWithFullWeekdays = useMemo(() => {
+        const FULL = ["Minggu", "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu"];
+        return {
+            ...idID,
+            Calendar: {
+                ...(idID.Calendar || {}),
+                lang: {
+                    ...((idID.Calendar && idID.Calendar.lang) || {}),
+                    shortWeekDays: FULL, // rc-picker pakai ini untuk header hari
+                    weekDays: FULL,       // fallback tambahan
+                },
+            },
+            DatePicker: {
+                ...(idID.DatePicker || {}),
+                lang: {
+                    ...((idID.DatePicker && idID.DatePicker.lang) || {}),
+                    shortWeekDays: FULL,
+                    weekDays: FULL,
+                },
+            },
+        };
+    }, []);
+    // ============================================================
 
-    const fetchYear = async () => {
+    const fetchYear = useCallback(async () => {
+        setLoading(true);
         try {
-            setLoading(true);
             includeToken();
-            const { data } = await axios.get("hari-libur", {
-                params: { from: rangeYear.from, to: rangeYear.to, sort: "asc" },
-            });
+            const { data } = await axios.get("hari-libur", { params: { from: rangeYear.from, to: rangeYear.to, sort: "asc" } });
             const rows = Array.isArray(data) ? data : [];
             setYearRows(rows);
-            setMapByDate(buildMap(rows));
+            const dateMap = {};
+            for (const r of rows) {
+                const key = fmt(r.tanggal);
+                if (!dateMap[key]) dateMap[key] = [];
+                dateMap[key].push(r);
+            }
+            setMapByDate(dateMap);
         } catch (e) {
             console.error(e);
-            message.error(e?.response?.data?.message || "Gagal memuat hari libur");
-            setYearRows([]);
-            setMapByDate({});
+            message.error(e?.response?.data?.message || "Gagal memuat data hari libur");
         } finally {
             setLoading(false);
         }
-    };
+    }, [rangeYear.from, rangeYear.to]);
 
     useEffect(() => {
         fetchYear();
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [rangeYear.from, rangeYear.to]);
+    }, [fetchYear]);
 
-    // ===== Kalender (atas) =====
-    const dateBadges = (date) => {
-        const rows = mapByDate[fmt(date)] || [];
-        if (!rows.length) return null;
-        return (
-            <Space direction="vertical" size={4} style={{ width: "100%" }}>
-                {rows.slice(0, 3).map((r) => (
-                    <Tag
-                        key={r.id}
-                        color={JENIS_META[r.jenis]?.color || "blue"}
-                        style={{ width: "100%" }}
-                    >
-                        <Tooltip title={r.nama + (r.keterangan ? ` — ${r.keterangan}` : "")}>
-                            {JENIS_META[r.jenis]?.label || r.jenis}
-                        </Tooltip>
-                    </Tag>
-                ))}
-                {rows.length > 3 && (
-                    <Text type="secondary" style={{ fontSize: 11 }}>
-                        +{rows.length - 3} lagi
-                    </Text>
-                )}
-            </Space>
-        );
-    };
-
-    const dateFullCellRender = (value) => {
-        const rows = mapByDate[fmt(value)] || [];
-        const has = rows.length > 0;
-        const isToday = value.isSame(dayjs(), "day");
-        return (
-            <div
-                className={`custom-date-cell ${has ? "is-holiday" : ""} ${isToday ? "is-today" : ""}`}
-                onClick={() => onDateClick(value)}
-                role="button"
-                tabIndex={0}
-                onKeyDown={(e) => { if (e.key === "Enter") onDateClick(value); }}
-            >
-                <div className="date-top">
-                    <span className="date-text">{value.date()}</span>
-                    {isToday && <Badge status="processing" />}
-                </div>
-                <div className="date-content">{dateBadges(value)}</div>
-            </div>
-        );
-    };
-
-    const onDateClick = (value) => {
-        setSelectedDate(value);
-        setEditing(null);
+    const showModal = (date, holidayToEdit = null) => {
+        setSelectedDate(date);
+        setEditing(holidayToEdit);
         setModalOpen(true);
-        // preload form defaults
-        form.setFieldsValue({
-            tanggal: value,
+        form.setFieldsValue(holidayToEdit ? {
+            tanggal: dayjs(holidayToEdit.tanggal),
+            jenis: holidayToEdit.jenis,
+            nama: holidayToEdit.nama,
+            keterangan: holidayToEdit.keterangan || "",
+        } : {
+            tanggal: date,
             jenis: undefined,
             nama: "",
             keterangan: "",
         });
     };
 
-    // ===== Modal Create/Edit =====
     const closeModal = () => {
         setModalOpen(false);
         setEditing(null);
         form.resetFields();
     };
 
-    const onSubmit = async () => {
+    const onFormSubmit = async () => {
         try {
             const values = await form.validateFields();
             const payload = {
@@ -210,85 +161,89 @@ export default function HolidayCalendarYear() {
             includeToken();
             if (editing) {
                 await axios.put(`hari-libur/${editing.id}`, payload);
-                message.success("Hari libur diperbarui");
+                message.success("Hari libur berhasil diperbarui");
             } else {
                 await axios.post("hari-libur", payload);
-                message.success("Hari libur ditambahkan");
+                message.success("Hari libur berhasil ditambahkan");
             }
             await fetchYear();
-            setEditing(null);
-            // tetap buka modal (biar bisa tambah lagi cepat)
-            form.setFieldsValue({
-                tanggal: dayjs(payload.tanggal),
-                jenis: undefined,
-                nama: "",
-                keterangan: "",
-            });
-        } catch (e) {
-            if (e?.errorFields) return; // form validation error
-            if (e?.response?.status === 409) {
-                message.warning("Tanggal & jenis sudah terdaftar");
-            } else if (e?.response?.data?.message) {
-                message.error(e.response.data.message);
+            if (!editing) {
+                form.setFieldsValue({ nama: "", keterangan: "" });
             } else {
-                console.error(e);
-                message.error("Gagal menyimpan");
+                closeModal();
             }
+        } catch (e) {
+            if (e?.errorFields) return;
+            message.error(e?.response?.data?.message || "Gagal menyimpan data");
         } finally {
             setModalBusy(false);
         }
-    };
-
-    const onEditRow = (row) => {
-        setSelectedDate(dayjs(row.tanggal));
-        setEditing(row);
-        setModalOpen(true);
-        form.setFieldsValue({
-            tanggal: dayjs(row.tanggal),
-            jenis: row.jenis,
-            nama: row.nama,
-            keterangan: row.keterangan || "",
-        });
     };
 
     const onDeleteRow = async (row) => {
         try {
-            setModalBusy(true);
             includeToken();
             await axios.delete(`hari-libur/${row.id}`);
-            message.success("Berhasil dihapus");
+            message.success(`"${row.nama}" berhasil dihapus.`);
             await fetchYear();
         } catch (e) {
             console.error(e);
-            message.error(e?.response?.data?.message || "Gagal menghapus");
-        } finally {
-            setModalBusy(false);
+            message.error(e?.response?.data?.message || "Gagal menghapus data");
         }
     };
 
-    // ===== List (bawah) =====
+    const handleDateClick = (date) => {
+        if (!date.isSame(monthVal, "month")) return;
+        const holidaysOnDate = mapByDate[fmt(date)] || [];
+        if (holidaysOnDate.length === 1) {
+            showModal(date, holidaysOnDate[0]);
+        } else {
+            showModal(date, null);
+        }
+    };
+
+    const dateFullCellRender = (value) => {
+        if (!value?.isValid?.()) return null;
+        const isToday = value.isSame(dayjs(), "day");
+        const isWeekend = [0, 6].includes(value.day());
+        const isCurrentMonth = value.isSame(monthVal, "month");
+        const holidays = mapByDate[fmt(value)] || [];
+        const hasHoliday = holidays.length > 0;
+        const cellClasses = ["custom-date-cell", isToday && "is-today", isWeekend && "is-weekend", hasHoliday && "is-holiday", !isCurrentMonth && "is-outside"].filter(Boolean).join(" ");
+        return (
+            <div className={cellClasses} onClick={() => handleDateClick(value)}>
+                <div className="date-number">{value.date()}</div>
+                <div className="date-content">
+                    {holidays.slice(0, 2).map((r) => (
+                        <Tooltip key={r.id} title={r.nama}>
+                            <Tag color={JENIS_META[r.jenis]?.color || "blue"} className="holiday-tag">
+                                {JENIS_META[r.jenis]?.label}
+                            </Tag>
+                        </Tooltip>
+                    ))}
+                    {holidays.length > 2 && <Text type="secondary" className="more-holidays-text">+ {holidays.length - 2} lagi</Text>}
+                </div>
+            </div>
+        );
+    };
+
     const filteredRows = useMemo(() => {
         let rows = [...yearRows];
         if (filterJenis) rows = rows.filter((r) => r.jenis === filterJenis);
         if (search?.trim()) {
             const q = search.trim().toLowerCase();
-            rows = rows.filter(
-                (r) =>
-                    r.nama?.toLowerCase().includes(q) ||
-                    r.keterangan?.toLowerCase().includes(q)
-            );
+            rows = rows.filter((r) => r.nama?.toLowerCase().includes(q) || r.keterangan?.toLowerCase().includes(q));
         }
-        return rows.sort(
-            (a, b) => dayjs(a.tanggal).valueOf() - dayjs(b.tanggal).valueOf()
-        );
+        return rows;
     }, [yearRows, filterJenis, search]);
 
     const columns = [
         {
             title: "Tanggal",
             dataIndex: "tanggal",
-            width: 140,
-            render: (v) => <Tag color="geekblue">{dayjs(v).format("YYYY-MM-DD")}</Tag>,
+            width: 240,
+            // ✅ PANGGIL FUNGSI MANUAL KITA DI SINI
+            render: (v) => formatTanggalLengkap(v),
             sorter: (a, b) => dayjs(a.tanggal).valueOf() - dayjs(b.tanggal).valueOf(),
             defaultSortOrder: "ascend",
         },
@@ -296,28 +251,19 @@ export default function HolidayCalendarYear() {
             title: "Jenis",
             dataIndex: "jenis",
             width: 180,
-            render: (v) => (
-                <Tag color={JENIS_META[v]?.color || "blue"}>
-                    {JENIS_META[v]?.label || v}
-                </Tag>
-            ),
+            render: (v) => <Tag color={JENIS_META[v]?.color || "blue"} icon={JENIS_META[v]?.icon}>{JENIS_META[v]?.label || v}</Tag>,
             filters: JENIS_OPTIONS.map((o) => ({ text: o.label, value: o.value })),
             onFilter: (val, r) => r.jenis === val,
         },
         { title: "Nama", dataIndex: "nama" },
         {
-            title: "Keterangan",
-            dataIndex: "keterangan",
-            ellipsis: true,
-            render: (v) => v || <span style={{ opacity: 0.5 }}>—</span>,
-        },
-        {
             title: "Aksi",
-            width: 160,
+            width: 120,
+            align: "center",
             render: (_, r) => (
                 <Space>
                     <Tooltip title="Edit">
-                        <Button size="small" icon={<EditOutlined />} onClick={() => onEditRow(r)} />
+                        <Button size="small" icon={<EditOutlined />} onClick={() => showModal(dayjs(r.tanggal), r)} />
                     </Tooltip>
                     <Popconfirm title="Hapus libur ini?" onConfirm={() => onDeleteRow(r)} okText="Ya" cancelText="Batal">
                         <Button size="small" danger icon={<DeleteOutlined />} />
@@ -328,229 +274,112 @@ export default function HolidayCalendarYear() {
     ];
 
     return (
-        <>
-            {/* HEADER / HERO */}
-            <Card
-                style={{
-                    marginBottom: 16,
-                    borderRadius: 16,
-                    background:
-                        "linear-gradient(135deg, rgba(59,130,246,1) 0%, rgba(16,185,129,1) 50%, rgba(249,115,22,1) 100%)",
-                    color: "#fff",
-                    boxShadow: "0 8px 24px rgba(0,0,0,0.15)",
-                }}
-                bodyStyle={{ padding: 18 }}
-            >
-                <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                    <Space>
-                        <CalendarOutlined style={{ color: "#fff" }} />
-                        <Title level={4} style={{ margin: 0, color: "#fff" }}>
-                            Manajer Hari Libur — Kalender & Daftar Tahunan
-                        </Title>
+        <ConfigProvider locale={antdLocaleWithFullWeekdays}>
+            <>
+                <Card
+                    style={{ marginBottom: 16, borderRadius: 12, background: "linear-gradient(135deg, #1677ff 0%, #00b96b 100%)", color: "#fff", boxShadow: '0 8px 24px rgba(0,0,0,0.1)' }}
+                    bodyStyle={{ padding: "16px 24px" }}
+                >
+                    <Space style={{ width: "100%", justifyContent: "space-between" }} align="center">
+                        <Space>
+                            <CalendarOutlined style={{ fontSize: 24 }} />
+                            <Title level={4} style={{ margin: 0, color: "#fff" }}>Manage Hari Libur</Title>
+                        </Space>
+                        <Space>
+                            <DatePicker
+                                picker="month"
+                                allowClear={false}
+                                value={monthVal}
+                                onChange={(v) => setMonthVal(v || dayjs())}
+                                format="MMMM YYYY"
+                                style={{ width: 180 }}
+                            />
+                            <Tooltip title="Muat Ulang Data">
+                                <Button ghost icon={<ReloadOutlined />} onClick={fetchYear} loading={loading} />
+                            </Tooltip>
+                        </Space>
                     </Space>
-                    <Space>
-                        <DatePicker
-                            picker="month"
-                            allowClear={false}
+                </Card>
+
+                <Card style={{ borderRadius: 12, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                    <Spin spinning={loading} tip="Memuat kalender…">
+                        <Calendar
+                            mode="month"
                             value={monthVal}
-                            onChange={(v) => setMonthVal(v || dayjs())}
-                            format="MMMM YYYY"
-                            style={{ width: 220 }}
-                        />
-                        <Button ghost icon={<ReloadOutlined />} onClick={fetchYear} style={{ borderColor: "#fff", color: "#fff" }}>
-                            Refresh
-                        </Button>
-                    </Space>
-                </Space>
-            </Card>
-
-            {/* KALENDER (ATAS) + custom header prev/next */}
-            <Card style={{ borderRadius: 14 }} className="shadow-sm">
-                <Spin spinning={loading} tip="Memuat kalender…">
-                    <Calendar
-                        value={monthVal}
-                        onPanelChange={(val) => setMonthVal(val)}
-                        dateFullCellRender={dateFullCellRender}
-                        headerRender={({ value, onChange }) => {
-                            const curr = value.clone();
-                            const go = (unit, step) => {
-                                const v = curr.add(step, unit);
-                                onChange(v);
-                                setMonthVal(v);
-                            };
-                            const goToday = () => {
-                                onChange(dayjs());
-                                setMonthVal(dayjs());
-                            };
-                            return (
-                                <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", padding: "8px 8px 16px" }}>
-                                    <Space>
-                                        <Button size="small" icon={<DoubleLeftOutlined />} onClick={() => go("year", -1)}>
-                                            Prev Year
-                                        </Button>
-                                        <Button size="small" icon={<LeftOutlined />} onClick={() => go("month", -1)}>
-                                            Prev
-                                        </Button>
-                                    </Space>
-                                    <Space>
-                                        <Title level={5} style={{ margin: 0 }}>
-                                            {curr.format("MMMM YYYY")}
-                                        </Title>
-                                        <Button size="small" icon={<AimOutlined />} onClick={goToday}>
-                                            Today
-                                        </Button>
-                                    </Space>
-                                    <Space>
-                                        <Button size="small" onClick={() => go("month", 1)}>
-                                            Next <RightOutlined />
-                                        </Button>
-                                        <Button size="small" onClick={() => go("year", 1)}>
-                                            Next Year <DoubleRightOutlined />
-                                        </Button>
-                                    </Space>
+                            onPanelChange={(val) => setMonthVal(val)}
+                            dateFullCellRender={dateFullCellRender}
+                            headerRender={({ value, onChange }) => (
+                                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "8px 12px 16px" }}>
+                                    <Title level={4} style={{ margin: 0 }}>{value.format("MMMM YYYY")}</Title>
+                                    <Space.Compact>
+                                        <Tooltip title="Tahun Sebelumnya"><Button icon={<DoubleLeftOutlined />} onClick={() => onChange(value.add(-1, "year"))} /></Tooltip>
+                                        <Tooltip title="Bulan Sebelumnya"><Button icon={<LeftOutlined />} onClick={() => onChange(value.add(-1, "month"))} /></Tooltip>
+                                        <Button onClick={() => onChange(dayjs())}>Hari Ini</Button>
+                                        <Tooltip title="Bulan Berikutnya"><Button icon={<RightOutlined />} onClick={() => onChange(value.add(1, "month"))} /></Tooltip>
+                                        <Tooltip title="Tahun Berikutnya"><Button icon={<DoubleRightOutlined />} onClick={() => onChange(value.add(1, "year"))} /></Tooltip>
+                                    </Space.Compact>
                                 </div>
-                            );
-                        }}
-                    />
-                </Spin>
-            </Card>
-
-            {/* LIST TAHUNAN (BAWAH) */}
-            <Card style={{ borderRadius: 14, marginTop: 12 }} className="shadow-sm">
-                <Space align="center" style={{ width: "100%", justifyContent: "space-between" }}>
-                    <Space wrap>
-                        <Tag color="processing" icon={<FilterOutlined />}>
-                            Tahun {currentYear}
-                        </Tag>
-                        <Select
-                            allowClear
-                            placeholder="Filter jenis"
-                            value={filterJenis}
-                            onChange={setFilterJenis}
-                            options={JENIS_OPTIONS}
-                            style={{ width: 200 }}
+                            )}
                         />
-                        <Input
-                            allowClear
-                            style={{ width: 260 }}
-                            placeholder="Cari nama/keterangan…"
-                            prefix={<SearchOutlined />}
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
+                    </Spin>
+                </Card>
+
+                <Card style={{ borderRadius: 12, marginTop: 16, boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
+                    <Space align="center" style={{ width: "100%", justifyContent: "space-between", marginBottom: 16 }}>
+                        <Space wrap>
+                            <Title level={5} style={{ margin: 0 }}>Daftar Libur Tahun {currentYear}</Title>
+                            <Select allowClear placeholder="Filter jenis" value={filterJenis} onChange={setFilterJenis} options={JENIS_OPTIONS} style={{ width: 180 }} />
+                            <Input allowClear placeholder="Cari nama libur…" prefix={<SearchOutlined style={{ opacity: 0.5 }} />} value={search} onChange={(e) => setSearch(e.target.value)} style={{ width: 240 }} />
+                        </Space>
+                        <Button type="primary" icon={<PlusOutlined />} onClick={() => showModal(monthVal)}>Tambah Libur</Button>
                     </Space>
+                    <Table rowKey="id" dataSource={filteredRows} columns={columns} loading={loading} pagination={{ pageSize: 10, showSizeChanger: true }} />
+                </Card>
 
-                    <Button
-                        type="primary"
-                        icon={<PlusOutlined />}
-                        onClick={() => {
-                            setSelectedDate(monthVal);
-                            setEditing(null);
-                            setModalOpen(true);
-                            form.setFieldsValue({
-                                tanggal: monthVal,
-                                jenis: undefined,
-                                nama: "",
-                                keterangan: "",
-                            });
-                        }}
-                    >
-                        Add Hari Libur
-                    </Button>
-                </Space>
+                <Modal open={modalOpen} title={editing ? "Edit Hari Libur" : "Tambah Hari Libur"} onCancel={closeModal} footer={null} destroyOnClose>
+                    <Form form={form} layout="vertical" onFinish={onFormSubmit} style={{ marginTop: 24 }}>
+                        <Form.Item label="Tanggal" name="tanggal" rules={[{ required: true, message: "Tanggal wajib diisi" }]}>
+                            <DatePicker style={{ width: "100%" }} format="DD MMMM YYYY" />
+                        </Form.Item>
+                        <Form.Item label="Jenis" name="jenis" rules={[{ required: true, message: "Jenis wajib dipilih" }]}>
+                            <Select options={JENIS_OPTIONS} placeholder="Pilih jenis libur" />
+                        </Form.Item>
+                        <Form.Item label="Nama" name="nama" rules={[{ required: true, message: "Nama libur wajib diisi" }]}>
+                            <Input placeholder="Contoh: Hari Kemerdekaan RI" />
+                        </Form.Item>
+                        <Form.Item label="Keterangan (Opsional)" name="keterangan">
+                            <Input.TextArea rows={2} placeholder="Keterangan tambahan jika ada" />
+                        </Form.Item>
+                        <Space>
+                            <Button icon={<SaveOutlined />} type="primary" htmlType="submit" loading={modalBusy}>Simpan</Button>
+                            <Button onClick={closeModal} disabled={modalBusy}>Batal</Button>
+                        </Space>
+                    </Form>
+                </Modal>
 
-                <Divider style={{ margin: "12px 0" }} />
-
-                <Table
-                    rowKey="id"
-                    dataSource={filteredRows}
-                    columns={columns}
-                    loading={loading}
-                    pagination={{ pageSize: 10, showSizeChanger: true }}
-                    locale={{
-                        emptyText: (
-                            <Empty description={`Tidak ada libur di tahun ${currentYear}`} imageStyle={{ height: 64 }} />
-                        ),
-                    }}
-                />
-            </Card>
-
-            {/* MODAL CREATE/EDIT */}
-            <Modal open={modalOpen} title={editing ? "Edit Hari Libur" : "Tambah Hari Libur"} onCancel={closeModal} footer={null} destroyOnClose>
-                <Form form={form} layout="vertical" initialValues={{ tanggal: selectedDate || monthVal }} onFinish={onSubmit}>
-                    <Form.Item
-                        label="Tanggal"
-                        name="tanggal"
-                        rules={[{ required: true, message: "Tanggal wajib" }]}
-                        tooltip="Klik untuk ganti tanggal jika perlu"
-                    >
-                        <DatePicker style={{ width: 220 }} />
-                    </Form.Item>
-                    <Form.Item label="Jenis" name="jenis" rules={[{ required: true, message: "Jenis wajib" }]}>
-                        <Select options={JENIS_OPTIONS} placeholder="Pilih jenis" />
-                    </Form.Item>
-                    <Form.Item label="Nama" name="nama" rules={[{ required: true, message: "Nama libur wajib" }]}>
-                        <Input placeholder="Mis. Hari Raya Idul Fitri" />
-                    </Form.Item>
-                    <Form.Item label="Keterangan" name="keterangan">
-                        <Input.TextArea rows={3} placeholder="Opsional" />
-                    </Form.Item>
-                    <Space>
-                        <Button icon={<SaveOutlined />} type="primary" htmlType="submit" loading={modalBusy}>
-                            Simpan
-                        </Button>
-                        <Button onClick={closeModal} disabled={modalBusy}>
-                            Tutup
-                        </Button>
-                    </Space>
-                </Form>
-
-                <Divider />
-                <Title level={5} style={{ marginTop: 0 }}>
-                    {dayjs(selectedDate || monthVal).format("dddd, DD MMMM YYYY")}
-                </Title>
-                {(mapByDate[fmt(selectedDate || monthVal)] || []).length === 0 ? (
-                    <Text type="secondary">Belum ada libur pada tanggal ini.</Text>
-                ) : (
-                    <Space direction="vertical" style={{ width: "100%" }}>
-                        {(mapByDate[fmt(selectedDate || monthVal)] || []).map((r) => (
-                            <Card key={r.id} size="small" style={{ borderRadius: 12, background: "#fafafa" }} bodyStyle={{ padding: 12 }}>
-                                <Space align="start" style={{ width: "100%", justifyContent: "space-between" }}>
-                                    <Space>
-                                        <Tag color={JENIS_META[r.jenis]?.color || "blue"}>{JENIS_META[r.jenis]?.label || r.jenis}</Tag>
-                                        <Text strong>{r.nama}</Text>
-                                    </Space>
-                                    <Space>
-                                        <Tooltip title="Edit">
-                                            <Button size="small" icon={<EditOutlined />} onClick={() => onEditRow(r)} />
-                                        </Tooltip>
-                                        <Popconfirm title="Hapus libur ini?" onConfirm={() => onDeleteRow(r)} okText="Ya" cancelText="Batal">
-                                            <Button size="small" danger icon={<DeleteOutlined />} />
-                                        </Popconfirm>
-                                    </Space>
-                                </Space>
-                                {r.keterangan ? (
-                                    <Text type="secondary" style={{ display: "block", marginTop: 6 }}>
-                                        {r.keterangan}
-                                    </Text>
-                                ) : null}
-                            </Card>
-                        ))}
-                    </Space>
-                )}
-            </Modal>
-
-            {/* Styles */}
-            <style>{`
-        .ant-card.shadow-sm { box-shadow: 0 6px 18px rgba(0,0,0,0.08); }
-        .custom-date-cell { cursor: pointer; min-height: 90px; border-radius: 10px; padding: 6px; transition: all .2s ease; display: flex; flex-direction: column; }
-        .custom-date-cell:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.08); }
-        .custom-date-cell .date-top { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-        .custom-date-cell .date-text { font-weight: 600; }
-        .custom-date-cell.is-today { outline: 2px dashed #60a5fa; outline-offset: 2px; }
-        .custom-date-cell.is-holiday { background: linear-gradient(135deg, rgba(253,186,116,0.15), rgba(190,242,100,0.18)); }
-        .ant-picker-cell-inner { padding: 2px !important; }
-      `}</style>
-        </>
+                <style>{`
+          .ant-picker-calendar .ant-picker-cell-inner { padding: 0 !important; }
+          .ant-picker-calendar .ant-picker-content th { font-weight: 500; text-align: center; padding-bottom: 8px; }
+          /* Pastikan full names muat rapi */
+          .ant-picker-calendar .ant-picker-content th,
+          .ant-picker-panel   .ant-picker-content th {
+            white-space: nowrap;
+            font-size: 12px;
+          }
+          .custom-date-cell { display: flex; flex-direction: column; height: 100%; min-height: 110px; padding: 4px 8px; border-radius: 6px; border: 1px solid #f0f0f0; transition: all 0.2s ease; cursor: pointer; }
+          .custom-date-cell:hover { background-color: #e6f4ff; border-color: #91caff; transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.1); }
+          .custom-date-cell .date-number { text-align: right; font-weight: 600; font-size: 14px; color: #595959; margin-bottom: 4px; }
+          .custom-date-cell .date-content { flex-grow: 1; }
+          .custom-date-cell .holiday-tag { width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; margin-bottom: 4px; font-size: 12px; }
+          .custom-date-cell .more-holidays-text { font-size: 12px; text-align: center; display: block; }
+          .custom-date-cell.is-outside { opacity: 0.35; pointer-events: none; background-color: #f5f5f5; }
+          .custom-date-cell.is-weekend:not(.is-holiday) { background-color: #fafafa; }
+          .custom-date-cell.is-weekend .date-number { color: #ff4d4f; }
+          .custom-date-cell.is-holiday { background-color: #fffbe6; }
+          .custom-date-cell.is-today { border: 1px solid #1677ff; }
+          .custom-date-cell.is-today .date-number { background-color: #1677ff; color: #fff; border-radius: 50%; width: 24px; height: 24px; line-height: 24px; text-align: center; display: inline-block; float: right; }
+        `}</style>
+            </>
+        </ConfigProvider>
     );
 }
