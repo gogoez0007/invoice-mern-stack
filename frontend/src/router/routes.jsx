@@ -70,6 +70,7 @@ const SPBAnalytics = lazy(() => import('@/pages/Spb/SPBAnalytics'));
 const ManageAttendance = lazy(() => import('@/pages/ManageAttendance'));
 const ManageEmployees = lazy(() => import('@/pages/Karyawan/manageEmployee'));
 const Holidays = lazy(() => import('@/pages/Holidays'));
+const Agreements = lazy(() => import('@/pages/Agreements'));
 
 let routes = {
   expense: [],
@@ -288,6 +289,10 @@ let routes = {
     {
       path: '/holidays',
       element: <Holidays />,
+    },
+    {
+      path: '/agreements',
+      element: <Agreements />,
     },
     {
       path: '*',

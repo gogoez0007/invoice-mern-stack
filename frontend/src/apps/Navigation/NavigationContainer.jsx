@@ -196,6 +196,10 @@ function Sidebar() {
           key: 'holidays',
           label: <Link to="/holidays">Manage Hari Libur</Link>,
         },
+        {
+          key: 'agreements',
+          label: <Link to="/agreements">Daftar Agreements</Link>,
+        },
       ],
     },
   ];
