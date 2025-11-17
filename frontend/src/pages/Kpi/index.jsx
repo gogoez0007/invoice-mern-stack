@@ -28,6 +28,14 @@ export default function bongkar() {
       title: translate('Tahun'),
       dataIndex: 'tahun',
     },
+    {
+      title: translate('Sudah Dinilai'),
+      dataIndex: 'done_scorring',
+    },
+    {
+      title: translate('Feedback'),
+      dataIndex: 'feed_back',
+    },
   ];
 
   const Labels = {

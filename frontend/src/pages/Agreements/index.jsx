@@ -1,10 +1,26 @@
 // AgreementIndex.jsx
 import React, { useEffect, useMemo, useState } from "react";
 import {
-    Button, Input, Space, Table, Card, Tag, Typography, message,
+    Button,
+    Input,
+    Space,
+    Table,
+    Card,
+    Tag,
+    Typography,
+    message,
+    Dropdown,
+    Modal,
 } from "antd";
 import {
-    ReloadOutlined, SearchOutlined, FileTextOutlined, ArrowLeftOutlined, EyeOutlined,
+    ReloadOutlined,
+    SearchOutlined,
+    FileTextOutlined,
+    ArrowLeftOutlined,
+    EyeOutlined,
+    CheckCircleOutlined,
+    CloseCircleOutlined,
+    DownOutlined,
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -89,6 +105,81 @@ export default function AgreementIndex() {
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // ====== ACTION HANDLERS (approve / reject / lihat) ======
+    const handleApprove = async (row) => {
+        const id = row?.agreement_id;
+        if (!id) {
+            message.error("ID agreement tidak ditemukan.");
+            return;
+        }
+
+        const status = (row.status || "").toString().toLowerCase();
+        const isActive = status === "active" || status === "aktif";
+        if (isActive) {
+            message.warning("Agreement sudah aktif, tidak bisa di-approve lagi.");
+            return;
+        }
+
+        try {
+            await axios.post(`${AGREEMENT_API_URL}/${id}/approve`);
+            message.success("Agreement berhasil di-approve.");
+            fetchData(meta.page, meta.pageSize, q);
+        } catch (e) {
+            console.error(e);
+            message.error("Gagal meng-approve agreement.");
+        }
+    };
+
+    const handleReject = (row) => {
+        const id = row?.agreement_id;
+        if (!id) {
+            message.error("ID agreement tidak ditemukan.");
+            return;
+        }
+
+        const status = (row.status || "").toString().toLowerCase();
+        const isActive = status === "active" || status === "aktif";
+        if (isActive) {
+            message.warning("Agreement sudah aktif, tidak bisa di-reject.");
+            return;
+        }
+
+        Modal.confirm({
+            title: "Tolak & hapus agreement ini?",
+            content:
+                "Action ini akan menghapus semua data agreement (tanpa backup) dan tidak bisa dibatalkan.",
+            okText: "Ya, Reject",
+            okType: "danger",
+            cancelText: "Batal",
+            onOk: async () => {
+                try {
+                    await axios.post(`${AGREEMENT_API_URL}/${id}/reject`);
+                    message.success("Agreement berhasil di-reject dan dihapus.");
+                    fetchData(meta.page, meta.pageSize, q);
+                } catch (e) {
+                    console.error(e);
+                    message.error("Gagal me-reject agreement.");
+                }
+            },
+        });
+    };
+
+    const handleRowAction = (key, row) => {
+        switch (key) {
+            case "lihat":
+                openAgreementPortal(row);
+                break;
+            case "approve":
+                handleApprove(row);
+                break;
+            case "reject":
+                handleReject(row);
+                break;
+            default:
+                break;
+        }
+    };
+
     const columns = useMemo(
         () => [
             {
@@ -127,29 +218,60 @@ export default function AgreementIndex() {
                     const val = (v || "").toString().toLowerCase();
                     if (val === "active" || val === "aktif") return <Tag color="green">Aktif</Tag>;
                     if (val === "pending") return <Tag color="gold">Pending</Tag>;
-                    if (val === "terminated" || val === "nonaktif") return <Tag color="red">Nonaktif</Tag>;
+                    if (val === "terminated" || val === "nonaktif")
+                        return <Tag color="red">Nonaktif</Tag>;
                     return <Tag>{v || "—"}</Tag>;
                 },
             },
             {
                 title: "Aksi",
-                width: 170,
+                width: 150,
                 fixed: "right",
-                render: (_, r) => (
-                    <Space>
-                        <Button
-                            size="small"
-                            type="primary"
-                            icon={<EyeOutlined />}
-                            onClick={() => openAgreementPortal(r)} // <-- tetap panggil fungsi yang sudah new-tab
+                render: (_, r) => {
+                    const status = (r.status || "").toString().toLowerCase();
+                    const isActive = status === "active" || status === "aktif";
+
+                    const items = [
+                        {
+                            key: "lihat",
+                            label: "Lihat Agreement",
+                            icon: <EyeOutlined />,
+                        },
+                        {
+                            key: "approve",
+                            label: "Approve",
+                            icon: <CheckCircleOutlined />,
+                            disabled: isActive,
+                        },
+                        {
+                            type: "divider",
+                        },
+                        {
+                            key: "reject",
+                            label: "Reject (hapus data)",
+                            icon: <CloseCircleOutlined />,
+                            danger: true,
+                            disabled: isActive,
+                        },
+                    ];
+
+                    return (
+                        <Dropdown
+                            trigger={["click"]}
+                            menu={{
+                                items,
+                                onClick: ({ key }) => handleRowAction(key, r),
+                            }}
                         >
-                            Lihat Perjanjian
-                        </Button>
-                    </Space>
-                ),
+                            <Button size="small">
+                                Aksi <DownOutlined />
+                            </Button>
+                        </Dropdown>
+                    );
+                },
             },
         ],
-        [meta.page, meta.pageSize]
+        [meta.page, meta.pageSize, q] // q dipakai di fetchData di handler
     );
 
     return (
@@ -165,7 +287,11 @@ export default function AgreementIndex() {
                 }}
                 bodyStyle={{ padding: 16 }}
             >
-                <Space align="center" size={12} style={{ width: "100%", justifyContent: "space-between" }}>
+                <Space
+                    align="center"
+                    size={12}
+                    style={{ width: "100%", justifyContent: "space-between" }}
+                >
                     <Space size={12}>
                         <FileTextOutlined />
                         <Title level={4} style={{ margin: 0, color: "#fff" }}>
@@ -180,7 +306,13 @@ export default function AgreementIndex() {
 
             {/* Toolbar + Table */}
             <Card className="shadow-sm" style={{ borderRadius: 12 }}>
-                <Space style={{ marginBottom: 16, width: "100%", justifyContent: "space-between" }}>
+                <Space
+                    style={{
+                        marginBottom: 16,
+                        width: "100%",
+                        justifyContent: "space-between",
+                    }}
+                >
                     <Space>
                         <Input.Search
                             placeholder="Cari No Agreement, NIK, Nama Driver, atau Perusahaan…"
@@ -192,7 +324,10 @@ export default function AgreementIndex() {
                             }}
                             style={{ width: 400 }}
                         />
-                        <Button icon={<ReloadOutlined />} onClick={() => fetchData(meta.page, meta.pageSize, q)}>
+                        <Button
+                            icon={<ReloadOutlined />}
+                            onClick={() => fetchData(meta.page, meta.pageSize, q)}
+                        >
                             Reload
                         </Button>
                     </Space>
