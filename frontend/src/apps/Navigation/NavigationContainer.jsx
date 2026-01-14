@@ -200,6 +200,10 @@ function Sidebar() {
           key: 'agreements',
           label: <Link to="/agreements">Daftar Agreements</Link>,
         },
+        {
+          key: 'driver_loans',
+          label: <Link to="/driver-loans">Daftar Pinjaman Driver</Link>,
+        },
       ],
     },
   ];
