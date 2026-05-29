@@ -37,7 +37,7 @@ function Sidebar() {
   const isReviewer = ['cynthia', 'welli'];
   const isAdmin = ['hindri3578', 'dini3515', 'herry3515'];
   const isHR = ['silvya3515', 'jogi9104']; // tambahkan isHR
-
+  const isAdminCban = ['dewi3515'];
   const [collapsed, setCollapsed] = useState(isNavMenuClose);
   const [currentPath, setCurrentPath] = useState(
     location.pathname === '/' ? 'dashboard' : location.pathname.slice(1)
@@ -88,6 +88,10 @@ function Sidebar() {
         {
           key: 'summary_ponds',
           label: <Link to="/dashboard_ponds">Analisa Kolam</Link>,
+        },
+        {
+          key: 'dashboard_sales',
+          label: <Link to="/dashboard_sales">Sales</Link>,
         },
       ],
     },
@@ -193,6 +197,10 @@ function Sidebar() {
           label: <Link to="/employee/manage">Manage Karyawan</Link>,
         },
         {
+          key: 'off_schedules',
+          label: <Link to="/off_schedules">Libur Karyawan</Link>,
+        },
+        {
           key: 'holidays',
           label: <Link to="/holidays">Manage Hari Libur</Link>,
         },
@@ -237,6 +245,14 @@ function Sidebar() {
       return items.filter(item => item.key === 'dashboard' || item.key === 'manageHR').map(item => {
         if (item.key === 'dashboard') {
           item.children = item.children?.filter(child => child.key === 'dashboard_absen');
+        }
+        return item;
+      });
+    }
+    if (isAdminCban.includes(username)) {
+      return items.filter(item => item.key === 'manageHR').map(item => {
+        if (item.key === 'manageHR') {
+          item.children = item.children?.filter(child => child.key === 'agreements' || child.key === 'driver_loans');
         }
         return item;
       });

@@ -26,9 +26,13 @@ import {
 import { useNavigate } from "react-router-dom"
 import axios from "axios"
 import dayjs from "dayjs"
+import { useSelector } from "react-redux"
+import { selectCurrentAdmin } from "@/redux/auth/selectors"
+
 
 const { Title, Text } = Typography
 const DRIVER_LOAN_API = "https://apimitra.delmargroup.co.id/api/driversLoans"
+
 
 export default function DriverLoanIndex() {
     const navigate = useNavigate()
@@ -41,6 +45,10 @@ export default function DriverLoanIndex() {
     const [openDetail, setOpenDetail] = useState(false)
     const [detail, setDetail] = useState(null)
     const [detailLoading, setDetailLoading] = useState(false)
+    const currentAdmin = useSelector(selectCurrentAdmin)
+    const isAdminCban = ["dewi3515"]
+
+    const isCban = isAdminCban.includes(currentAdmin?.username)
 
     // ================= FETCH LIST =================
     const fetchData = async () => {
@@ -136,7 +144,7 @@ export default function DriverLoanIndex() {
         {
             title: "Aksi",
             render: (_, r) => {
-                const disabled = r.status !== "draft"
+                const disabled = r.status !== "draft" || isCban
                 return (
                     <Dropdown
                         trigger={["click"]}

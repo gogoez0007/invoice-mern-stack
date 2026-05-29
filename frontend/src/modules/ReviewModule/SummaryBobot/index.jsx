@@ -212,7 +212,7 @@ const BongkarReport = () => {
         setLoading(true);
         try {
             const params = filterType === 'all' ? { groupBy } : { month, year, groupBy };
-            const res = await axios.get('http://localhost:5000/api/review/summary', { params });
+            const res = await axios.get('http://123.255.202.38:5000/api/review/summary', { params });
             setData(res.data.data || []);
 
             const filteredColumns =

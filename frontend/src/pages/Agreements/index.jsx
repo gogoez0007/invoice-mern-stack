@@ -25,8 +25,11 @@ import {
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
 import dayjs from "dayjs";
+import { selectCurrentAdmin } from '@/redux/auth/selectors';
+import { useSelector } from 'react-redux';
 
 const { Title, Text } = Typography;
+
 
 // SESUAIKAN: endpoint backend kamu yang balikin array seperti contoh
 const AGREEMENT_API_URL = "http://mitra.delmargroup.id:1088/api/agreements";
@@ -68,6 +71,9 @@ export default function AgreementIndex() {
     const [rows, setRows] = useState([]);
     const [meta, setMeta] = useState({ page: 1, pageSize: 10, total: 0 });
     const [q, setQ] = useState("");
+    const currentAdmin = useSelector(selectCurrentAdmin);
+    const isAdminCban = ['dewi3515'];
+    const isCban = isAdminCban.includes(currentAdmin?.username);
 
     const fetchData = async (page = meta.page, pageSize = meta.pageSize, keyword = q) => {
         try {
@@ -241,7 +247,7 @@ export default function AgreementIndex() {
                             key: "approve",
                             label: "Approve",
                             icon: <CheckCircleOutlined />,
-                            disabled: isActive,
+                            disabled: isActive || isCban,
                         },
                         {
                             type: "divider",

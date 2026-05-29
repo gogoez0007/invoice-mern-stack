@@ -18,7 +18,7 @@ const usePanenData = (form) => {
                 return;
             }
 
-            const apiUrl = `http://localhost:5000/api/panen/getDetailPanenbyNopol?nopol=${nopol}&tanggal=${tanggal}&id_tambak=${idTambak}`;
+            const apiUrl = `http://123.255.202.38:5000/api/panen/getDetailPanenbyNopol?nopol=${nopol}&tanggal=${tanggal}&id_tambak=${idTambak}`;
             const response = await axios.get(apiUrl);
 
             if (response.data.success && response.data.result.length > 0) {
@@ -32,7 +32,7 @@ const usePanenData = (form) => {
                     staff: dataPanen.staff,
                 });
 
-                 // Process detail panen - store positions
+                // Process detail panen - store positions
                 const positions = [...new Set(dataPanen.detail.map(d => d.posisi))];
 
                 // Initialize detailBongkar with an empty array for each position

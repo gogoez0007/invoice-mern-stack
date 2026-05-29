@@ -6,6 +6,7 @@ const Logout = lazy(() => import('@/pages/Logout.jsx'));
 const NotFound = lazy(() => import('@/pages/NotFound.jsx'));
 
 const Dashboard = lazy(() => import('@/pages/Dashboard'));
+const DashboardSales = lazy(() => import('@/pages/DashboardSales'));
 const DashboardPanen = lazy(() => import('@/pages/DashboardPanen'));
 const DashboardBongkar = lazy(() => import('@/pages/DashboardBongkar'));
 const DashboardProductivity = lazy(() => import('@/pages/DashboarProductivity'));
@@ -72,6 +73,7 @@ const ManageEmployees = lazy(() => import('@/pages/Karyawan/manageEmployee'));
 const Holidays = lazy(() => import('@/pages/Holidays'));
 const Agreements = lazy(() => import('@/pages/Agreements'));
 const DriverLoans = lazy(() => import('@/pages/DriversLoans'));
+const OffSchedules = lazy(() => import('@/pages/OffSchedules'));
 
 let routes = {
   expense: [],
@@ -298,6 +300,14 @@ let routes = {
     {
       path: '/driver-loans',
       element: <DriverLoans />,
+    },
+    {
+      path: '/dashboard_sales',
+      element: <DashboardSales />,
+    },
+    {
+      path: '/off_schedules',
+      element: <OffSchedules />,
     },
     {
       path: '*',

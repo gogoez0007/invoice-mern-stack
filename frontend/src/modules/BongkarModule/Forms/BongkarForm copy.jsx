@@ -1,7 +1,7 @@
 // bongkarform.js
 import React, { useState, useEffect, useRef } from 'react';
 import { Form, Input, InputNumber, Button, Select, DatePicker, Row, Col, Card, Descriptions, Divider } from 'antd';
-import { PlusOutlined, MinusCircleOutlined, CheckOutlined,ArrowLeftOutlined } from '@ant-design/icons';
+import { PlusOutlined, MinusCircleOutlined, CheckOutlined, ArrowLeftOutlined } from '@ant-design/icons';
 import useLanguage from '@/locale/useLanguage';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -83,7 +83,7 @@ export default function BongkarForm({
                 return;
             }
 
-            const apiUrl = `http://localhost:5000/api/panen/getDetailPanenbyNopol?nopol=${nopol}&tanggal=${tanggal}&id_tambak=${idTambak}`;
+            const apiUrl = `http://123.255.202.38:5000/api/panen/getDetailPanenbyNopol?nopol=${nopol}&tanggal=${tanggal}&id_tambak=${idTambak}`;
             const response = await axios.get(apiUrl);
 
             if (response.data.success && response.data.result.length > 0) {
@@ -430,17 +430,17 @@ export default function BongkarForm({
                                                     </Form.Item>
                                                 </Col>
                                                 <Col span={4} style={{ textAlign: 'center', fontWeight: 'bold', marginTop: '-20px' }}>
-                                                {/* Menampilkan subtotal untuk setiap detail */}
+                                                    {/* Menampilkan subtotal untuk setiap detail */}
                                                     {new Intl.NumberFormat('id-ID', {
                                                         style: 'decimal',
                                                         minimumFractionDigits: 2,
                                                         maximumFractionDigits: 2
                                                     }).format(calculate.multiply(detail.berat_bongkar || 0, detail.harga || 0))}
-                                            </Col>
+                                                </Col>
                                                 <Col span={1}>
-                                                    <Button 
-                                                        type="danger" 
-                                                        icon={<MinusCircleOutlined />} 
+                                                    <Button
+                                                        type="danger"
+                                                        icon={<MinusCircleOutlined />}
                                                         style={{ height: '38px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: '-20px' }}
                                                         onClick={() => handleLocalRemoveDetailBongkar(posisi, index)} />
                                                 </Col>
