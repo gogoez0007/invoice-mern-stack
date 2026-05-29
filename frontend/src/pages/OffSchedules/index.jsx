@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
     Badge,
     Button,
@@ -76,21 +76,6 @@ function includeToken() {
     }
 }
 
-function normalizeUsers(payload) {
-    const rows = Array.isArray(payload)
-        ? payload
-        : Array.isArray(payload?.data)
-            ? payload.data
-            : Array.isArray(payload?.result)
-                ? payload.result
-                : [];
-
-    return rows.map((u) => ({
-        id: Number(u.id),
-        name: u.name || u.nama || u.full_name || `User ${u.id}`
-    }));
-}
-
 function getMonthRange(monthVal) {
     const start = monthVal.startOf("month");
     const end = monthVal.endOf("month");
@@ -109,13 +94,6 @@ function generateDatesByWeekdays(days, weekdays) {
     return days.filter((d) => selected.has(d.day())).map((d) => d.format("YYYY-MM-DD"));
 }
 
-function getWeekdaysFromDates(dateKeys) {
-    return [...new Set((dateKeys || []).map((d) => dayjs(d).day()))].sort((a, b) => {
-        const order = [1, 2, 3, 4, 5, 6, 0];
-        return order.indexOf(a) - order.indexOf(b);
-    });
-}
-
 export default function EmployeeOffCalendar() {
     const [loading, setLoading] = useState(false);
     const [monthVal, setMonthVal] = useState(dayjs());
@@ -129,17 +107,20 @@ export default function EmployeeOffCalendar() {
     const [editingEmployee, setEditingEmployee] = useState(null);
     const [previewDates, setPreviewDates] = useState([]);
     const [selectedDates, setSelectedDates] = useState([]);
+
+    const [empOptions, setEmpOptions] = useState([]);
+    const [empLoading, setEmpLoading] = useState(false);
+    const [hasMoreEmp, setHasMoreEmp] = useState(false);
+
+    const empTotalRef = useRef(0);
+    const empPageRef = useRef(1);
+    const empSearchRef = useRef("");
+    const empSearchTimerRef = useRef(null);
+
     const [addForm] = Form.useForm();
     const [swapForm] = Form.useForm();
 
     const range = useMemo(() => getMonthRange(monthVal), [monthVal]);
-
-    const employeeOptions = useMemo(() => {
-        return employees.map((e) => ({
-            value: e.id,
-            label: e.name
-        }));
-    }, [employees]);
 
     const visibleEmployees = useMemo(() => {
         const ids = new Set(visibleEmployeeIds.map(Number));
@@ -176,14 +157,173 @@ export default function EmployeeOffCalendar() {
         };
     }, []);
 
-    const fetchEmployees = useCallback(async () => {
-        includeToken();
+    const addEmployeeToLocal = useCallback((id, name) => {
+        if (!id) return;
 
-        const { data } = await axios.get("employees");
-        const rows = normalizeUsers(data);
+        setEmployees((prev) => {
+            const map = new Map();
 
-        setEmployees(rows);
+            for (const e of prev) {
+                map.set(Number(e.id), e);
+            }
+
+            map.set(Number(id), {
+                id: Number(id),
+                name: name || `#${id}`
+            });
+
+            return [...map.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+        });
     }, []);
+
+    const fetchEmployees = useCallback(async ({ page = 1, q = "" }, append = false) => {
+        try {
+            setEmpLoading(true);
+            includeToken();
+
+            const { data } = await axios.get("employees/list", {
+                params: {
+                    page,
+                    items: 10,
+                    q,
+                    sortBy: "id",
+                    sortValue: "DESC"
+                }
+            });
+
+            const list = Array.isArray(data?.result) ? data.result : [];
+            const total = data?.pagination?.count || list.length || 0;
+
+            const opts = list.map((e) => ({
+                value: Number(e.id),
+                label: e.name || `#${e.id}`
+            }));
+
+            setEmpOptions((prev) => {
+                const map = new Map();
+
+                if (append) {
+                    for (const item of prev) {
+                        map.set(Number(item.value), item);
+                    }
+                }
+
+                for (const item of opts) {
+                    map.set(Number(item.value), item);
+                }
+
+                return [...map.values()];
+            });
+
+            setEmployees((prev) => {
+                const map = new Map();
+
+                for (const e of prev) {
+                    map.set(Number(e.id), e);
+                }
+
+                for (const e of list) {
+                    map.set(Number(e.id), {
+                        id: Number(e.id),
+                        name: e.name || `#${e.id}`
+                    });
+                }
+
+                return [...map.values()].sort((a, b) => String(a.name).localeCompare(String(b.name)));
+            });
+
+            empTotalRef.current = total;
+            empPageRef.current = page;
+            empSearchRef.current = q;
+
+            setHasMoreEmp(page * 10 < total);
+        } catch (e) {
+            console.error(e);
+            message.error("Gagal memuat karyawan");
+        } finally {
+            setEmpLoading(false);
+        }
+    }, []);
+
+    const handleSearchEmployees = useCallback((q) => {
+        if (empSearchTimerRef.current) {
+            clearTimeout(empSearchTimerRef.current);
+        }
+
+        empSearchTimerRef.current = setTimeout(() => {
+            const keyword = String(q || "").trim();
+
+            if (keyword.length < 2) {
+                setEmpOptions([]);
+                setHasMoreEmp(false);
+                empSearchRef.current = "";
+                empPageRef.current = 1;
+                empTotalRef.current = 0;
+                return;
+            }
+
+            fetchEmployees({ page: 1, q: keyword }, false);
+        }, 350);
+    }, [fetchEmployees]);
+
+    const handlePopupScrollEmployees = useCallback((e) => {
+        const target = e.target;
+
+        if (!hasMoreEmp || empLoading) return;
+
+        if (target.scrollTop + target.offsetHeight >= target.scrollHeight - 24) {
+            const nextPage = empPageRef.current + 1;
+            fetchEmployees({ page: nextPage, q: empSearchRef.current }, true);
+        }
+    }, [fetchEmployees, hasMoreEmp, empLoading]);
+
+    const getSelectOptions = useCallback((employee = null) => {
+        const map = new Map();
+
+        for (const item of empOptions) {
+            map.set(Number(item.value), item);
+        }
+
+        if (employee?.id) {
+            map.set(Number(employee.id), {
+                value: Number(employee.id),
+                label: employee.name || `#${employee.id}`
+            });
+        }
+
+        return [...map.values()];
+    }, [empOptions]);
+
+    const handleEmployeeSelected = useCallback((userId) => {
+        const selected = empOptions.find((e) => Number(e.value) === Number(userId));
+
+        if (selected) {
+            addEmployeeToLocal(selected.value, selected.label);
+        }
+
+        const existingDates = Object.keys(offMap[Number(userId)] || {}).sort();
+
+        setSelectedDates(existingDates);
+        setPreviewDates(existingDates);
+
+        addForm.setFieldsValue({
+            weekdays: [],
+            dates: existingDates
+        });
+    }, [empOptions, addEmployeeToLocal, offMap, addForm]);
+
+    const handleSwapEmployeeSelected = useCallback((fieldEmployee, fieldDate, userId) => {
+        const selected = empOptions.find((e) => Number(e.value) === Number(userId));
+
+        if (selected) {
+            addEmployeeToLocal(selected.value, selected.label);
+        }
+
+        swapForm.setFieldsValue({
+            [fieldEmployee]: userId,
+            [fieldDate]: undefined
+        });
+    }, [empOptions, addEmployeeToLocal, swapForm]);
 
     const fetchOffDays = useCallback(async () => {
         setLoading(true);
@@ -243,13 +383,6 @@ export default function EmployeeOffCalendar() {
     }, [range.start_date, range.end_date]);
 
     useEffect(() => {
-        fetchEmployees().catch((e) => {
-            console.error(e);
-            message.error(e?.response?.data?.message || "Gagal memuat karyawan");
-        });
-    }, [fetchEmployees]);
-
-    useEffect(() => {
         fetchOffDays();
     }, [fetchOffDays]);
 
@@ -268,6 +401,12 @@ export default function EmployeeOffCalendar() {
             reason: "OFF Kalender"
         });
 
+        setEmpOptions(employee?.id ? [{ value: Number(employee.id), label: employee.name }] : []);
+        setHasMoreEmp(false);
+        empSearchRef.current = "";
+        empPageRef.current = 1;
+        empTotalRef.current = 0;
+
         setAddOpen(true);
     };
 
@@ -282,6 +421,15 @@ export default function EmployeeOffCalendar() {
     const closeSwapModal = () => {
         setSwapOpen(false);
         swapForm.resetFields();
+    };
+
+    const openSwapModal = () => {
+        setEmpOptions([]);
+        setHasMoreEmp(false);
+        empSearchRef.current = "";
+        empPageRef.current = 1;
+        empTotalRef.current = 0;
+        setSwapOpen(true);
     };
 
     const onWeekdaysChange = (weekdays) => {
@@ -334,11 +482,15 @@ export default function EmployeeOffCalendar() {
 
             const employeeA = Number(values.employee_a);
             const employeeB = Number(values.employee_b);
-            const offDateA = fmt(values.off_date_a);
-            const offDateB = fmt(values.off_date_b);
+            const offDateA = values.off_date_a;
+            const offDateB = values.off_date_b;
 
             if (employeeA === employeeB) {
                 return message.warning("Karyawan A dan B tidak boleh sama");
+            }
+
+            if (offDateA === offDateB) {
+                return message.warning("Tanggal OFF yang ditukar tidak boleh sama");
             }
 
             setModalBusy(true);
@@ -374,6 +526,7 @@ export default function EmployeeOffCalendar() {
 
     const getEmployeeOffDateOptions = (userId) => {
         const map = offMap[Number(userId)] || {};
+
         return Object.keys(map).sort().map((date) => ({
             value: date,
             label: `${dayjs(date).format("DD MMMM YYYY")} - ${NAMA_HARI_SHORT[dayjs(date).day()]}`
@@ -419,7 +572,7 @@ export default function EmployeeOffCalendar() {
                     </div>
                 ),
                 dataIndex: dateKey,
-                width: 54,
+                width: 60,
                 align: "center",
                 render: (_, row) => {
                     const off = offMap[Number(row.id)]?.[dateKey];
@@ -433,7 +586,7 @@ export default function EmployeeOffCalendar() {
                     return (
                         <Tooltip title={off.reason || "OFF"}>
                             <div className={isSwap ? "off-cell is-off is-swap" : "off-cell is-off"}>
-                                <span>{isSwap ? "SW" : ""}</span>
+                                <span>{isSwap ? "SWAP" : "OFF"}</span>
                             </div>
                         </Tooltip>
                     );
@@ -511,14 +664,14 @@ export default function EmployeeOffCalendar() {
                                 Add Karyawan
                             </Button>
 
-                            <Button icon={<SwapOutlined />} onClick={() => setSwapOpen(true)}>
+                            <Button icon={<SwapOutlined />} onClick={openSwapModal}>
                                 Swap OFF Antar Karyawan
                             </Button>
 
                             <Input
                                 allowClear
                                 prefix={<SearchOutlined style={{ opacity: 0.5 }} />}
-                                placeholder="Cari nama karyawan"
+                                placeholder="Cari nama karyawan di tabel"
                                 value={search}
                                 onChange={(e) => setSearch(e.target.value)}
                                 style={{ width: 240 }}
@@ -546,7 +699,7 @@ export default function EmployeeOffCalendar() {
                                 dataSource={filteredEmployees}
                                 columns={columns}
                                 pagination={false}
-                                scroll={{ x: 282 + range.days.length * 54, y: 620 }}
+                                scroll={{ x: 282 + range.days.length * 60, y: 620 }}
                                 className="off-calendar-table"
                             />
                         )}
@@ -565,21 +718,16 @@ export default function EmployeeOffCalendar() {
                         <Form.Item name="user_id" label="Karyawan" rules={[{ required: true, message: "Karyawan wajib dipilih" }]}>
                             <Select
                                 showSearch
+                                allowClear={!editingEmployee}
                                 disabled={!!editingEmployee}
-                                placeholder="Pilih karyawan"
-                                options={employeeOptions}
-                                optionFilterProp="label"
-                                onChange={(userId) => {
-                                    const existingDates = Object.keys(offMap[Number(userId)] || {}).sort();
-
-                                    setSelectedDates(existingDates);
-                                    setPreviewDates(existingDates);
-
-                                    addForm.setFieldsValue({
-                                        weekdays: [],
-                                        dates: existingDates
-                                    });
-                                }}
+                                placeholder="Ketik minimal 2 huruf nama karyawan"
+                                options={getSelectOptions(editingEmployee)}
+                                filterOption={false}
+                                onSearch={handleSearchEmployees}
+                                onPopupScroll={handlePopupScrollEmployees}
+                                loading={empLoading}
+                                notFoundContent={empLoading ? <Spin size="small" /> : "Ketik minimal 2 huruf"}
+                                onChange={handleEmployeeSelected}
                             />
                         </Form.Item>
 
@@ -642,20 +790,6 @@ export default function EmployeeOffCalendar() {
                             </div>
                         </Form.Item>
 
-                        <Form.Item label="Tanggal yang akan menjadi OFF">
-                            <div className="preview-date-box">
-                                {previewDates.length === 0 ? (
-                                    <Text type="secondary">Belum ada tanggal terpilih</Text>
-                                ) : (
-                                    previewDates.map((date) => (
-                                        <span key={date} className="preview-date-item">
-                                            {dayjs(date).format("DD MMM")} ({NAMA_HARI_SHORT[dayjs(date).day()]})
-                                        </span>
-                                    ))
-                                )}
-                            </div>
-                        </Form.Item>
-
                         <Form.Item name="reason" label="Keterangan">
                             <Input placeholder="Contoh: OFF Kalender" />
                         </Form.Item>
@@ -684,10 +818,15 @@ export default function EmployeeOffCalendar() {
                             <Form.Item name="employee_a" label="Karyawan A" rules={[{ required: true, message: "Karyawan A wajib dipilih" }]} style={{ width: "50%" }}>
                                 <Select
                                     showSearch
-                                    placeholder="Pilih karyawan A"
-                                    options={employeeOptions}
-                                    optionFilterProp="label"
-                                    onChange={() => swapForm.setFieldsValue({ off_date_a: undefined })}
+                                    allowClear
+                                    placeholder="Ketik nama karyawan A"
+                                    options={getSelectOptions()}
+                                    filterOption={false}
+                                    onSearch={handleSearchEmployees}
+                                    onPopupScroll={handlePopupScrollEmployees}
+                                    loading={empLoading}
+                                    notFoundContent={empLoading ? <Spin size="small" /> : "Ketik minimal 2 huruf"}
+                                    onChange={(value) => handleSwapEmployeeSelected("employee_a", "off_date_a", value)}
                                 />
                             </Form.Item>
 
@@ -708,10 +847,15 @@ export default function EmployeeOffCalendar() {
                             <Form.Item name="employee_b" label="Karyawan B" rules={[{ required: true, message: "Karyawan B wajib dipilih" }]} style={{ width: "50%" }}>
                                 <Select
                                     showSearch
-                                    placeholder="Pilih karyawan B"
-                                    options={employeeOptions}
-                                    optionFilterProp="label"
-                                    onChange={() => swapForm.setFieldsValue({ off_date_b: undefined })}
+                                    allowClear
+                                    placeholder="Ketik nama karyawan B"
+                                    options={getSelectOptions()}
+                                    filterOption={false}
+                                    onSearch={handleSearchEmployees}
+                                    onPopupScroll={handlePopupScrollEmployees}
+                                    loading={empLoading}
+                                    notFoundContent={empLoading ? <Spin size="small" /> : "Ketik minimal 2 huruf"}
+                                    onChange={(value) => handleSwapEmployeeSelected("employee_b", "off_date_b", value)}
                                 />
                             </Form.Item>
 
@@ -760,7 +904,7 @@ export default function EmployeeOffCalendar() {
 
           .off-calendar-table .ant-table-tbody > tr > td {
             padding: 0 !important;
-            height: 36px;
+            height: 38px;
             border-color: #2f2f2f33 !important;
           }
 
@@ -783,13 +927,14 @@ export default function EmployeeOffCalendar() {
 
           .off-cell {
             width: 100%;
-            height: 36px;
-            min-height: 36px;
+            height: 38px;
+            min-height: 38px;
             display: flex;
             align-items: center;
             justify-content: center;
             font-size: 10px;
-            font-weight: 700;
+            font-weight: 800;
+            letter-spacing: .2px;
           }
 
           .off-cell.is-off {
@@ -832,36 +977,36 @@ export default function EmployeeOffCalendar() {
             display: grid;
             grid-template-columns: repeat(7, minmax(72px, 1fr));
             gap: 8px;
-        }
+          }
 
-        .date-check {
+          .date-check {
             margin-inline-start: 0 !important;
             border: 1px solid #f0f0f0;
             border-radius: 8px;
             padding: 8px;
             transition: .2s ease;
             background: #fff;
-        }
+          }
 
-        .date-check:hover {
+          .date-check:hover {
             border-color: #1677ff;
             background: #e6f4ff;
-        }
+          }
 
-        .date-check.is-weekend {
+          .date-check.is-weekend {
             background: #fff1f0;
-        }
+          }
 
-        .date-check span:last-child > div {
+          .date-check span:last-child > div {
             display: flex;
             flex-direction: column;
             line-height: 1.2;
-        }
+          }
 
-        .date-check span:last-child span {
+          .date-check span:last-child span {
             font-size: 11px;
             color: #8c8c8c;
-        }
+          }
         `}</style>
             </>
         </ConfigProvider>
