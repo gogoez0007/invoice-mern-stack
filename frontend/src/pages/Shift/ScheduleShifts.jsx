@@ -4,7 +4,7 @@ import {
     Select, DatePicker, Tooltip, Divider
 } from "antd";
 import {
-    SaveOutlined, ReloadOutlined, ArrowLeftOutlined, DeleteOutlined
+    SaveOutlined, ReloadOutlined, ArrowLeftOutlined, DeleteOutlined, CalendarOutlined
 } from "@ant-design/icons";
 import { useNavigate } from "react-router-dom";
 import axios from "axios";
@@ -67,6 +67,7 @@ export default function ShiftScheduleMonthlyEditor() {
     const [rows, setRows] = useState([]);     // hasil GET monthly
     const [origRows, setOrigRows] = useState([]);
     const [changes, setChanges] = useState({}); // {"userId|YYYY-MM-DD": shift_id}
+    const [offMap, setOffMap] = useState({});   // { [userId]: { [dateStr]: offItem } }
 
     const [loading, setLoading] = useState(false);
     const [saving, setSaving] = useState(false);
@@ -104,6 +105,14 @@ export default function ShiftScheduleMonthlyEditor() {
     .cal-cell.weekend { background: #fafafa; }
     .cal-cell:hover { box-shadow: 0 0 0 2px rgba(99,102,241,.10) inset; }
 
+    .cal-cell.is-off {
+      background: #fff1f2 !important;
+      border-color: #fda4af !important;
+    }
+    .cal-cell.is-off:hover {
+      box-shadow: 0 0 0 2px rgba(244, 63, 94, .3) inset !important;
+    }
+
     .pill-source {
       display:inline-block; font-size: var(--micro); padding: 1px 6px; border-radius: 999px;
       background: #f4f4f5; color:#3f3f46; margin-bottom: 3px;
@@ -111,6 +120,17 @@ export default function ShiftScheduleMonthlyEditor() {
     .pill-default { background: #eef2ff; color:#1e3a8a; }
     .pill-schedule { background: #ecfeff; color:#155e75; }
     .pill-empty { background: #fff7ed; color:#9a3412; }
+
+    .pill-off {
+      display: inline-block;
+      font-size: var(--micro);
+      padding: 0.5px 5px;
+      border-radius: 4px;
+      background: #f43f5e;
+      color: #fff;
+      font-weight: 700;
+      letter-spacing: .2px;
+    }
 
     .cal-cell .ant-select { width: 100%; }
     /* tinggi select dibuat ~24px */
@@ -231,13 +251,43 @@ export default function ShiftScheduleMonthlyEditor() {
         try {
             setLoading(true);
             includeToken();
-            const { data } = await axios.get("shifts/schedules/monthly", {
-                params: { entitas_id: entitasId, month, year }
-            });
-            const list = Array.isArray(data) ? data : [];
-            setRows(list);
-            setOrigRows(list);
-            setChanges({});
+
+            const startDate = dayjs(`${year}-${pad2(month)}-01`).startOf("month").format("YYYY-MM-DD");
+            const endDate = dayjs(`${year}-${pad2(month)}-01`).endOf("month").format("YYYY-MM-DD");
+
+            const [schedRes, offRes] = await Promise.allSettled([
+                axios.get("shifts/schedules/monthly", {
+                    params: { entitas_id: entitasId, month, year }
+                }),
+                axios.get("attendance/employee-off-days", {
+                    params: { start_date: startDate, end_date: endDate }
+                })
+            ]);
+
+            if (schedRes.status === "fulfilled") {
+                const list = Array.isArray(schedRes.value?.data) ? schedRes.value.data : [];
+                setRows(list);
+                setOrigRows(list);
+                setChanges({});
+            } else {
+                console.error(schedRes.reason);
+                message.error("Gagal memuat jadwal bulanan");
+            }
+
+            if (offRes.status === "fulfilled") {
+                const offData = offRes.value?.data;
+                const offList = Array.isArray(offData?.data) ? offData.data : Array.isArray(offData) ? offData : [];
+                const map = {};
+                for (const item of offList) {
+                    const uid = Number(item.user_id);
+                    const dStr = dayjs(item.off_date).format("YYYY-MM-DD");
+                    if (!map[uid]) map[uid] = {};
+                    map[uid][dStr] = item;
+                }
+                setOffMap(map);
+            } else {
+                console.warn("Gagal memuat jadwal OFF:", offRes.reason);
+            }
         } catch (e) {
             console.error(e);
             message.error("Gagal memuat jadwal bulanan");
@@ -337,12 +387,33 @@ export default function ShiftScheduleMonthlyEditor() {
                 fixed: "left",
                 width: 140,                 // lebih sempit
                 className: "sticky-left",
-                render: (_, r) => (
-                    <div className="staff-cell" title={`${r.name}${r.position ? " · " + r.position : ""}`}>
-                        <div className="staff-name">{r.name}</div>
-                        <div className="staff-pos">{r.position || "-"}</div>
-                    </div>
-                ),
+                render: (_, r) => {
+                    const userOffMap = offMap[r.user_id] || offMap[Number(r.user_id)] || {};
+                    const userOffCount = Object.keys(userOffMap).length;
+                    return (
+                        <div className="staff-cell" title={`${r.name}${r.position ? " · " + r.position : ""}`}>
+                            <div className="staff-name">{r.name}</div>
+                            <div className="staff-pos">{r.position || "-"}</div>
+                            {userOffCount > 0 && (
+                                <div style={{ marginTop: 2 }}>
+                                    <Tag
+                                        color="error"
+                                        style={{
+                                            fontSize: "9px",
+                                            lineHeight: "15px",
+                                            padding: "0 4px",
+                                            borderRadius: 4,
+                                            margin: 0,
+                                            fontWeight: 600,
+                                        }}
+                                    >
+                                        {userOffCount} Hari OFF
+                                    </Tag>
+                                </div>
+                            )}
+                        </div>
+                    );
+                },
             },
             {
                 title: <div className="cal-header-cell"><Text strong>Entitas</Text></div>,
@@ -374,11 +445,24 @@ export default function ShiftScheduleMonthlyEditor() {
                 const k = cellKey(record.user_id, dObj.dateStr);
                 const isChanged = changes[k] !== undefined;
 
+                const userOffMap = offMap[record.user_id] || offMap[Number(record.user_id)] || {};
+                const offInfo = userOffMap[dObj.dateStr];
+                const isOff = Boolean(offInfo);
+
                 const usedShiftId = value;
                 const clr = usedShiftId ? (shiftColorMap[usedShiftId] || BASE_PALETTE[0]) : null;
 
-                const bgTint = clr ? hsla({ ...clr, l: Math.min(96, clr.l + 40) }, 0.65) : undefined;
-                const borderTint = clr ? hsla({ ...clr, l: Math.max(35, clr.l - 10) }, 0.30) : "#f1f1f1";
+                const bgTint = isOff
+                    ? "#fff1f2"
+                    : clr
+                    ? hsla({ ...clr, l: Math.min(96, clr.l + 40) }, 0.65)
+                    : undefined;
+                const borderTint = isOff
+                    ? "#fca5a5"
+                    : clr
+                    ? hsla({ ...clr, l: Math.max(35, clr.l - 10) }, 0.30)
+                    : "#f1f1f1";
+
                 const wrapStyle = {
                     background: dObj.isWeekend ? (bgTint || "#fafafa") : (bgTint || "#fff"),
                     borderColor: borderTint
@@ -390,15 +474,32 @@ export default function ShiftScheduleMonthlyEditor() {
                             "pill-source pill-empty";
 
                 return (
-                    <div className={`cal-cell ${dObj.isWeekend ? "weekend" : ""}`} style={wrapStyle}>
-                        <div style={{ marginBottom: 2, display: 'flex', alignItems: 'center', gap: 6 }}>
-                            {clr ? <span className="shift-dot" style={{ background: hsl(clr) }} /> : null}
-                            <span className={pillCls}>{cell?.source || "empty"}</span>
+                    <div className={`cal-cell ${dObj.isWeekend ? "weekend" : ""} ${isOff ? "is-off" : ""}`} style={wrapStyle}>
+                        <div style={{ marginBottom: 2, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 4 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 4, overflow: 'hidden' }}>
+                                {clr ? <span className="shift-dot" style={{ background: hsl(clr) }} /> : null}
+                                <span className={pillCls}>{cell?.source || "empty"}</span>
+                            </div>
+                            {isOff && (
+                                <span className="pill-off" title={offInfo.reason || "OFF"}>
+                                    OFF
+                                </span>
+                            )}
                         </div>
                         <Tooltip
                             title={
                                 <>
                                     <div><strong style={{ fontSize: 11 }}>{cell?.dayofName || ""}</strong> • {cell?.date}</div>
+                                    {isOff && (
+                                        <div style={{ color: "#ef4444", fontWeight: 700, margin: "2px 0" }}>
+                                            ⛔ JADWAL OFF ({offInfo.reason || "Libur Karyawan"})
+                                        </div>
+                                    )}
+                                    {isOff && value && (
+                                        <div style={{ color: "#f59e0b", fontSize: 10, marginBottom: 2 }}>
+                                            ⚠️ Dijadwalkan masuk di hari OFF
+                                        </div>
+                                    )}
                                     {cell?.start_time && cell?.end_time && (
                                         <div className="micro">Jam: {cell.start_time?.slice(0, 5)}–{cell.end_time?.slice(0, 5)}</div>
                                     )}
@@ -410,7 +511,17 @@ export default function ShiftScheduleMonthlyEditor() {
                                 value={value}
                                 onChange={(val) => updateCell(record.user_id, dObj, val)}
                                 options={shiftOptions}
-                                placeholder={<span className="micro">Pilih…</span>}
+                                placeholder={
+                                    <span
+                                        className="micro"
+                                        style={{
+                                            color: isOff ? "#e11d48" : undefined,
+                                            fontWeight: isOff ? 700 : undefined
+                                        }}
+                                    >
+                                        {isOff ? "OFF" : "Pilih…"}
+                                    </span>
+                                }
                                 dropdownMatchSelectWidth={false}
                                 listHeight={220}
                                 filterOption={(input, opt) => {
@@ -429,7 +540,7 @@ export default function ShiftScheduleMonthlyEditor() {
 
         return [...base, ...dayCols];
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [dayHeaders, shifts, shiftOptions, changes, entitasMap, shiftColorMap]);
+    }, [dayHeaders, shifts, shiftOptions, changes, entitasMap, shiftColorMap, offMap]);
 
     return (
         <div className="sched-root">
@@ -499,6 +610,10 @@ export default function ShiftScheduleMonthlyEditor() {
                     </Button>
                     <Button onClick={resetChanges}>Batalkan</Button>
 
+                    <Button icon={<CalendarOutlined />} onClick={() => navigate("/off_schedules")}>
+                        Kalender OFF
+                    </Button>
+
                     {/* <Popconfirm
                         title="Kosongkan semua jadwal bulan ini untuk entitas ini?"
                         okText="Ya, kosongkan"
@@ -515,7 +630,9 @@ export default function ShiftScheduleMonthlyEditor() {
                     <Tag className="pill-schedule">schedule</Tag>{" "}
                     <span className="micro"> : Jadwal shift </span> <em className="micro">input</em>{" "}
                     <Tag className="pill-empty">empty</Tag>{" "}
-                    <span className="micro">: tidak ada default & belum dijadwalkan</span>
+                    <span className="micro">: tidak ada default & belum dijadwalkan</span>{" "}
+                    <Tag color="error" style={{ marginLeft: 8 }}>OFF</Tag>{" "}
+                    <span className="micro">: Jadwal Libur / OFF karyawan</span>
                 </div>
             </Card>
 
