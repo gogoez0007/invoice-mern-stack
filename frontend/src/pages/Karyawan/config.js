@@ -28,4 +28,13 @@ export const fields = {
     urlToRedirect : '/shift',
     redirectLabel : 'Tambah Shift',
   },
+  is_active: {
+    type: 'select',
+    required: false,
+    options: [
+      { value: 1, label: 'Aktif Bekerja (ON)' },
+      { value: 0, label: 'Non-Aktif / Resign (OFF)' },
+    ],
+    defaultValue: 1,
+  },
 };
