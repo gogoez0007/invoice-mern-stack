@@ -4,6 +4,8 @@ import { ResponsiveSankey } from "@nivo/sankey";
 import { BarChartOutlined, ShoppingCartOutlined } from '@ant-design/icons'; // Import Ant Design icons
 import dayjs from "dayjs";
 
+import { API_BASE_URL } from "@/config/serverApiConfig";
+
 export default function SankeyDiagram({ title, filterMode = "tahun" }) {
     const [date, setDate] = useState(dayjs());
     const [sankeyData, setSankeyData] = useState({ nodes: [], links: [] });
@@ -21,7 +23,7 @@ export default function SankeyDiagram({ title, filterMode = "tahun" }) {
                 ? `tahun=${tahun}`
                 : `tahun=${tahun}&bulan=${bulan.toString().padStart(2, "0")}`;
 
-            const response = await fetch(`http://192.168.120.12:5000/api/sankey?${query}`);
+            const response = await fetch(`${API_BASE_URL}sankey?${query}`);
             if (!response.ok) throw new Error("Failed to fetch Sankey data");
 
             const rawData = await response.json();

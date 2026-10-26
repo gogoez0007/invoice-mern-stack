@@ -6,10 +6,10 @@ import path from 'path';
 export default ({ mode }) => {
   process.env = { ...process.env, ...loadEnv(mode, process.cwd()) };
 
-  const proxy_url =
+    const proxy_url =
     process.env.VITE_DEV_REMOTE === 'remote'
       ? process.env.VITE_BACKEND_SERVER
-      : 'http://localhost:8888/';
+      : (process.env.VITE_BACKEND_SERVER || 'http://192.168.120.12:5000/');
 
   return defineConfig({
     base: '/', // ✅ Ubah base di sini
@@ -20,7 +20,7 @@ export default ({ mode }) => {
       },
     },
     server: {
-      port: 4100,
+      port: 5173,
       host: true,
       proxy: {
         '/api': {
