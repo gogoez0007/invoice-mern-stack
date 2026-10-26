@@ -108,9 +108,8 @@ export default function AttendanceTable() {
 
       const empMap = new Map();
       allEmpList.forEach((e) => {
-        if (e?.name) {
-          empMap.set(String(e.name).toLowerCase().trim(), e);
-        }
+        if (e?.id) empMap.set(Number(e.id), e);
+        if (e?.name) empMap.set(String(e.name).toLowerCase().trim(), e);
       });
 
       // robust terhadap bentuk respons: bisa {data: {...}} atau langsung {...}
@@ -132,7 +131,7 @@ export default function AttendanceTable() {
           }, {});
 
           const normName = String(item.name || "").toLowerCase().trim();
-          const emp = empMap.get(normName);
+          const emp = (item.id ? empMap.get(Number(item.id)) : null) || empMap.get(normName);
           const empId = item.id || emp?.id;
           const isActive =
             item.is_active !== undefined

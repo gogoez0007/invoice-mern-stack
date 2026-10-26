@@ -32,7 +32,7 @@ const { Title, Text } = Typography;
 
 
 // SESUAIKAN: endpoint backend kamu yang balikin array seperti contoh
-const AGREEMENT_API_URL = "http://mitra.delmargroup.id:1087/api/agreements";
+const AGREEMENT_API_URL = "https://apimitra.delmargroup.co.id/api/agreements";
 // URL portal mitra
 const AGREEMENT_PORTAL_URL = "https://mitra.delmargroup.co.id";
 
