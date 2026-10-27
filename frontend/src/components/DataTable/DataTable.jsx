@@ -210,7 +210,17 @@ export default function DataTable({ config, extra = [] }) {
   return (
     <>
       {isMobile ? (
-        <div style={{ marginBottom: 16 }}>
+        <div
+          style={{
+            position: 'sticky',
+            top: 56,
+            zIndex: 890,
+            backgroundColor: '#ffffff',
+            padding: '10px 0 12px',
+            marginBottom: 16,
+            borderBottom: '1px solid #f0f0f0',
+          }}
+        >
           <div
             style={{
               display: 'flex',

@@ -12,6 +12,7 @@ import { Modal, Input, List, Avatar } from 'antd';
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import { useSelector } from 'react-redux';
 import { useLocation } from 'react-router-dom';
+import { API_BASE_URL } from '@/config/serverApiConfig';
 
 const Review = () => {
   const [month, setMonth] = useState('');
@@ -97,7 +98,7 @@ const Review = () => {
     if (!status) return;
     status = commentText != '' ? 'rejected' : status;
     try {
-      const response = await fetch(`http://trade.delmargroup.id:5000/api/review/submit`, {
+      const response = await fetch(`${API_BASE_URL}review/submit`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -122,7 +123,7 @@ const Review = () => {
 
   const fetchReview = async () => {
     try {
-      const response = await fetch(`http://trade.delmargroup.id:5000/api/review/detail?name=${encodeURIComponent(currentSheetName)}`, {
+      const response = await fetch(`${API_BASE_URL}review/detail?name=${encodeURIComponent(currentSheetName)}`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json',

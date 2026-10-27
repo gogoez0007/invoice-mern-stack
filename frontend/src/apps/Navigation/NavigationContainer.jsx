@@ -10,6 +10,7 @@ import {
   DashboardTwoTone,
   AccountBookTwoTone,
   BoxPlotTwoTone,
+  SafetyCertificateTwoTone,
 } from '@ant-design/icons';
 
 import { useAppContext } from '@/context/appContext';
@@ -18,6 +19,7 @@ import logoIcon from '@/style/images/logo-icon.svg';
 import useResponsive from '@/hooks/useResponsive';
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import { useSelector } from 'react-redux';
+import { API_BASE_URL } from '@/config/serverApiConfig';
 
 const { Sider } = Layout;
 
@@ -186,57 +188,53 @@ const getMenuItems = (translate) => [
       },
     ],
   },
+  {
+    key: 'role_access',
+    icon: <SafetyCertificateTwoTone />,
+    label: <Link to="/role-access">Hak Akses Role</Link>,
+  },
 ];
 
-const filterMenuByRole = (items, username) => {
-  if (isReviewer.includes(username)) {
+const filterMenuByRole = (items, currentAdmin, dynamicAllowedCodes) => {
+  if (!currentAdmin) return [];
+
+  // 1. Super Admin Role Group mendapatkan akses ke seluruh menu
+  if (currentAdmin?.role_group?.code === 'SUPER_ADMIN' || currentAdmin?.username === 'taufik3301') {
+    return items;
+  }
+
+  // 2. Ambil allowed menu codes dari hasil query database
+  const allowedCodes = dynamicAllowedCodes || currentAdmin?.allowed_menu_codes;
+
+  if (Array.isArray(allowedCodes) && allowedCodes.length > 0) {
     return items
-      .filter((item) => allowedReviewerKeys.includes(item.key))
-      .map((item) => {
-        const newItem = { ...item };
-        if (newItem.key === 'dashboard') {
-          newItem.children = newItem.children?.filter((child) =>
-            ['dashboard_panen', 'dashboard_bongkar', 'summary_percentage', 'productivity'].includes(child.key)
+      .map((parent) => {
+        // Menu bercabang (punya children)
+        if (parent.children && parent.children.length > 0) {
+          const filteredChildren = parent.children.filter((child) =>
+            allowedCodes.includes(child.key)
           );
+          if (filteredChildren.length > 0 || allowedCodes.includes(parent.key)) {
+            return {
+              ...parent,
+              children: filteredChildren,
+            };
+          }
+          return null;
         }
-        if (newItem.key === 'bongkar') {
-          newItem.children = newItem.children?.filter((child) => child.key === 'review');
+
+        // Single Menu
+        if (allowedCodes.includes(parent.key)) {
+          return parent;
         }
-        return newItem;
-      });
+
+        return null;
+      })
+      .filter(Boolean);
   }
 
-  if (isAdmin.includes(username)) {
-    const allowedAdminKeys = ['panen', 'bongkar', 'tambak', 'kualitas', 'listDriver', 'SPB'];
-    return items.filter((item) => allowedAdminKeys.includes(item.key));
-  }
-
-  if (isHR.includes(username)) {
-    return items
-      .filter((item) => item.key === 'dashboard' || item.key === 'manageHR')
-      .map((item) => {
-        const newItem = { ...item };
-        if (newItem.key === 'dashboard') {
-          newItem.children = newItem.children?.filter((child) => child.key === 'dashboard_absen');
-        }
-        return newItem;
-      });
-  }
-  if (isAdminCban.includes(username)) {
-    return items
-      .filter((item) => item.key === 'manageHR')
-      .map((item) => {
-        const newItem = { ...item };
-        if (newItem.key === 'manageHR') {
-          newItem.children = newItem.children?.filter(
-            (child) => child.key === 'agreements' || child.key === 'driver_loans'
-          );
-        }
-        return newItem;
-      });
-  }
-
-  return items;
+  // 3. User yang belum memiliki role group TIDAK boleh mendapatkan akses ke menu apapun (Security Default: Deny)
+  return [];
 };
 
 const applyMenuStyles = (items) => {
@@ -278,11 +276,40 @@ function Sidebar() {
   const { navMenu } = appContextAction;
 
   const currentAdmin = useSelector(selectCurrentAdmin);
+  const [dynamicCodes, setDynamicCodes] = useState(currentAdmin?.allowed_menu_codes || null);
   const [collapsed, setCollapsed] = useState(isNavMenuClose);
+
+  useEffect(() => {
+    setCollapsed(isNavMenuClose);
+  }, [isNavMenuClose]);
+
   const [currentPath, setCurrentPath] = useState(
     location.pathname === '/' ? 'dashboard' : location.pathname.slice(1)
   );
   const translate = useLanguage();
+
+  useEffect(() => {
+    if (currentAdmin?.username && !currentAdmin?.allowed_menu_codes) {
+      fetch(`${API_BASE_URL}employees/permissions?username=${currentAdmin.username}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.result?.allowed_menu_codes) {
+            setDynamicCodes(data.result.allowed_menu_codes);
+            try {
+              const authStr = window.localStorage.getItem('auth');
+              if (authStr) {
+                const parsed = JSON.parse(authStr);
+                parsed.current.allowed_menu_codes = data.result.allowed_menu_codes;
+                parsed.current.role_group = data.result.role_group;
+                parsed.current.entity_scope = data.result.entity_scope;
+                window.localStorage.setItem('auth', JSON.stringify(parsed));
+              }
+            } catch (_) {}
+          }
+        })
+        .catch((err) => console.error('Failed to fetch user permissions:', err));
+    }
+  }, [currentAdmin?.username]);
 
   useEffect(() => {
     setCurrentPath(location.pathname === '/' ? 'dashboard' : location.pathname.slice(1));
@@ -294,7 +321,7 @@ function Sidebar() {
   };
 
   const rawItems = getMenuItems(translate);
-  const filteredItems = filterMenuByRole(rawItems, currentAdmin?.username);
+  const filteredItems = filterMenuByRole(rawItems, currentAdmin, dynamicCodes);
   const styledItems = applyMenuStyles(filteredItems);
   const defaultOpenMenu = rawItems
     .filter((item) => item.children)
@@ -305,56 +332,75 @@ function Sidebar() {
       collapsible
       collapsed={collapsed}
       onCollapse={onCollapse}
+      collapsedWidth={80}
       width={250}
       style={{
-        overflow: 'auto',
-        height: '100vh',
+        overflowY: 'auto',
+        overflowX: 'hidden',
+        height: 'calc(100vh - 12px)',
         position: 'fixed',
         top: 6,
         left: 6,
-        zIndex: 100,
+        zIndex: 1000,
         backgroundColor: '#fff',
         borderRadius: '16px',
-        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
+        boxShadow: '0 8px 16px rgba(0, 0, 0, 0.08)',
+        transition: 'all 0.2s cubic-bezier(0.2, 0, 0, 1)',
       }}
       theme="light"
     >
       <div
         style={{
-          height: '100px',
+          height: '76px',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           borderBottom: '1px solid #f0f0f0',
           backgroundColor: '#fff',
+          position: 'sticky',
+          top: 0,
+          zIndex: 10,
           flexShrink: 0,
+          padding: '0 12px',
         }}
       >
         <img
           src={logoIcon}
-          alt="Logo"
+          alt="Delta Marine Backoffice"
           style={{
-            height: collapsed ? '20px' : '50px',
-            width: 'auto',
+            height: collapsed ? '26px' : '44px',
+            maxWidth: '100%',
             objectFit: 'contain',
             transition: 'all 0.2s',
           }}
         />
       </div>
       <div style={{ flex: 1, overflowY: 'auto' }}>
-        <Menu
-          items={styledItems}
-          mode="inline"
-          theme="light"
-          defaultOpenKeys={defaultOpenMenu}
-          selectedKeys={[currentPath]}
-          style={{
-            width: '100%',
-            borderInlineEnd: 'none',
-            paddingInline: '10px',
-            borderRadius: '10px',
-          }}
-        />
+        {filteredItems.length === 0 ? (
+          <div style={{ padding: '28px 14px', textAlign: 'center' }}>
+            <div style={{ fontSize: 26, marginBottom: 8 }}>🔒</div>
+            <div style={{ fontSize: 13, fontWeight: 700, color: '#262626', marginBottom: 4 }}>
+              Akses Belum Diberikan
+            </div>
+            <div style={{ fontSize: 11, color: '#8c8c8c', lineHeight: 1.5 }}>
+              Akun Anda belum memiliki Role Group. Silakan hubungi Administrator untuk mengatur hak akses menu.
+            </div>
+          </div>
+        ) : (
+          <Menu
+            items={styledItems}
+            mode="inline"
+            theme="light"
+            defaultOpenKeys={defaultOpenMenu}
+            selectedKeys={[currentPath]}
+            style={{
+              width: '100%',
+              borderInlineEnd: 'none',
+              paddingInline: '10px',
+              borderRadius: '10px',
+            }}
+          />
+        )}
       </div>
     </Sider>
   );
@@ -364,7 +410,21 @@ function MobileSidebar() {
   const [visible, setVisible] = useState(false);
   const location = useLocation();
   const currentAdmin = useSelector(selectCurrentAdmin);
+  const [dynamicCodes, setDynamicCodes] = useState(currentAdmin?.allowed_menu_codes || null);
   const translate = useLanguage();
+
+  useEffect(() => {
+    if (currentAdmin?.username && !currentAdmin?.allowed_menu_codes) {
+      fetch(`${API_BASE_URL}employees/permissions?username=${currentAdmin.username}`)
+        .then((res) => res.json())
+        .then((data) => {
+          if (data.success && data.result?.allowed_menu_codes) {
+            setDynamicCodes(data.result.allowed_menu_codes);
+          }
+        })
+        .catch((err) => console.error('Failed to fetch user permissions:', err));
+    }
+  }, [currentAdmin?.username]);
 
   const [currentPath, setCurrentPath] = useState(
     location.pathname === '/' ? 'dashboard' : location.pathname.slice(1)
@@ -394,7 +454,7 @@ function MobileSidebar() {
   const onClose = () => setVisible(false);
 
   const rawItems = getMenuItems(translate);
-  const filteredItems = filterMenuByRole(rawItems, currentAdmin?.username);
+  const filteredItems = filterMenuByRole(rawItems, currentAdmin, dynamicCodes);
   const styledItems = applyMenuStyles(filteredItems);
   const defaultOpenMenu = rawItems
     .filter((item) => item.children)
@@ -420,18 +480,30 @@ function MobileSidebar() {
       bodyStyle={{ padding: '8px 4px 24px', overflowY: 'auto' }}
       headerStyle={{ padding: '14px 16px', borderBottom: '1px solid #f0f0f0' }}
     >
-      <Menu
-        items={styledItems}
-        mode="inline"
-        theme="light"
-        defaultOpenKeys={defaultOpenMenu}
-        selectedKeys={[currentPath]}
-        onClick={onClose}
-        style={{
-          width: '100%',
-          borderInlineEnd: 'none',
-        }}
-      />
+      {filteredItems.length === 0 ? (
+        <div style={{ padding: '32px 16px', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 10 }}>🔒</div>
+          <div style={{ fontSize: 14, fontWeight: 700, color: '#262626', marginBottom: 6 }}>
+            Akses Belum Diberikan
+          </div>
+          <div style={{ fontSize: 12, color: '#8c8c8c', lineHeight: 1.5 }}>
+            Akun Anda belum memiliki Role Group. Silakan hubungi Administrator untuk mengatur hak akses menu.
+          </div>
+        </div>
+      ) : (
+        <Menu
+          items={styledItems}
+          mode="inline"
+          theme="light"
+          defaultOpenKeys={defaultOpenMenu}
+          selectedKeys={[currentPath]}
+          onClick={onClose}
+          style={{
+            width: '100%',
+            borderInlineEnd: 'none',
+          }}
+        />
+      )}
     </Drawer>
   );
 }

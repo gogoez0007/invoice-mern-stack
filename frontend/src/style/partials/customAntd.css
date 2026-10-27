@@ -152,6 +152,13 @@ h6 {
   .ant-descriptions-item-label, .ant-descriptions-item-content {
     padding: 8px 10px !important;
   }
+  .ant-page-header {
+    position: sticky !important;
+    top: 56px !important;
+    z-index: 890 !important;
+    background-color: #ffffff !important;
+    border-bottom: 1px solid #f0f0f0 !important;
+  }
 }
 
 @media (prefers-reduced-motion: no-preference) {

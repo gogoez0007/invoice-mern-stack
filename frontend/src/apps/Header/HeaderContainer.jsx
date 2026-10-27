@@ -49,8 +49,14 @@ export default function HeaderContent() {
     );
   };
 
-  const DropdownMenu = ({ text }) => {
-    return <span style={{}}>{text}</span>;
+  const handleMenuClick = ({ key }) => {
+    if (key === 'logout') {
+      navigate('/logout');
+    } else if (key === 'settingProfile') {
+      navigate('/profile');
+    } else if (key === 'settingApp') {
+      navigate('/settings');
+    }
   };
 
   const items = [
@@ -64,45 +70,40 @@ export default function HeaderContent() {
     {
       icon: <UserOutlined />,
       key: 'settingProfile',
-      label: (
-        <Link to={'/profile'}>
-          <DropdownMenu text={translate('profile_settings')} />
-        </Link>
-      ),
+      label: translate('profile_settings'),
     },
     {
       icon: <ToolOutlined />,
       key: 'settingApp',
-      label: <Link to={'/settings'}>{translate('app_settings')}</Link>,
+      label: translate('app_settings'),
     },
-
     {
       type: 'divider',
     },
-
     {
       icon: <LogoutOutlined />,
       key: 'logout',
-      label: <Link to={'/logout'}>{translate('logout')}</Link>,
+      label: translate('logout'),
     },
   ];
 
   return (
     <Header
       style={{
-        padding: isMobile ? '0 14px' : '20px',
+        padding: isMobile ? '0 14px' : '0 32px',
         background: '#ffffff',
         display: 'flex',
         flexDirection: 'row',
         justifyContent: isMobile ? 'space-between' : 'flex-end',
         alignItems: 'center',
         gap: '12px',
-        height: isMobile ? 56 : 'auto',
-        lineHeight: isMobile ? '56px' : 'normal',
-        position: isMobile ? 'sticky' : 'static',
+        height: isMobile ? 56 : 64,
+        lineHeight: isMobile ? '56px' : '64px',
+        position: 'sticky',
         top: 0,
-        zIndex: 999,
-        boxShadow: isMobile ? '0 2px 8px rgba(0, 0, 0, 0.08)' : 'none',
+        zIndex: 900,
+        borderBottom: '1px solid #f0f0f0',
+        boxShadow: isMobile ? '0 2px 8px rgba(0, 0, 0, 0.08)' : '0 1px 3px rgba(0, 0, 0, 0.02)',
       }}
     >
       {isMobile ? (
@@ -141,6 +142,7 @@ export default function HeaderContent() {
           <Dropdown
             menu={{
               items,
+              onClick: handleMenuClick,
             }}
             trigger={['click']}
             placement="bottomRight"
@@ -164,6 +166,7 @@ export default function HeaderContent() {
         <Dropdown
           menu={{
             items,
+            onClick: handleMenuClick,
           }}
           trigger={['click']}
           placement="bottomRight"

@@ -180,7 +180,17 @@ export default function DataTable({ config, extra = [] }) {
   return (
     <div style={{ width: '100%', overflowX: 'hidden' }}>
       {isMobile ? (
-        <div style={{ marginBottom: 16 }}>
+        <div
+          style={{
+            position: 'sticky',
+            top: 56,
+            zIndex: 890,
+            backgroundColor: '#ffffff',
+            padding: '10px 0 12px',
+            marginBottom: 16,
+            borderBottom: '1px solid #f0f0f0',
+          }}
+        >
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
               <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => window.history.back()} />

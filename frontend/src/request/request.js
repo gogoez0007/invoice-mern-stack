@@ -19,10 +19,33 @@ function includeToken() {
   axios.defaults.withCredentials = true;
   const auth = storePersist.get('auth');
 
-  if (auth) {
-    axios.defaults.headers.common['Authorization'] = `Bearer ${auth.current.token}`;
+  if (auth && auth.current) {
+    if (auth.current.token) {
+      axios.defaults.headers.common['Authorization'] = `Bearer ${auth.current.token}`;
+    }
+    const username = auth.current.username || auth.current.name;
+    if (username) {
+      axios.defaults.headers.common['x-auth-user'] = username;
+    }
   }
 }
+
+// Global interceptor to guarantee headers on all axios requests
+axios.interceptors.request.use((config) => {
+  try {
+    const auth = storePersist.get('auth');
+    if (auth && auth.current) {
+      if (auth.current.token && !config.headers['Authorization']) {
+        config.headers['Authorization'] = `Bearer ${auth.current.token}`;
+      }
+      const username = auth.current.username || auth.current.name;
+      if (username && !config.headers['x-auth-user']) {
+        config.headers['x-auth-user'] = username;
+      }
+    }
+  } catch (_) {}
+  return config;
+});
 
 const request = {
   create: async ({ entity, jsonData }) => {

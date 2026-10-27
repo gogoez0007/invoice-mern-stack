@@ -9,19 +9,29 @@ import PageLoader from '@/components/PageLoader';
 const Logout = () => {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  function asyncLogout() {
-    dispatch(logoutAction());
-  }
 
   useLayoutEffect(() => {
     dispatch(crud.resetState());
     dispatch(erp.resetState());
-  }, []);
+
+    window.localStorage.removeItem('auth');
+    window.localStorage.removeItem('settings');
+    window.localStorage.removeItem('isLogout');
+    window.localStorage.removeItem('x-auth-token');
+    window.sessionStorage.clear();
+  }, [dispatch]);
 
   useEffect(() => {
-    asyncLogout();
-    navigate('/login');
-  }, []);
+    const doLogout = async () => {
+      try {
+        await dispatch(logoutAction());
+      } finally {
+        window.location.replace('/login');
+      }
+    };
+
+    doLogout();
+  }, [dispatch]);
 
   return <PageLoader />;
 };

@@ -27,12 +27,12 @@ import axios from "axios";
 import dayjs from "dayjs";
 import { selectCurrentAdmin } from '@/redux/auth/selectors';
 import { useSelector } from 'react-redux';
+import useResponsive from '@/hooks/useResponsive';
 
 const { Title, Text } = Typography;
 
 
-// SESUAIKAN: endpoint backend kamu yang balikin array seperti contoh
-const AGREEMENT_API_URL = "http://mitra.delmargroup.id:1087/api/agreements";
+const AGREEMENT_API_URL = "https://apimitra.delmargroup.co.id/api/agreements";
 // URL portal mitra
 const AGREEMENT_PORTAL_URL = "https://mitra.delmargroup.co.id";
 
@@ -66,6 +66,7 @@ function openAgreementPortal(row) {
 }
 
 export default function AgreementIndex() {
+    const { isMobile } = useResponsive();
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     const [rows, setRows] = useState([]);
@@ -286,6 +287,9 @@ export default function AgreementIndex() {
             <Card
                 className="shadow-sm"
                 style={{
+                    position: isMobile ? "sticky" : "static",
+                    top: isMobile ? 56 : undefined,
+                    zIndex: isMobile ? 890 : undefined,
                     marginBottom: 16,
                     borderRadius: 12,
                     background: "linear-gradient(135deg, #4F46E5 0%, #06B6D4 100%)",
