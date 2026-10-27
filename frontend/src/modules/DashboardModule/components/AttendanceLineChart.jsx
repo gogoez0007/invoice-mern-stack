@@ -50,13 +50,13 @@ export default function AttendanceLineChart({ title }) {
       </h3>
 
       {/* Filter Bulan & Tahun */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 20 }}>
-        <Select value={month} onChange={(value) => { setMonth(value); fetchData(value, year); }} style={{ width: 120 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 16, flexWrap: "wrap" }}>
+        <Select value={month} onChange={(value) => { setMonth(value); fetchData(value, year); }} style={{ width: 130 }}>
           {Array.from({ length: 12 }, (_, i) => (
             <Option key={i + 1} value={i + 1}>{dayjs().month(i).format("MMMM")}</Option>
           ))}
         </Select>
-        <Select value={year} onChange={(value) => { setYear(value); fetchData(month, value); }} style={{ width: 120 }}>
+        <Select value={year} onChange={(value) => { setYear(value); fetchData(month, value); }} style={{ width: 110 }}>
           {Array.from({ length: 5 }, (_, i) => (
             <Option key={year - i} value={year - i}>{year - i}</Option>
           ))}
@@ -64,11 +64,12 @@ export default function AttendanceLineChart({ title }) {
       </div>
 
       {/* Checkbox untuk memilih garis */}
-      <div style={{ textAlign: "center", marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "center", marginBottom: 16 }}>
         <Checkbox.Group 
           options={lineOptions.map(opt => ({ label: opt.label, value: opt.key }))}
           value={selectedLines}
           onChange={setSelectedLines}
+          style={{ display: "flex", flexWrap: "wrap", justifyContent: "center", gap: 8 }}
         />
       </div>
 

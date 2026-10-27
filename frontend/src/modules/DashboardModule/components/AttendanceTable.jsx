@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from "react";
+import { useState, useEffect, useMemo, memo } from "react";
 import {
   Table,
   DatePicker,
@@ -15,6 +15,9 @@ import {
   Badge,
   Card,
   Empty,
+  Grid,
+  Segmented,
+  Pagination,
 } from "antd";
 import {
   PoweroffOutlined,
@@ -32,8 +35,333 @@ import storePersist from "@/redux/storePersist";
 
 dayjs.locale("id");
 
+const EmployeeAttendanceCard = memo(function EmployeeAttendanceCard({
+  record,
+  daysInMonth,
+  date,
+  holidayIndex,
+  handleToggleActive,
+  togglingId,
+  isLeaveCell,
+  hasHolidayCode,
+  getBracketCodes,
+}) {
+  const stats = useMemo(() => {
+    let hadir = 0;
+    let telat = 0;
+    let cuti = 0;
+    let offResmi = 0;
+
+    for (let i = 1; i <= daysInMonth; i++) {
+      const val = record[`day_${i}`];
+      const hol = holidayIndex[i];
+      const holidayDay = !!hol?.isHoliday || hasHolidayCode(val);
+      const leave = isLeaveCell(val);
+      const bracketCodes = getBracketCodes(val);
+      const isBackendOff = bracketCodes.includes("OFF");
+
+      if (isBackendOff) {
+        offResmi++;
+      } else if (leave) {
+        cuti++;
+      } else if (val && val !== "-" && !holidayDay) {
+        hadir++;
+        const timeMatch = /^(\d{1,2}):(\d{2})/.exec(String(val).trim());
+        if (timeMatch) {
+          const h = parseInt(timeMatch[1], 10);
+          const m = parseInt(timeMatch[2], 10);
+          if (h > 8 || (h === 8 && m > 0)) {
+            telat++;
+          }
+        }
+      }
+    }
+    return { hadir, telat, cuti, offResmi };
+  }, [record, daysInMonth, holidayIndex, hasHolidayCode, isLeaveCell, getBracketCodes]);
+
+  return (
+    <Card
+      key={record.no}
+      size="small"
+      style={{
+        borderRadius: 14,
+        marginBottom: 12,
+        boxShadow: "0 2px 10px rgba(0,0,0,0.05)",
+        border: "1px solid #ebebeb",
+        background: "#ffffff",
+      }}
+      bodyStyle={{ padding: "12px 14px" }}
+    >
+      {/* Header Info */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 8 }}>
+        <div style={{ flex: 1, paddingRight: 8 }}>
+          <div style={{ fontSize: 15, fontWeight: 700, color: "#1f1f1f", lineHeight: 1.2 }}>
+            <span style={{ color: "#8c8c8c", marginRight: 4 }}>{record.no}.</span>
+            {record.name}
+          </div>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: 6, marginTop: 6 }}>
+            <Tag color="cyan" style={{ borderRadius: 6, margin: 0, fontWeight: 600 }}>
+              {record.entitas}
+            </Tag>
+            <Tag color="geekblue" style={{ borderRadius: 6, margin: 0 }}>
+              {record.position}
+            </Tag>
+            {record.department && record.department !== "-" && (
+              <Tag color="default" style={{ borderRadius: 6, margin: 0 }}>
+                {record.department}
+              </Tag>
+            )}
+          </div>
+        </div>
+
+        <Popconfirm
+          title="Nonaktifkan Karyawan?"
+          description={
+            <div style={{ maxWidth: 220 }}>
+              Yakin ingin menonaktifkan <b>{record.name}</b>?
+            </div>
+          }
+          onConfirm={() => handleToggleActive(record, false)}
+          okText="Ya"
+          cancelText="Batal"
+          okButtonProps={{ danger: true }}
+        >
+          <Tooltip title="Nonaktifkan karyawan">
+            <Button
+              size="small"
+              danger
+              type="primary"
+              icon={<PoweroffOutlined />}
+              loading={togglingId === (record.id || record.no)}
+              style={{
+                borderRadius: 6,
+                fontSize: 11,
+                fontWeight: 600,
+                display: "inline-flex",
+                alignItems: "center",
+                gap: 4,
+                boxShadow: "0 2px 6px rgba(255, 77, 79, 0.25)",
+              }}
+            >
+              Nonaktifkan
+            </Button>
+          </Tooltip>
+        </Popconfirm>
+      </div>
+
+      {/* Monthly Summary Badges: Hanya tampilkan data aktual & valid tanpa estimasi alpa/off */}
+      <div
+        style={{
+          display: "flex",
+          gap: 8,
+          backgroundColor: "#f8faff",
+          border: "1px solid #eef2f8",
+          padding: "6px 10px",
+          borderRadius: 8,
+          marginBottom: 10,
+          flexWrap: "wrap",
+          alignItems: "center",
+        }}
+      >
+        <span style={{ fontSize: 11, color: "#389e0d", fontWeight: 600 }}>
+          🟢 Hadir: <b>{stats.hadir} Hari</b>
+        </span>
+        <span style={{ fontSize: 11, color: stats.telat > 0 ? "#d46b08" : "#8c8c8c", fontWeight: 600 }}>
+          🟠 Telat: <b>{stats.telat}</b>
+        </span>
+        {stats.offResmi > 0 && (
+          <span style={{ fontSize: 11, color: "#1d39c4", fontWeight: 600 }}>
+            🔵 Off Resmi: <b>{stats.offResmi}</b>
+          </span>
+        )}
+        {stats.cuti > 0 && (
+          <span style={{ fontSize: 11, color: "#d48806", fontWeight: 600 }}>
+            🟡 Izin/Cuti: <b>{stats.cuti}</b>
+          </span>
+        )}
+      </div>
+
+      {/* Horizontal Day-by-Day Strip */}
+      <div>
+        <div style={{ fontSize: 11, color: "#8c8c8c", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
+          <span>📅 Riwayat Presensi (Geser ke kanan ➜)</span>
+          <span>{date.format("MMMM YYYY")}</span>
+        </div>
+        <div
+          style={{
+            display: "flex",
+            gap: 6,
+            overflowX: "auto",
+            paddingBottom: 6,
+            WebkitOverflowScrolling: "touch",
+          }}
+        >
+          {Array.from({ length: daysInMonth }, (_, idx) => {
+            const dayNum = idx + 1;
+            const d = date.date(dayNum);
+            const raw = record[`day_${dayNum}`];
+            const isSunday = d.day() === 0;
+            const isSaturday = d.day() === 6;
+            const isWeekend = isSunday || isSaturday;
+            const hol = holidayIndex[dayNum];
+            const holidayDay = !!hol?.isHoliday || hasHolidayCode(raw);
+            const leave = isLeaveCell(raw);
+            const bracketCodes = getBracketCodes(raw);
+            const isBackendOff = bracketCodes.includes("OFF");
+            const isToday = dayjs().isSame(d, "day");
+            const isFuture = d.isAfter(dayjs(), "day");
+
+            let bg = isWeekend ? "#fafafa" : "#ffffff";
+            let color = "#8c8c8c";
+            let borderColor = isToday ? "#1677ff" : (isWeekend ? "#f0f0f0" : "#e8e8e8");
+            let line1 = "-";
+            let line2 = "";
+
+            if (isBackendOff) {
+              bg = "#f0f5ff";
+              color = "#1d39c4";
+              borderColor = "#d6e4ff";
+              line1 = "Off";
+            } else if (leave) {
+              bg = "#fffbe6";
+              color = "#d48806";
+              borderColor = "#ffe58f";
+              const codes = bracketCodes.filter((c) => c !== "LN" && c !== "CB");
+              line1 = codes.join("+") || "Izin";
+            } else if (holidayDay) {
+              bg = "#f6ffed";
+              color = "#135200";
+              borderColor = "#b7eb8f";
+              line1 = hol?.codes?.join("+") || "Libur";
+            } else if (raw && raw !== "-") {
+              const parts = String(raw).trim().split(/\s+/);
+              const inTime = parts[0] ? parts[0].slice(0, 5) : "";
+              const outTime = parts[1] ? parts[1].slice(0, 5) : "";
+
+              let isLate = false;
+              const timeMatch = /^(\d{1,2}):(\d{2})/.exec(inTime);
+              if (timeMatch) {
+                const h = parseInt(timeMatch[1], 10);
+                const m = parseInt(timeMatch[2], 10);
+                isLate = h > 8 || (h === 8 && m > 0);
+              }
+              bg = isLate ? "#fff7e6" : "#e6f7ff";
+              color = isLate ? "#d46b08" : "#0958d9";
+              borderColor = isLate ? "#ffd591" : "#91caff";
+              line1 = inTime || raw;
+              line2 = outTime;
+            } else {
+              // Identik dengan tabel desktop: jika kosong / weekend biasa / belum berjalan, tampilkan "-"
+              line1 = "-";
+              color = isFuture ? "#bfbfbf" : "#8c8c8c";
+            }
+
+            const titleTooltip = `${d.format("dddd, D MMMM YYYY")}\n${
+              raw && raw !== "-"
+                ? `Presensi: ${raw}`
+                : isBackendOff
+                ? `Jadwal Off Resmi`
+                : leave
+                ? `Izin/Cuti: ${bracketCodes.join("+") || raw}`
+                : holidayDay
+                ? `Libur: ${hol?.names?.join(", ") || "Libur Nasional"}`
+                : isFuture
+                ? `Belum Berjalan`
+                : isSunday
+                ? `Hari Minggu (-)`
+                : isSaturday
+                ? `Hari Sabtu (-)`
+                : `Tidak Ada Presensi (-)`
+            }`;
+
+            return (
+              <div
+                key={dayNum}
+                title={titleTooltip}
+                style={{
+                  flex: "0 0 54px",
+                  minWidth: 54,
+                  display: "flex",
+                  flexDirection: "column",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  padding: "6px 2px",
+                  borderRadius: 8,
+                  backgroundColor: bg,
+                  border: isToday ? "2px solid #1677ff" : `1px solid ${borderColor}`,
+                  boxShadow: isToday ? "0 2px 6px rgba(22,119,255,0.2)" : "none",
+                  cursor: "pointer",
+                  userSelect: "none",
+                }}
+              >
+                <span
+                  style={{
+                    fontSize: 10,
+                    fontWeight: 700,
+                    textTransform: "uppercase",
+                    color: isSunday ? "#cf1322" : (isSaturday ? "#0958d9" : "#8c8c8c"),
+                  }}
+                >
+                  {d.format("ddd")}
+                </span>
+                <span
+                  style={{
+                    fontSize: 13,
+                    fontWeight: 700,
+                    color: isToday ? "#1677ff" : (isSunday ? "#cf1322" : "#262626"),
+                    margin: "1px 0",
+                  }}
+                >
+                  {dayNum}
+                </span>
+                <div
+                  style={{
+                    display: "flex",
+                    flexDirection: "column",
+                    alignItems: "center",
+                    justifyContent: "center",
+                    minHeight: 20,
+                  }}
+                >
+                  <span
+                    style={{
+                      fontSize: 10,
+                      fontWeight: 700,
+                      color: color,
+                      lineHeight: 1.15,
+                    }}
+                  >
+                    {line1}
+                  </span>
+                  {line2 ? (
+                    <span
+                      style={{
+                        fontSize: 9,
+                        fontWeight: 600,
+                        color: color,
+                        lineHeight: 1.1,
+                        opacity: 0.85,
+                      }}
+                    >
+                      {line2}
+                    </span>
+                  ) : null}
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      </div>
+    </Card>
+  );
+});
+
 export default function AttendanceTable() {
+  const screens = Grid.useBreakpoint();
+  const isMobile = screens.xs || !screens.md;
+  const [mobileViewMode, setMobileViewMode] = useState("cards"); // "cards" | "table"
   const [rawData, setRawData] = useState([]);
+
   const [loading, setLoading] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
   const [activeTab, setActiveTab] = useState("active");
@@ -78,8 +406,20 @@ export default function AttendanceTable() {
 
   // filter state
   const [nameFilter, setNameFilter] = useState("");
+  const [searchInput, setSearchInput] = useState("");
   const [entitasFilter, setEntitasFilter] = useState(undefined);
   const [positionFilter, setPositionFilter] = useState(undefined);
+  const [cardPage, setCardPage] = useState(1);
+  const CARD_PAGE_SIZE = 10;
+
+  // Debounce search input agar tidak ada jeda / lag saat mengetik
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setNameFilter(searchInput.trim());
+      setCardPage(1);
+    }, 250);
+    return () => clearTimeout(timer);
+  }, [searchInput]);
 
   const daysInMonth = useMemo(() => date.daysInMonth(), [date]);
 
@@ -184,9 +524,11 @@ export default function AttendanceTable() {
   useEffect(() => {
     fetchData(date);
     // reset filter saat ganti bulan
+    setSearchInput("");
     setNameFilter("");
     setEntitasFilter(undefined);
     setPositionFilter(undefined);
+    setCardPage(1);
   }, [date]);
 
   // Handler untuk mengaktifkan / menonaktifkan status karyawan (Action ON/OFF)
@@ -273,10 +615,17 @@ export default function AttendanceTable() {
   }, [inactiveRows, nameFilter, entitasFilter, positionFilter]);
 
   const resetFilters = () => {
+    setSearchInput("");
     setNameFilter("");
     setEntitasFilter(undefined);
     setPositionFilter(undefined);
+    setCardPage(1);
   };
+
+  const pagedCards = useMemo(() => {
+    const start = (cardPage - 1) * CARD_PAGE_SIZE;
+    return filteredActiveData.slice(start, start + CARD_PAGE_SIZE);
+  }, [filteredActiveData, cardPage]);
 
   // ===== Helpers (wrap 2 kata per baris) =====
   const chunkWords = (text, chunkSize = 2) => {
@@ -363,9 +712,9 @@ export default function AttendanceTable() {
       title: "No",
       dataIndex: "no",
       key: "no",
-      width: 52,
+      width: isMobile ? 44 : 52,
       align: "center",
-      fixed: "left",
+      fixed: isMobile ? undefined : "left",
       onHeaderCell: () => ({
         style: { background: "linear-gradient(180deg,#e6f4ff,#ffffff)", fontWeight: 700 },
       }),
@@ -373,9 +722,9 @@ export default function AttendanceTable() {
     {
       title: "Aksi",
       key: "action_off",
-      width: 110,
+      width: isMobile ? 52 : 110,
       align: "center",
-      fixed: "left",
+      fixed: isMobile ? undefined : "left",
       onHeaderCell: () => ({
         style: { background: "linear-gradient(180deg,#e6f4ff,#ffffff)", fontWeight: 700 },
       }),
@@ -406,7 +755,7 @@ export default function AttendanceTable() {
                 borderRadius: 6,
                 fontSize: 11,
                 fontWeight: 600,
-                padding: "0 8px",
+                padding: isMobile ? "0 6px" : "0 8px",
                 height: 25,
                 display: "inline-flex",
                 alignItems: "center",
@@ -414,7 +763,7 @@ export default function AttendanceTable() {
                 boxShadow: "0 2px 6px rgba(255, 77, 79, 0.25)",
               }}
             >
-              Nonaktifkan
+              {!isMobile && "Nonaktifkan"}
             </Button>
           </Tooltip>
         </Popconfirm>
@@ -424,7 +773,7 @@ export default function AttendanceTable() {
       title: "Nama",
       dataIndex: "name",
       key: "name",
-      width: 140,
+      width: isMobile ? 120 : 140,
       fixed: "left",
       onHeaderCell: () => ({
         style: { background: "linear-gradient(180deg,#e6f4ff,#ffffff)", fontWeight: 700 },
@@ -444,8 +793,8 @@ export default function AttendanceTable() {
       title: "Entitas",
       dataIndex: "entitas",
       key: "entitas",
-      width: 120,
-      fixed: "left",
+      width: isMobile ? 85 : 120,
+      fixed: isMobile ? undefined : "left",
       onHeaderCell: () => ({
         style: { background: "linear-gradient(180deg,#e6f4ff,#ffffff)", fontWeight: 700 },
       }),
@@ -464,8 +813,8 @@ export default function AttendanceTable() {
       title: "Posisi",
       dataIndex: "position",
       key: "position",
-      width: 120,
-      fixed: "left",
+      width: isMobile ? 100 : 120,
+      fixed: isMobile ? undefined : "left",
       onHeaderCell: () => ({
         style: { background: "linear-gradient(180deg,#e6f4ff,#ffffff)", fontWeight: 700 },
       }),
@@ -733,8 +1082,8 @@ export default function AttendanceTable() {
       <div
         style={{
           marginBottom: 14,
-          display: "grid",
-          gridTemplateColumns: "auto 1fr auto auto auto auto",
+          display: "flex",
+          flexWrap: "wrap",
           gap: 8,
           alignItems: "center",
         }}
@@ -744,17 +1093,15 @@ export default function AttendanceTable() {
           picker="month"
           value={date}
           onChange={(value) => value && setDate(value)}
-          style={{ width: 190 }}
+          style={{ width: screens.xs ? '100%' : 170 }}
         />
-
-        <div />
 
         <Input
           allowClear
           placeholder="Filter Nama…"
-          value={nameFilter}
-          onChange={(e) => setNameFilter(e.target.value)}
-          style={{ width: 190 }}
+          value={searchInput}
+          onChange={(e) => setSearchInput(e.target.value)}
+          style={{ width: screens.xs ? '100%' : 170 }}
         />
         <Select
           allowClear
@@ -762,9 +1109,12 @@ export default function AttendanceTable() {
           placeholder="Filter Entitas"
           optionFilterProp="label"
           value={entitasFilter}
-          onChange={(v) => setEntitasFilter(v)}
+          onChange={(v) => {
+            setEntitasFilter(v);
+            setCardPage(1);
+          }}
           options={entitasOptions}
-          style={{ width: 160 }}
+          style={{ width: screens.xs ? 'calc(50% - 4px)' : 150 }}
         />
         <Select
           allowClear
@@ -772,12 +1122,18 @@ export default function AttendanceTable() {
           placeholder="Filter Posisi"
           optionFilterProp="label"
           value={positionFilter}
-          onChange={(v) => setPositionFilter(v)}
+          onChange={(v) => {
+            setPositionFilter(v);
+            setCardPage(1);
+          }}
           options={positionOptions}
-          style={{ width: 160 }}
+          style={{ width: screens.xs ? 'calc(50% - 4px)' : 150 }}
         />
-        <Button onClick={resetFilters}>Reset</Button>
+        <Button onClick={resetFilters} style={{ width: screens.xs ? '100%' : 'auto' }}>
+          Reset
+        </Button>
       </div>
+
 
       {/* Tabs untuk 2 Kategori: Data Absen Aktif vs Karyawan Tidak Aktif */}
       <Tabs
@@ -832,9 +1188,71 @@ export default function AttendanceTable() {
                   </div>
                 </div>
 
-                {/* Tabel Absen Karyawan Aktif */}
+                {/* Mode Tampilan untuk Mobile */}
+                {isMobile && (
+                  <div style={{ marginBottom: 12 }}>
+                    <Segmented
+                      block
+                      value={mobileViewMode}
+                      onChange={setMobileViewMode}
+                      options={[
+                        { label: "📇 Kartu Absensi", value: "cards" },
+                        { label: "📊 Tabel Matriks", value: "table" },
+                      ]}
+                      style={{
+                        padding: 4,
+                        backgroundColor: "#f5f5f5",
+                        borderRadius: 10,
+                        fontWeight: 600,
+                      }}
+                    />
+                  </div>
+                )}
+
+                {/* Konten Data Absen */}
                 {loading ? (
                   <Spin style={{ display: "block", textAlign: "center", padding: "60px 0" }} />
+                ) : isMobile && mobileViewMode === "cards" ? (
+                  filteredActiveData.length === 0 ? (
+                    <Empty description="Tidak ada data absensi aktif" style={{ padding: "40px 0" }} />
+                  ) : (
+                    <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+                      <div style={{ fontSize: 12, color: "#8c8c8c", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                        <span>Menampilkan {pagedCards.length} dari {filteredActiveData.length} karyawan</span>
+                        {filteredActiveData.length > CARD_PAGE_SIZE && (
+                          <span>Halaman {cardPage} dari {Math.ceil(filteredActiveData.length / CARD_PAGE_SIZE)}</span>
+                        )}
+                      </div>
+
+                      {pagedCards.map((record) => (
+                        <EmployeeAttendanceCard
+                          key={record.id || record.no}
+                          record={record}
+                          daysInMonth={daysInMonth}
+                          date={date}
+                          holidayIndex={holidayIndex}
+                          handleToggleActive={handleToggleActive}
+                          togglingId={togglingId}
+                          isLeaveCell={isLeaveCell}
+                          hasHolidayCode={hasHolidayCode}
+                          getBracketCodes={getBracketCodes}
+                        />
+                      ))}
+
+                      {filteredActiveData.length > CARD_PAGE_SIZE && (
+                        <div style={{ display: "flex", justifyContent: "center", marginTop: 14, marginBottom: 8 }}>
+                          <Pagination
+                            current={cardPage}
+                            pageSize={CARD_PAGE_SIZE}
+                            total={filteredActiveData.length}
+                            onChange={(p) => setCardPage(p)}
+                            size="small"
+                            simple
+                          />
+                        </div>
+                      )}
+                    </div>
+                  )
                 ) : (
                   <Table
                     dataSource={filteredActiveData}
@@ -842,7 +1260,16 @@ export default function AttendanceTable() {
                     rowKey="no"
                     bordered
                     size="small"
-                    pagination={false}
+                    pagination={
+                      isMobile
+                        ? {
+                            pageSize: 15,
+                            size: "small",
+                            showSizeChanger: false,
+                            showTotal: (total) => `Total ${total} karyawan`,
+                          }
+                        : false
+                    }
                     sticky
                     scroll={{ x: "max-content", y: 520 }}
                     style={{
@@ -911,6 +1338,7 @@ export default function AttendanceTable() {
                     rowKey="no"
                     bordered
                     size="middle"
+                    scroll={{ x: "max-content" }}
                     pagination={{
                       pageSize: 10,
                       showSizeChanger: true,

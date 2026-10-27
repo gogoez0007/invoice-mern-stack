@@ -9,7 +9,8 @@ export default ({ mode }) => {
     const proxy_url =
     process.env.VITE_DEV_REMOTE === 'remote'
       ? process.env.VITE_BACKEND_SERVER
-      : (process.env.VITE_BACKEND_SERVER || 'http://192.168.120.12:5000/');
+      : (process.env.VITE_BACKEND_SERVER || 'http://192.168.161.111:5000/');
+
 
   return defineConfig({
     base: '/', // ✅ Ubah base di sini

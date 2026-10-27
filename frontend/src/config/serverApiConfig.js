@@ -1,15 +1,16 @@
 export const API_BASE_URL =
   import.meta.env.PROD || import.meta.env.VITE_DEV_REMOTE == 'remote'
     ? import.meta.env.VITE_BACKEND_SERVER + 'api/'
-    : (import.meta.env.VITE_BACKEND_SERVER ? import.meta.env.VITE_BACKEND_SERVER + 'api/' : 'http://192.168.120.12:5000/api/');
+    : (import.meta.env.VITE_BACKEND_SERVER ? import.meta.env.VITE_BACKEND_SERVER + 'api/' : 'http://192.168.161.111:5000/api/');
 export const BASE_URL =
   import.meta.env.PROD || import.meta.env.VITE_DEV_REMOTE
     ? import.meta.env.VITE_BACKEND_SERVER
-    : (import.meta.env.VITE_BACKEND_SERVER || 'http://192.168.120.12:5000/');
+    : (import.meta.env.VITE_BACKEND_SERVER || 'http://192.168.161.111:5000/');
 
 export const WEBSITE_URL = import.meta.env.PROD
   ? 'http://cloud.idurarapp.com/'
-  : (import.meta.env.VITE_BACKEND_SERVER || 'http://192.168.120.12:5000/');
+  : (import.meta.env.VITE_BACKEND_SERVER || 'http://192.168.161.111:5000/');
+
 export const DOWNLOAD_BASE_URL =
   import.meta.env.PROD || import.meta.env.VITE_DEV_REMOTE
     ? import.meta.env.VITE_BACKEND_SERVER + 'download/'

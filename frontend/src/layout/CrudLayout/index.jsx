@@ -7,6 +7,8 @@ import { Layout } from 'antd';
 import { useCrudContext } from '@/context/crud';
 import { useAppContext } from '@/context/appContext';
 
+import useResponsive from '@/hooks/useResponsive';
+
 const { Content } = Layout;
 
 const ContentBox = ({ children }) => {
@@ -14,6 +16,7 @@ const ContentBox = ({ children }) => {
   const { state: stateApp } = useAppContext();
   const { isPanelClose } = stateCrud;
   const { panel } = crudContextAction;
+  const { isMobile } = useResponsive();
 
   const [isSidePanelClose, setSidePanel] = useState(isPanelClose);
 
@@ -36,10 +39,11 @@ const ContentBox = ({ children }) => {
       style={{
         margin: 'auto',
         flex: 'none',
-        borderRadius: '16px',
+        borderRadius: isMobile ? '10px' : '16px',
         boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)',
         backgroundColor: '#fff',
-        padding: '20px',
+        padding: isMobile ? '12px 8px' : '20px',
+        width: '100%',
       }}
     >
       <div
@@ -56,19 +60,20 @@ const ContentBox = ({ children }) => {
       <style>{`
         @media (max-width: 1200px) {
           .responsive-content {
-            padding: 16px;
+            padding: 12px;
+            width: 100%;
           }
         }
         @media (max-width: 768px) {
           .responsive-content {
-            padding: 12px;
-            width: 80vw;
+            padding: 4px 0;
+            width: 100%;
           }
         }
         @media (max-width: 576px) {
           .responsive-content {
-            padding: 8px;
-            width: 80vw;
+            padding: 0;
+            width: 100%;
           }
         }
       `}</style>

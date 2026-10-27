@@ -55,14 +55,14 @@ export default function ErpCrmApp() {
         <Navigation />
 
         {isMobile ? (
-          <Layout style={{ marginLeft: 0 }}>
+          <Layout style={{ marginLeft: 0, minHeight: '100vh', width: '100%', overflowX: 'clip' }}>
             <HeaderContent />
             <Content
               style={{
-                margin: '40px auto 30px',
+                margin: '12px auto 28px',
                 overflow: 'initial',
                 width: '100%',
-                padding: '0 25px',
+                padding: '0 12px 64px',
                 maxWidth: 'none',
               }}
             >

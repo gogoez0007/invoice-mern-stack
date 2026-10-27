@@ -70,7 +70,7 @@ export default function AttendancePieChart({ title }) {
         {title}
       </h3>
 
-      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "center", gap: 10, marginBottom: 20, flexWrap: "wrap" }}>
         <DatePicker
           value={date}
           onChange={(value) => {
