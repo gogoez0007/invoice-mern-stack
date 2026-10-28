@@ -23,6 +23,7 @@ import { generate as uniqueId } from 'shortid';
 import { useNavigate } from 'react-router-dom';
 
 import { DOWNLOAD_BASE_URL } from '@/config/serverApiConfig';
+import useResponsive from '@/hooks/useResponsive';
 
 function AddNewItem({ config }) {
   const navigate = useNavigate();
@@ -40,6 +41,7 @@ function AddNewItem({ config }) {
 }
 
 export default function DataTable({ config, extra = [] }) {
+  const { isMobile } = useResponsive();
   const translate = useLanguage();
   let { entity, dataTableColumns, disableAdd = false, searchConfig } = config;
 
@@ -136,7 +138,6 @@ export default function DataTable({ config, extra = [] }) {
                 default:
                   break;
               }
-              // else if (key === '2')handleCloseTask
             },
           }}
           trigger={['click']}
@@ -153,7 +154,7 @@ export default function DataTable({ config, extra = [] }) {
   const dispatch = useDispatch();
 
   const handelDataTableLoad = (pagination) => {
-    const options = { page: pagination.current || 1, items: pagination.pageSize || 10 };
+    const options = { page: pagination?.current || 1, items: pagination?.pageSize || 10 };
     dispatch(erp.list({ entity, options }));
   };
 
@@ -177,39 +178,80 @@ export default function DataTable({ config, extra = [] }) {
   };
 
   return (
-    <>
-      <PageHeader
-        title={DATATABLE_TITLE}
-        ghost={true}
-        onBack={() => window.history.back()}
-        backIcon={<ArrowLeftOutlined />}
-        extra={[
-          <Input
-            key={`searchFilterDataTable}`}
-            onChange={filterTable}
-            placeholder={translate('search')}
-            allowClear
-          />,
-          <Button onClick={handelDataTableLoad} key={`${uniqueId()}`} icon={<RedoOutlined />}>
-            {translate('Refresh')}
-          </Button>,
+    <div style={{ width: '100%', overflowX: 'hidden' }}>
+      {isMobile ? (
+        <div
+          style={{
+            position: 'sticky',
+            top: 56,
+            zIndex: 890,
+            backgroundColor: '#ffffff',
+            padding: '10px 0 12px',
+            marginBottom: 16,
+            borderBottom: '1px solid #f0f0f0',
+          }}
+        >
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <Button type="text" icon={<ArrowLeftOutlined />} onClick={() => window.history.back()} />
+              <h3 style={{ margin: 0, fontSize: 18, fontWeight: 700 }}>{DATATABLE_TITLE}</h3>
+            </div>
+            {!disableAdd && <AddNewItem config={config} />}
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Input
+              key="searchFilterDataTable"
+              onChange={filterTable}
+              placeholder={translate('search')}
+              allowClear
+              style={{ width: '100%' }}
+            />
+            <Button
+              onClick={() => handelDataTableLoad(currentPagination)}
+              icon={<RedoOutlined />}
+              style={{ width: '100%' }}
+            >
+              {translate('Refresh')}
+            </Button>
+          </div>
+        </div>
+      ) : (
+        <PageHeader
+          title={DATATABLE_TITLE}
+          ghost={true}
+          onBack={() => window.history.back()}
+          backIcon={<ArrowLeftOutlined />}
+          extra={[
+            <Input
+              key={`searchFilterDataTable}`}
+              onChange={filterTable}
+              placeholder={translate('search')}
+              allowClear
+            />,
+            <Button onClick={() => handelDataTableLoad(currentPagination)} key={`${uniqueId()}`} icon={<RedoOutlined />}>
+              {translate('Refresh')}
+            </Button>,
 
-          !disableAdd && <AddNewItem config={config} key={`${uniqueId()}`} />,
-        ]}
-        style={{
-          padding: '20px 0px',
-        }}
-      ></PageHeader>
+            !disableAdd && <AddNewItem config={config} key={`${uniqueId()}`} />,
+          ]}
+          style={{
+            padding: '20px 0px',
+          }}
+        />
+      )}
 
-      <Table
-        columns={dataTableColumns}
-        rowKey={(item) => item.id}
-        dataSource={dataSource}
-        pagination={pagination}
-        loading={listIsLoading}
-        onChange={handelDataTableLoad}
-        scroll={{ x: true }}
-      />
-    </>
+      <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <Table
+          columns={dataTableColumns}
+          rowKey={(item) => item.id}
+          dataSource={dataSource}
+          pagination={pagination}
+          loading={listIsLoading}
+          onChange={handelDataTableLoad}
+          scroll={{ x: 'max-content' }}
+        />
+      </div>
+    </div>
   );
 }
+

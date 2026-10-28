@@ -185,107 +185,106 @@ export default function ReadItem({ config, selectedItem }) {
         }}
       >
         
-        <Row>
-          <Col className="gutter-row" span={5}>
-            <p style={{ textAlign: 'left' }}>{translate('Tambak')} : {currentErp.tambak}</p>
+        <Row gutter={[16, 8]}>
+          <Col className="gutter-row" xs={12} sm={8} md={6}>
+            <p style={{ textAlign: 'left', margin: 0 }}><strong>{translate('Tambak')} :</strong> {currentErp.tambak}</p>
           </Col>
-          <Col className="gutter-row" span={5}>
-            <p style={{ textAlign: 'left' }}>{translate('Staff')} : {currentErp.staff}</p>
+          <Col className="gutter-row" xs={12} sm={8} md={6}>
+            <p style={{ textAlign: 'left', margin: 0 }}><strong>{translate('Staff')} :</strong> {currentErp.staff}</p>
           </Col>
-          <Col className="gutter-row" span={5}>
-            <p style={{ textAlign: 'left' }}>{translate('Driver')} : {currentErp.driver}</p>
+          <Col className="gutter-row" xs={12} sm={8} md={6}>
+            <p style={{ textAlign: 'left', margin: 0 }}><strong>{translate('Driver')} :</strong> {currentErp.driver}</p>
           </Col>
-          <Col className="gutter-row" span={5}>
-            <p style={{ textAlign: 'left' }}>{translate('Nopol')} : {currentErp.nopol}</p>
+          <Col className="gutter-row" xs={12} sm={8} md={6}>
+            <p style={{ textAlign: 'left', margin: 0 }}><strong>{translate('Nopol')} :</strong> {currentErp.nopol}</p>
           </Col>
-        </Row>
-        <Row>
-          <Col className="gutter-row" span={5}>
-            <p style={{ textAlign: 'left' }}>{translate('Nama perusahaan')} : {currentErp.nama_perusahaan}</p>
+          <Col className="gutter-row" xs={12} sm={8} md={6}>
+            <p style={{ textAlign: 'left', margin: 0 }}><strong>{translate('Nama perusahaan')} :</strong> {currentErp.nama_perusahaan}</p>
           </Col>
-          <Col className="gutter-row" span={5}>
-            <p style={{ textAlign: 'left' }}>{translate('Petambak')} : {currentErp.petambak}</p>
+          <Col className="gutter-row" xs={12} sm={8} md={6}>
+            <p style={{ textAlign: 'left', margin: 0 }}><strong>{translate('Petambak')} :</strong> {currentErp.petambak}</p>
           </Col>
-          <Col className="gutter-row" span={5}>
-            <p style={{ textAlign: 'left' }}>{translate('Lokasi')} : {currentErp.lokasi}</p>
+          <Col className="gutter-row" xs={12} sm={8} md={6}>
+            <p style={{ textAlign: 'left', margin: 0 }}><strong>{translate('Lokasi')} :</strong> {currentErp.lokasi}</p>
           </Col>
         </Row>
 
       </PageHeader>
-      {/* <Divider dashed />
-      <Descriptions title={`Client : ${currentErp.client.name}`}>
-        <Descriptions.Item label={translate('Address')}>{client.address}</Descriptions.Item>
-        <Descriptions.Item label={translate('email')}>{client.email}</Descriptions.Item>
-        <Descriptions.Item label={translate('Phone')}>{client.phone}</Descriptions.Item>
-      </Descriptions>
-      <Divider /> */}
-      <Row gutter={[12, 0]}>
-        <Col className="gutter-row" span={4}>
-          <p>
-            <strong>{translate('Posisi')}</strong>
-          </p>
-        </Col>
-        <Col className="gutter-row" span={4}>
-          <p
+      
+      <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <div style={{ minWidth: 600 }}>
+          <Row gutter={[12, 0]}>
+            <Col className="gutter-row" span={4}>
+              <p>
+                <strong>{translate('Posisi')}</strong>
+              </p>
+            </Col>
+            <Col className="gutter-row" span={4}>
+              <p
+                style={{
+                  textAlign: 'right',
+                }}
+              >
+                <strong>{translate('Berat')}</strong>
+              </p>
+            </Col>
+            <Col className="gutter-row" span={4}>
+              <p
+                style={{
+                  textAlign: 'right',
+                }}
+              >
+                <strong>{translate('Size')}</strong>
+              </p>
+            </Col>
+            {/* Header Kualitas */}
+            <Col className="gutter-row" span={5}>
+              <p
+                style={{
+                  textAlign: 'right',
+                }}
+              >
+                <strong>{translate('Kualitas')}</strong>
+              </p>
+            </Col>
+            <Col className="gutter-row" span={5}>
+              <p
+                style={{
+                  textAlign: 'right',
+                }}
+              >
+                <strong>{translate('Tanggal Angkut')}</strong>
+              </p>
+            </Col>
+            <Divider />
+          </Row>
+          {itemslist.map((item) => (
+            <Item key={item.id} item={item} currentErp={currentErp}></Item>
+          ))}
+          <div
             style={{
+              width: '300px',
+              float: 'right',
               textAlign: 'right',
+              fontWeight: '700',
+              paddingRight: 12,
             }}
           >
-            <strong>{translate('Berat')}</strong>
-          </p>
-        </Col>
-        <Col className="gutter-row" span={4}>
-          <p
-            style={{
-              textAlign: 'right',
-            }}
-          >
-            <strong>{translate('Size')}</strong>
-          </p>
-        </Col>
-        {/* Header Kualitas */}
-        <Col className="gutter-row" span={5}>
-          <p
-            style={{
-              textAlign: 'right',
-            }}
-          >
-            <strong>{translate('Kualitas')}</strong>
-          </p>
-        </Col>
-        <Col className="gutter-row" span={5}>
-          <p
-            style={{
-              textAlign: 'right',
-            }}
-          >
-            <strong>{translate('Tanggal Angkut')}</strong>
-          </p>
-        </Col>
-        <Divider />
-      </Row>
-      {itemslist.map((item) => (
-        <Item key={item.id} item={item} currentErp={currentErp}></Item>
-      ))}
-      <div
-        style={{
-          width: '300px',
-          float: 'right',
-          textAlign: 'right',
-          fontWeight: '700',
-        }}
-      ><Row gutter={[12, -5]}>
-          <Col className="gutter-row" span={12}>
-            <p>{translate('Total')} :</p>
-          </Col>
+            <Row gutter={[12, -5]}>
+              <Col className="gutter-row" span={12}>
+                <p>{translate('Total')} :</p>
+              </Col>
 
-          <Col className="gutter-row" span={12}>
-            <p>
-              {formatNumber(totalBerat)} Kg
-            </p>
-          </Col>
-        </Row>
+              <Col className="gutter-row" span={12}>
+                <p>
+                  {formatNumber(totalBerat)} Kg
+                </p>
+              </Col>
+            </Row>
+          </div>
+        </div>
       </div>
+
     </>
   );
 }

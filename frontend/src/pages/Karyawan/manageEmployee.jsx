@@ -708,11 +708,11 @@ export default function UserOnboarding() {
                 style={{ marginBottom: 16, borderRadius: 16, background: "linear-gradient(135deg, #3b82f6 0%, #10b981 50%, #f97316 100%)", color: "#fff" }}
                 bodyStyle={{ padding: 18 }}
             >
-                <Space style={{ width: "100%", justifyContent: "space-between" }}>
-                    <Space>
-                        <IdcardOutlined />
+                <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", flexWrap: "wrap", gap: 10 }}>
+                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+                        <IdcardOutlined style={{ fontSize: 20 }} />
                         <Title level={4} style={{ margin: 0, color: "#fff" }}>User Onboarding — Data HR</Title>
-                    </Space>
+                    </div>
                     <Button
                         ghost icon={<ReloadOutlined />}
                         onClick={() => {
@@ -727,37 +727,35 @@ export default function UserOnboarding() {
                     >
                         Reset
                     </Button>
-                </Space>
+                </div>
             </Card>
 
             {/* Selector */}
             <Card style={{ borderRadius: 14, marginBottom: 12 }}>
-                <Space align="start" size={8} wrap>
-                    <div>
-                        <Text strong><UserOutlined /> Pilih Karyawan</Text>
-                        <div style={{ display: "flex", gap: 8, marginTop: 6 }}>
-                            <Select
-                                showSearch allowClear placeholder="Ketik untuk mencari…"
-                                value={userId}
-                                onChange={(v) => { setUserId(v || null); setActiveTab("general"); }}
-                                style={{ width: 360 }}
-                                filterOption={false}
-                                onSearch={onSearchEmp}
-                                onDropdownVisibleChange={(v) => setEmpOpen(v)}
-                                open={empOpen}
-                                onPopupScroll={onPopupScroll}
-                                options={empOptions}
-                                loading={empLoading}
-                            />
-                            <Tooltip title="Tambah karyawan baru (simpan dulu sebelum lanjut)">
-                                <Button type="primary" icon={<UserAddOutlined />} onClick={startAddEmployee}>
-                                    Tambah Karyawan
-                                </Button>
-                            </Tooltip>
-                            <Button onClick={() => fetchEmployees({ page: 1, q: searchText.trim() }, false)}>Refresh</Button>
-                        </div>
+                <div style={{ width: "100%" }}>
+                    <Text strong><UserOutlined /> Pilih Karyawan</Text>
+                    <div style={{ display: "flex", gap: 8, marginTop: 6, flexWrap: "wrap", alignItems: "center" }}>
+                        <Select
+                            showSearch allowClear placeholder="Ketik untuk mencari…"
+                            value={userId}
+                            onChange={(v) => { setUserId(v || null); setActiveTab("general"); }}
+                            style={{ flex: "1 1 240px", minWidth: 200, maxWidth: "100%" }}
+                            filterOption={false}
+                            onSearch={onSearchEmp}
+                            onDropdownVisibleChange={(v) => setEmpOpen(v)}
+                            open={empOpen}
+                            onPopupScroll={onPopupScroll}
+                            options={empOptions}
+                            loading={empLoading}
+                        />
+                        <Tooltip title="Tambah karyawan baru (simpan dulu sebelum lanjut)">
+                            <Button type="primary" icon={<UserAddOutlined />} onClick={startAddEmployee}>
+                                Tambah Karyawan
+                            </Button>
+                        </Tooltip>
+                        <Button onClick={() => fetchEmployees({ page: 1, q: searchText.trim() }, false)}>Refresh</Button>
                     </div>
-                </Space>
+                </div>
             </Card>
 
             {/* Tabs */}

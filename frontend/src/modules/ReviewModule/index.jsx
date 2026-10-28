@@ -233,7 +233,7 @@ const Review = () => {
         </Row>
       </Card>
 
-      <Row gutter={16} style={{ marginBottom: 24 }}>
+      <Row gutter={[16, 16]} style={{ marginBottom: 24 }}>
         {['Belum Review', 'Proses', 'Approved', 'Rejected'].map((status) => (
           <SummaryCard
             key={status}
@@ -252,7 +252,7 @@ const Review = () => {
             placeholder="Cari data..."
             value={searchName}
             onChange={(e) => setSearchName(e.target.value)}
-            style={{ width: 200 }}
+            style={{ width: 180 }}
             prefix={<SearchOutlined style={{ color: '#999' }} />}
           />
         }
@@ -270,6 +270,7 @@ const Review = () => {
             dataSource={filteredData}
             columns={columns}
             rowKey={(record, index) => record.id || `temp-id-${index}`}
+            scroll={{ x: 'max-content' }}
             pagination={{
               pageSize,
               current: currentPage,
@@ -278,6 +279,7 @@ const Review = () => {
           />
         )}
       </Card>
+
     </div>
   );
 };

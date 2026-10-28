@@ -179,7 +179,7 @@ export default function BongkarChart({ title }) {
       </h3>
 
       {/* Filter Tahun & Bulan */}
-      <div style={{ display: "flex", justifyContent: "center", gap: 20, marginBottom: 20 }}>
+      <div style={{ display: "flex", justifyContent: "center", alignItems: "center", flexWrap: "wrap", gap: 12, marginBottom: 20 }}>
         <DatePicker
           picker={groupBy === 'bulanan' ? "year" : "month"}
           value={year}
@@ -197,7 +197,7 @@ export default function BongkarChart({ title }) {
           </Select>
 
           {/* Tombol GroupBy */}
-          <div style={{ display: 'flex', gap: 8 }}>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
               {groupByOptions.map(option => (
                   <Button
                       key={option.value}
@@ -209,6 +209,7 @@ export default function BongkarChart({ title }) {
               ))}
           </div>
       </div>
+
 
       {isLoading ? (
         <div style={{ textAlign: "center" }}>

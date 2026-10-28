@@ -74,6 +74,7 @@ const Holidays = lazy(() => import('@/pages/Holidays'));
 const Agreements = lazy(() => import('@/pages/Agreements'));
 const DriverLoans = lazy(() => import('@/pages/DriversLoans'));
 const OffSchedules = lazy(() => import('@/pages/OffSchedules'));
+const RoleAccess = lazy(() => import('@/pages/RoleAccess'));
 
 let routes = {
   expense: [],
@@ -308,6 +309,10 @@ let routes = {
     {
       path: '/off_schedules',
       element: <OffSchedules />,
+    },
+    {
+      path: '/role-access',
+      element: <RoleAccess />,
     },
     {
       path: '*',

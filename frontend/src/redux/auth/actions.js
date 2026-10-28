@@ -106,33 +106,23 @@ export const resetPassword =
   };
 
 export const logout = () => async (dispatch) => {
+  // 1. Bersihkan seluruh session & cache lokal
+  window.localStorage.removeItem('auth');
+  window.localStorage.removeItem('settings');
+  window.localStorage.removeItem('isLogout');
+  window.localStorage.removeItem('x-auth-token');
+  window.sessionStorage.clear();
+
+  // 2. Dispatch state LOGOUT_SUCCESS ke Redux
   dispatch({
     type: actionTypes.LOGOUT_SUCCESS,
   });
-  const result = window.localStorage.getItem('auth');
-  const tmpAuth = JSON.parse(result);
-  const settings = window.localStorage.getItem('settings');
-  const tmpSettings = JSON.parse(settings);
-  window.localStorage.removeItem('auth');
-  window.localStorage.removeItem('settings');
-  window.localStorage.setItem('isLogout', JSON.stringify({ isLogout: true }));
-  const data = await authService.logout();
-  if (data.success === false) {
-    const auth_state = {
-      current: tmpAuth,
-      isLoggedIn: true,
-      isLoading: false,
-      isSuccess: true,
-    };
-    window.localStorage.setItem('auth', JSON.stringify(auth_state));
-    window.localStorage.setItem('settings', JSON.stringify(tmpSettings));
-    window.localStorage.removeItem('isLogout');
-    dispatch({
-      type: actionTypes.LOGOUT_FAILED,
-      payload: data.result,
-    });
-  } else {
-    // on lgout success
+
+  // 3. Best-effort panggil backend logout (tidak boleh batalkan logout jika gagal)
+  try {
+    await authService.logout();
+  } catch (_) {
+    // abaikan jika backend offline/404
   }
 };
 

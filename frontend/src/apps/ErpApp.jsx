@@ -26,9 +26,8 @@ import storePersist from '@/redux/storePersist';
 export default function ErpCrmApp() {
   const { Content } = Layout;
 
-  // const { state: stateApp, appContextAction } = useAppContext();
-  // // const { app } = appContextAction;
-  // const { isNavMenuClose, currentApp } = stateApp;
+  const { state: stateApp } = useAppContext();
+  const { isNavMenuClose } = stateApp;
 
   const { isMobile } = useResponsive();
 
@@ -51,18 +50,18 @@ export default function ErpCrmApp() {
 
   if (settingIsloaded)
     return (
-      <Layout hasSider>
+      <Layout hasSider style={{ minHeight: '100vh', background: '#f8fafc' }}>
         <Navigation />
 
         {isMobile ? (
-          <Layout style={{ marginLeft: 0 }}>
+          <Layout style={{ marginLeft: 0, minHeight: '100vh', width: '100%', background: '#f8fafc' }}>
             <HeaderContent />
             <Content
               style={{
-                margin: '40px auto 30px',
+                margin: '12px auto 28px',
                 overflow: 'initial',
                 width: '100%',
-                padding: '0 25px',
+                padding: '0 12px 64px',
                 maxWidth: 'none',
               }}
             >
@@ -71,15 +70,22 @@ export default function ErpCrmApp() {
             <FooterContent/>
           </Layout>
         ) : (
-          <Layout>
+          <Layout
+            style={{
+              marginLeft: isNavMenuClose ? 80 : 256,
+              minHeight: '100vh',
+              transition: 'margin-left 0.2s cubic-bezier(0.2, 0, 0, 1)',
+              background: '#f8fafc',
+            }}
+          >
             <HeaderContent />
             <Content
               style={{
-                margin: '40px auto 30px',
+                margin: '24px auto 30px',
                 overflow: 'initial',
                 width: '100%',
-                padding: '0 50px',
-                maxWidth: 1400,
+                padding: '0 32px',
+                maxWidth: 1440,
               }}
             >
               <AppRouter />

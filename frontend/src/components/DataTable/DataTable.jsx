@@ -25,6 +25,8 @@ import { useCrudContext } from '@/context/crud';
 import * as XLSX from 'xlsx';
 import { FileExcelOutlined } from '@ant-design/icons';
 
+import useResponsive from '@/hooks/useResponsive';
+
 function AddNewItem({ config }) {
   const { crudContextAction } = useCrudContext();
   const { collapsedBox, panel } = crudContextAction;
@@ -42,6 +44,7 @@ function AddNewItem({ config }) {
   );
 }
 export default function DataTable({ config, extra = [] }) {
+  const { isMobile } = useResponsive();
   let { entity, dataTableColumns, DATATABLE_TITLE, fields, searchConfig } = config;
   const { crudContextAction } = useCrudContext();
   const { panel, collapsedBox, modal, readBox, editBox, advancedBox } = crudContextAction;
@@ -206,52 +209,131 @@ export default function DataTable({ config, extra = [] }) {
 
   return (
     <>
-      <PageHeader
-        onBack={() => window.history.back()}
-        backIcon={<ArrowLeftOutlined />}
-        title={DATATABLE_TITLE}
-        ghost={false}
-        extra={[
-          <Input
-            key={`searchFilterDataTable}`}
-            onChange={filterTable}
-            placeholder={translate('search')}
-            allowClear
-          />,
-          <Button onClick={dispatcher} key={`${uniqueId()}`} icon={<RedoOutlined />}>
-            {translate('Refresh')}
-          </Button>,
-          <Button
-            onClick={exportToExcel}
-            key={`${uniqueId()}`}
-            icon={<FileExcelOutlined style={{ color: '#217346' }} />}
-            style={{ backgroundColor: '#d9f7be', borderColor: '#b7eb8f', color: '#217346' }}
+      {isMobile ? (
+        <div
+          style={{
+            position: 'sticky',
+            top: 56,
+            zIndex: 890,
+            backgroundColor: '#ffffff',
+            padding: '10px 0 12px',
+            marginBottom: 16,
+            borderBottom: '1px solid #f0f0f0',
+          }}
+        >
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              marginBottom: 12,
+              gap: 8,
+            }}
           >
-            Export to Excel
-          </Button>,
-          <AddNewItem key={`${uniqueId()}`} config={config} />,
-        ]}
-        style={{
-          padding: '20px 0px',
-        }}
-      ></PageHeader>
-      <Table
-        columns={dataTableColumns}
-        rowKey={(item) => item.id}
-        dataSource={dataSource}
-        pagination={pagination}
-        loading={listIsLoading}
-        onChange={handelDataTableLoad}
-        scroll={{ x: true }}
-        rowClassName={(_, index) => ''}
-        onRow={(_, index) => ({
-          style: {
-            backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#f0f5f5', // Biru muda & Kuning muda
-          },
-        })}
-      />
-
-
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+              <Button
+                type="text"
+                icon={<ArrowLeftOutlined />}
+                onClick={() => window.history.back()}
+                style={{ padding: '4px 8px' }}
+              />
+              <h2
+                style={{
+                  margin: 0,
+                  fontSize: 18,
+                  fontWeight: 700,
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                }}
+              >
+                {DATATABLE_TITLE}
+              </h2>
+            </div>
+            <AddNewItem config={config} />
+          </div>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            <Input
+              key="searchFilterDataTable"
+              onChange={filterTable}
+              placeholder={translate('search')}
+              allowClear
+              style={{ width: '100%', height: 38 }}
+            />
+            <div style={{ display: 'flex', gap: 8 }}>
+              <Button
+                onClick={dispatcher}
+                key={`${uniqueId()}`}
+                icon={<RedoOutlined />}
+                style={{ flex: 1, height: 38 }}
+              >
+                {translate('Refresh')}
+              </Button>
+              <Button
+                onClick={exportToExcel}
+                key={`${uniqueId()}`}
+                icon={<FileExcelOutlined style={{ color: '#217346' }} />}
+                style={{
+                  backgroundColor: '#d9f7be',
+                  borderColor: '#b7eb8f',
+                  color: '#217346',
+                  flex: 1,
+                  height: 38,
+                }}
+              >
+                Export
+              </Button>
+            </div>
+          </div>
+        </div>
+      ) : (
+        <PageHeader
+          onBack={() => window.history.back()}
+          backIcon={<ArrowLeftOutlined />}
+          title={DATATABLE_TITLE}
+          ghost={false}
+          extra={[
+            <Input
+              key={`searchFilterDataTable}`}
+              onChange={filterTable}
+              placeholder={translate('search')}
+              allowClear
+            />,
+            <Button onClick={dispatcher} key={`${uniqueId()}`} icon={<RedoOutlined />}>
+              {translate('Refresh')}
+            </Button>,
+            <Button
+              onClick={exportToExcel}
+              key={`${uniqueId()}`}
+              icon={<FileExcelOutlined style={{ color: '#217346' }} />}
+              style={{ backgroundColor: '#d9f7be', borderColor: '#b7eb8f', color: '#217346' }}
+            >
+              Export to Excel
+            </Button>,
+            <AddNewItem key={`${uniqueId()}`} config={config} />,
+          ]}
+          style={{
+            padding: '20px 0px',
+          }}
+        />
+      )}
+      <div style={{ width: '100%', overflowX: 'auto', WebkitOverflowScrolling: 'touch' }}>
+        <Table
+          columns={dataTableColumns}
+          rowKey={(item) => item.id}
+          dataSource={dataSource}
+          pagination={pagination}
+          loading={listIsLoading}
+          onChange={handelDataTableLoad}
+          scroll={{ x: 'max-content' }}
+          rowClassName={(_, index) => ''}
+          onRow={(_, index) => ({
+            style: {
+              backgroundColor: index % 2 === 0 ? '#f9f9f9' : '#f0f5f5',
+            },
+          })}
+        />
+      </div>
     </>
   );
 }

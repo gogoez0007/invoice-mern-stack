@@ -84,9 +84,9 @@ export default function SPBForm({
                 }}
                 bodyStyle={{ padding: 16 }}
             >
-                <Row justify="space-between" align="middle">
-                    <Col>
-                        <Space size={12} align="center">
+                <Row justify="space-between" align="middle" gutter={[12, 12]}>
+                    <Col xs={24} sm={16}>
+                        <Space size={12} align="center" wrap>
                             <Button
                                 ghost
                                 icon={<ArrowLeftOutlined />}
@@ -100,8 +100,8 @@ export default function SPBForm({
                             </Space>
                         </Space>
                     </Col>
-                    <Col>
-                        <Button type="primary" htmlType="submit" size="large">
+                    <Col xs={24} sm={8} style={{ textAlign: 'right' }}>
+                        <Button type="primary" htmlType="submit" size="large" block={false}>
                             {submitText}
                         </Button>
                     </Col>
@@ -194,8 +194,8 @@ export default function SPBForm({
                     {(fields, { remove }) => (
                         <>
                             {fields.map(({ key, name }) => (
-                                <Row key={key} gutter={12} style={{ marginBottom: 8 }}>
-                                    <Col span={14}>
+                                <Row key={key} gutter={12} style={{ marginBottom: 8 }} align="bottom">
+                                    <Col xs={24} sm={12} md={14}>
                                         <Form.Item
                                             name={[name, 'nama_barang']}
                                             label="Nama Barang"
@@ -204,7 +204,7 @@ export default function SPBForm({
                                             <Input placeholder="Nama barang" />
                                         </Form.Item>
                                     </Col>
-                                    <Col span={6}>
+                                    <Col xs={16} sm={8} md={6}>
                                         <Form.Item
                                             name={[name, 'harga_barang']}
                                             label="Harga"
@@ -219,9 +219,10 @@ export default function SPBForm({
                                             />
                                         </Form.Item>
                                     </Col>
-                                    <Col span={4} style={{ display: 'flex', alignItems: 'center' }}>
+                                    <Col xs={8} sm={4} md={4} style={{ display: 'flex', alignItems: 'center', marginBottom: 24 }}>
                                         <Button
                                             danger
+                                            block
                                             icon={<DeleteOutlined />}
                                             onClick={() => remove(name)}
                                         >
@@ -234,6 +235,7 @@ export default function SPBForm({
                     )}
                 </Form.List>
             </Card>
+
 
             {/* ===== STICKY ACTIONS ===== */}
             <div

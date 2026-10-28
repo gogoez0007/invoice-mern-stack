@@ -7,7 +7,9 @@ import {
   Col,
   Tag,
   Button,
+  Descriptions,
 } from 'antd';
+
 import { PageHeader } from '@ant-design/pro-layout';
 import {
   FileAddOutlined,
@@ -189,28 +191,17 @@ const ReadItemBongkar = ({ config, selectedItem }) => {
         ]}
         style={{ padding: '20px 0' }}
       >
-        <Row gutter={16} style={{ fontWeight: 'bold', background: '#f0f0f0', padding: '10px', borderBottom: '1px solid #ddd' }}>
-          <Col span={3}>{translate('Lokasi')}</Col>
-          <Col span={4}>{translate('Perusahaan')}</Col>
-          <Col span={2}>{translate('Petambak')}</Col>
-          <Col span={2}>{translate('Pabrik')}</Col>
-          <Col span={3}>{translate('Tanggal Bongkar')}</Col>
-          <Col span={2}>{translate('No Polisi')}</Col>
-          <Col span={2}>{translate('Staff')}</Col>
-          <Col span={2}>{translate('Potongan (%)')}</Col>
-          <Col span={2}>{translate('Subtotal (Nota)')}</Col>
-        </Row>
-        <Row gutter={16} style={{ padding: '10px' }}>
-          <Col span={3}>{currentErp.lokasi}</Col>
-          <Col span={4}>{currentErp.nama_perusahaan}</Col>
-          <Col span={2}>{currentErp.petambak}</Col>
-          <Col span={2}>{currentErp.nama_pabrik}</Col>
-          <Col span={3}>{currentErp.tanggal_bongkar}</Col>
-          <Col span={2}>{currentErp.nopol}</Col>
-          <Col span={2}>{currentErp.staff}</Col>
-          <Col span={2}>{formatNumber(currentErp.persen_potongan)}</Col>
-          <Col span={2}>{currentErp.sub_total > 0 ?formatNumber(currentErp.sub_total) : '-'} </Col>
-        </Row>
+        <Descriptions bordered size="small" column={{ xs: 1, sm: 2, md: 3, lg: 4 }} style={{ marginTop: 12 }}>
+          <Descriptions.Item label={translate('Lokasi')}>{currentErp.lokasi}</Descriptions.Item>
+          <Descriptions.Item label={translate('Perusahaan')}>{currentErp.nama_perusahaan}</Descriptions.Item>
+          <Descriptions.Item label={translate('Petambak')}>{currentErp.petambak}</Descriptions.Item>
+          <Descriptions.Item label={translate('Pabrik')}>{currentErp.nama_pabrik}</Descriptions.Item>
+          <Descriptions.Item label={translate('Tanggal Bongkar')}>{currentErp.tanggal_bongkar}</Descriptions.Item>
+          <Descriptions.Item label={translate('No Polisi')}>{currentErp.nopol}</Descriptions.Item>
+          <Descriptions.Item label={translate('Staff')}>{currentErp.staff}</Descriptions.Item>
+          <Descriptions.Item label={translate('Potongan (%)')}>{formatNumber(currentErp.persen_potongan)}%</Descriptions.Item>
+          <Descriptions.Item label={translate('Subtotal (Nota)')}>{currentErp.sub_total > 0 ? formatNumber(currentErp.sub_total) : '-'}</Descriptions.Item>
+        </Descriptions>
 
       </PageHeader>
       <div style={{ padding: '0 16px' }}>
@@ -259,9 +250,11 @@ const ReadItemBongkar = ({ config, selectedItem }) => {
                     columns={columns}
                     rowKey="id"
                     pagination={false}
+                    scroll={{ x: 'max-content' }}
                   />
                 </Col>
               </Row>
+
 
               {/* Footer Card untuk Total  Bongkar */}
               <div style={{
