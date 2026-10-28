@@ -72,7 +72,7 @@ export default function ErpCrmApp() {
         ) : (
           <Layout
             style={{
-              marginLeft: isNavMenuClose ? 80 : 256,
+              marginLeft: isNavMenuClose ? 80 : 266,
               minHeight: '100vh',
               transition: 'margin-left 0.2s cubic-bezier(0.2, 0, 0, 1)',
               background: '#f8fafc',

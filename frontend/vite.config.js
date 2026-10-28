@@ -29,6 +29,37 @@ export default ({ mode }) => {
           changeOrigin: true,
           secure: false,
         },
+        '/uploads/leave_docs': {
+          target: 'https://attendance.delmargroup.co.id',
+          changeOrigin: true,
+          secure: false,
+        },
+        '/uploads': {
+          target: proxy_url,
+          changeOrigin: true,
+          secure: false,
+        },
+      },
+    },
+    preview: {
+      port: 5175,
+      host: true,
+      proxy: {
+        '/api': {
+          target: proxy_url,
+          changeOrigin: true,
+          secure: false,
+        },
+        '/uploads/leave_docs': {
+          target: 'https://attendance.delmargroup.co.id',
+          changeOrigin: true,
+          secure: false,
+        },
+        '/uploads': {
+          target: proxy_url,
+          changeOrigin: true,
+          secure: false,
+        },
       },
     },
   });

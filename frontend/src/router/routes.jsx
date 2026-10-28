@@ -75,6 +75,10 @@ const Agreements = lazy(() => import('@/pages/Agreements'));
 const DriverLoans = lazy(() => import('@/pages/DriversLoans'));
 const OffSchedules = lazy(() => import('@/pages/OffSchedules'));
 const RoleAccess = lazy(() => import('@/pages/RoleAccess'));
+const LeaveRequests = lazy(() => import('@/pages/LeaveRequests'));
+const Perusahaan = lazy(() => import('@/pages/Perusahaan'));
+const Entitas = lazy(() => import('@/pages/Entitas'));
+const TarikAbsen = lazy(() => import('@/pages/TarikAbsen'));
 
 let routes = {
   expense: [],
@@ -313,6 +317,22 @@ let routes = {
     {
       path: '/role-access',
       element: <RoleAccess />,
+    },
+    {
+      path: '/leave-requests',
+      element: <LeaveRequests />,
+    },
+    {
+      path: '/perusahaan',
+      element: <Perusahaan />,
+    },
+    {
+      path: '/entitas',
+      element: <Entitas />,
+    },
+    {
+      path: '/tarik-absen',
+      element: <TarikAbsen />,
     },
     {
       path: '*',

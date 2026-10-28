@@ -33,6 +33,10 @@ const ROUTE_PERMISSIONS = [
   { prefix: '/kualitas', codes: ['kualitas', 'kualitas_list', 'kualitas/list'], defaultPath: '/kualitas' },
   { prefix: '/driver', codes: ['driver', 'listDriver'], defaultPath: '/driver' },
   { prefix: '/role-access', codes: ['role_access'], defaultPath: '/role-access' },
+  { prefix: '/leave-requests', codes: ['leave_requests', 'manageHR'], defaultPath: '/leave-requests' },
+  { prefix: '/perusahaan', codes: ['perusahaan', 'manageHR'], defaultPath: '/perusahaan' },
+  { prefix: '/entitas', codes: ['entitas', 'manageHR'], defaultPath: '/entitas' },
+  { prefix: '/tarik-absen', codes: ['tarik_absen', 'manageHR'], defaultPath: '/tarik-absen' },
   { exact: '/', codes: ['dashboard_absen', 'dashboard'], defaultPath: '/' },
 ];
 

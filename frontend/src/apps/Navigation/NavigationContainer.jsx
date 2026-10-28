@@ -168,7 +168,7 @@ const getMenuItems = (translate) => [
       },
       {
         key: 'manage_employee',
-        label: <Link to="/employee/manage">Manage Karyawan</Link>,
+        label: <Link to="/employee/manage">HR & Attendance</Link>,
       },
       {
         key: 'off_schedules',
@@ -185,6 +185,22 @@ const getMenuItems = (translate) => [
       {
         key: 'driver_loans',
         label: <Link to="/driver-loans">Daftar Pinjaman Driver</Link>,
+      },
+      {
+        key: 'leave_requests',
+        label: <Link to="/leave-requests">Pengajuan & Approval Cuti / Izin</Link>,
+      },
+      {
+        key: 'perusahaan',
+        label: <Link to="/perusahaan">Master Perusahaan (PT/Legal)</Link>,
+      },
+      {
+        key: 'entitas',
+        label: <Link to="/entitas">Master Entitas (Cabang/Unit)</Link>,
+      },
+      {
+        key: 'tarik_absen',
+        label: <Link to="/tarik-absen">Tarik Absen (Excel)</Link>,
       },
     ],
   },
@@ -212,7 +228,8 @@ const filterMenuByRole = (items, currentAdmin, dynamicAllowedCodes) => {
         // Menu bercabang (punya children)
         if (parent.children && parent.children.length > 0) {
           const filteredChildren = parent.children.filter((child) =>
-            allowedCodes.includes(child.key)
+            allowedCodes.includes(child.key) ||
+            allowedCodes.includes(child.key?.replace('/', '_'))
           );
           if (filteredChildren.length > 0 || allowedCodes.includes(parent.key)) {
             return {
@@ -224,7 +241,7 @@ const filterMenuByRole = (items, currentAdmin, dynamicAllowedCodes) => {
         }
 
         // Single Menu
-        if (allowedCodes.includes(parent.key)) {
+        if (allowedCodes.includes(parent.key) || allowedCodes.includes(parent.key?.replace('/', '_'))) {
           return parent;
         }
 
@@ -242,8 +259,14 @@ const applyMenuStyles = (items) => {
     const styledItem = {
       ...item,
       style: {
-        fontSize: 15,
+        fontSize: 14.5,
         fontWeight: 600,
+        height: 'auto',
+        lineHeight: 1.35,
+        whiteSpace: 'normal',
+        wordBreak: 'break-word',
+        paddingTop: 4,
+        paddingBottom: 4,
         ...(item.style || {}),
       },
     };
@@ -252,15 +275,66 @@ const applyMenuStyles = (items) => {
       styledItem.children = item.children.map((child) => ({
         ...child,
         style: {
-          fontSize: 14,
+          fontSize: 13.5,
           fontWeight: 400,
           color: '#555555',
+          height: 'auto',
+          lineHeight: 1.35,
+          whiteSpace: 'normal',
+          wordBreak: 'break-word',
+          paddingTop: 4,
+          paddingBottom: 4,
           ...(child.style || {}),
         },
       }));
     }
 
     return styledItem;
+  });
+};
+
+const syncLabelsFromDb = (items, dbMenus) => {
+  if (!Array.isArray(dbMenus) || dbMenus.length === 0) return items;
+  const labelMap = {};
+  dbMenus.forEach((m) => {
+    if (m.code && m.label) {
+      labelMap[m.code] = m.label;
+      labelMap[m.code.replace('_', '/')] = m.label;
+      labelMap[m.code.replace('/', '_')] = m.label;
+    }
+  });
+
+  return items.map((item) => {
+    let newItem = { ...item };
+    const mappedParentLabel = labelMap[item.key] || (item.key && labelMap[item.key.replace('/', '_')]);
+    if (mappedParentLabel) {
+      if (item.children && item.children.length > 0) {
+        newItem.label = mappedParentLabel;
+      } else if (item.label && item.label.props?.to) {
+        newItem.label = <Link to={item.label.props.to}>{mappedParentLabel}</Link>;
+      } else {
+        newItem.label = mappedParentLabel;
+      }
+    }
+    if (item.children && item.children.length > 0) {
+      newItem.children = item.children.map((child) => {
+        const mappedChildLabel = labelMap[child.key] || (child.key && labelMap[child.key.replace('/', '_')]);
+        if (mappedChildLabel) {
+          if (child.label && child.label.props?.to) {
+            return {
+              ...child,
+              label: <Link to={child.label.props.to}>{mappedChildLabel}</Link>,
+            };
+          }
+          return {
+            ...child,
+            label: mappedChildLabel,
+          };
+        }
+        return child;
+      });
+    }
+    return newItem;
   });
 };
 
@@ -277,7 +351,19 @@ function Sidebar() {
 
   const currentAdmin = useSelector(selectCurrentAdmin);
   const [dynamicCodes, setDynamicCodes] = useState(currentAdmin?.allowed_menu_codes || null);
+  const [dbMenus, setDbMenus] = useState([]);
   const [collapsed, setCollapsed] = useState(isNavMenuClose);
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}employees/backoffice-menus`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.result)) {
+          setDbMenus(data.result);
+        }
+      })
+      .catch((err) => console.error('Failed to fetch backoffice menus:', err));
+  }, []);
 
   useEffect(() => {
     setCollapsed(isNavMenuClose);
@@ -320,7 +406,7 @@ function Sidebar() {
     navMenu.collapse();
   };
 
-  const rawItems = getMenuItems(translate);
+  const rawItems = syncLabelsFromDb(getMenuItems(translate), dbMenus);
   const filteredItems = filterMenuByRole(rawItems, currentAdmin, dynamicCodes);
   const styledItems = applyMenuStyles(filteredItems);
   const defaultOpenMenu = rawItems
@@ -333,7 +419,7 @@ function Sidebar() {
       collapsed={collapsed}
       onCollapse={onCollapse}
       collapsedWidth={80}
-      width={250}
+      width={260}
       style={{
         overflowY: 'auto',
         overflowX: 'hidden',
@@ -411,7 +497,19 @@ function MobileSidebar() {
   const location = useLocation();
   const currentAdmin = useSelector(selectCurrentAdmin);
   const [dynamicCodes, setDynamicCodes] = useState(currentAdmin?.allowed_menu_codes || null);
+  const [dbMenus, setDbMenus] = useState([]);
   const translate = useLanguage();
+
+  useEffect(() => {
+    fetch(`${API_BASE_URL}employees/backoffice-menus`)
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.success && Array.isArray(data.result)) {
+          setDbMenus(data.result);
+        }
+      })
+      .catch((err) => console.error('Failed to fetch backoffice menus:', err));
+  }, []);
 
   useEffect(() => {
     if (currentAdmin?.username && !currentAdmin?.allowed_menu_codes) {
@@ -453,7 +551,7 @@ function MobileSidebar() {
 
   const onClose = () => setVisible(false);
 
-  const rawItems = getMenuItems(translate);
+  const rawItems = syncLabelsFromDb(getMenuItems(translate), dbMenus);
   const filteredItems = filterMenuByRole(rawItems, currentAdmin, dynamicCodes);
   const styledItems = applyMenuStyles(filteredItems);
   const defaultOpenMenu = rawItems

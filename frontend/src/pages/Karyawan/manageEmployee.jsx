@@ -317,8 +317,11 @@ export default function UserOnboarding() {
                 position: vals.position || null,
                 phone: vals.phone || null,
                 shift: vals.shift_id || null,
+                shift_id: vals.shift_id || null,
                 lokasi: vals.location_id || null,
+                location_id: vals.location_id || null,
                 entitas: vals.entitas_id || null,
+                entitas_id: vals.entitas_id || null,
             };
 
             if (userId) {

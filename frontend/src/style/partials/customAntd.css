@@ -74,9 +74,50 @@ h6 {
   cursor: pointer;
 }
 
-.ant-menu-item {
-  height: 36px !important;
+/* Sidebar Menu Wrapping & Dynamic Height */
+.ant-menu-inline .ant-menu-item,
+.ant-menu-inline .ant-menu-submenu-title {
+  height: auto !important;
+  min-height: 40px !important;
+  line-height: 1.35 !important;
+  padding-top: 8px !important;
+  padding-bottom: 8px !important;
+  margin-top: 2px !important;
+  margin-bottom: 2px !important;
+  display: flex !important;
+  align-items: center !important;
 }
+
+.ant-menu-inline .ant-menu-title-content {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  overflow: visible !important;
+  text-overflow: unset !important;
+  line-height: 1.35 !important;
+  flex: 1 1 auto !important;
+}
+
+.ant-menu-inline .ant-menu-item a,
+.ant-menu-inline .ant-menu-item span,
+.ant-menu-inline .ant-menu-submenu-title span {
+  white-space: normal !important;
+  word-wrap: break-word !important;
+  word-break: break-word !important;
+  line-height: 1.35 !important;
+}
+
+.ant-menu-inline .ant-menu-submenu-title {
+  padding-right: 32px !important;
+}
+
+.ant-menu-sub.ant-menu-inline .ant-menu-item {
+  padding-left: 36px !important;
+  padding-right: 12px !important;
+  height: auto !important;
+  min-height: 36px !important;
+}
+
 @media (max-width: 768px) {
   html, body {
     overflow-x: hidden !important;
