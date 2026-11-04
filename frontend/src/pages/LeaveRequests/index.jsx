@@ -16,6 +16,7 @@ import {
   Statistic,
   Empty,
   Tooltip,
+  notification,
 } from 'antd';
 import {
   FileProtectOutlined,
@@ -29,6 +30,7 @@ import {
   PaperClipOutlined,
   ExportOutlined,
   FileTextOutlined,
+  SendOutlined,
 } from '@ant-design/icons';
 import axios from 'axios';
 import dayjs from 'dayjs';
@@ -90,6 +92,60 @@ export default function LeaveRequestsPage() {
   // Detail Modal State
   const [detailModalVisible, setDetailModalVisible] = useState(false);
   const [selectedLeave, setSelectedLeave] = useState(null);
+  const [approvers, setApprovers] = useState([]);
+  const [loadingApprovers, setLoadingApprovers] = useState(false);
+  const [sendingNotifId, setSendingNotifId] = useState(null);
+
+  const fetchLeaveApprovers = async (leaveId) => {
+    setLoadingApprovers(true);
+    includeToken();
+    try {
+      const res = await axios.get(`/leaveRequest/${leaveId}/approvers`);
+      if (res.data?.success) {
+        setApprovers(res.data.result || []);
+      } else {
+        setApprovers([]);
+      }
+    } catch (err) {
+      console.warn('Gagal memuat approvers:', err);
+      setApprovers([]);
+    } finally {
+      setLoadingApprovers(false);
+    }
+  };
+
+  const handleSendNotification = async (record) => {
+    if (!record?.id) return;
+    setSendingNotifId(record.id);
+    includeToken();
+    try {
+      const res = await axios.post(`/leaveRequest/${record.id}/send-notification`);
+      if (res.data?.success) {
+        notification.success({
+          message: 'Notifikasi Berhasil Dikirim',
+          description: res.data.message || `Notifikasi persetujuan #${record.id} berhasil dikirimkan ke email approver aktif.`,
+          placement: 'topRight',
+          duration: 5,
+        });
+        if (detailModalVisible && selectedLeave?.id === record.id) {
+          fetchLeaveApprovers(record.id);
+        }
+      } else {
+        notification.warning({
+          message: 'Peringatan',
+          description: res.data?.message || 'Gagal mengirim notifikasi.',
+        });
+      }
+    } catch (err) {
+      console.error('Error sending notification:', err);
+      notification.error({
+        message: 'Gagal Mengirim Notifikasi',
+        description: err.response?.data?.message || err.message || 'Terjadi kesalahan saat memicu pengiriman notifikasi.',
+      });
+    } finally {
+      setSendingNotifId(null);
+    }
+  };
 
   const fetchLeaveRequests = async (page = 1, pageSize = 15, q = search) => {
     setLoading(true);
@@ -154,6 +210,7 @@ export default function LeaveRequestsPage() {
   const handleOpenDetail = (record) => {
     setSelectedLeave(record);
     setDetailModalVisible(true);
+    fetchLeaveApprovers(record.id);
   };
 
   const parseSupportingDocs = (docField) => {
@@ -232,17 +289,34 @@ export default function LeaveRequestsPage() {
     {
       title: 'Aksi',
       key: 'action',
-      width: 100,
+      width: 195,
       align: 'center',
-      render: (_, r) => (
-        <Button
-          size="small"
-          icon={<EyeOutlined />}
-          onClick={() => handleOpenDetail(r)}
-        >
-          Detail
-        </Button>
-      ),
+      render: (_, r) => {
+        const isPending = (r.status || 'pending').toLowerCase() === 'pending';
+        return (
+          <Space size={6}>
+            <Button
+              size="small"
+              icon={<EyeOutlined />}
+              onClick={() => handleOpenDetail(r)}
+            >
+              Detail
+            </Button>
+            <Tooltip title={isPending ? "Kirim notifikasi email approval ke approver aktif" : "Kirim ulang notifikasi persetujuan"}>
+              <Button
+                size="small"
+                type="primary"
+                ghost
+                icon={<SendOutlined />}
+                loading={sendingNotifId === r.id}
+                onClick={() => handleSendNotification(r)}
+              >
+                Kirim Notif
+              </Button>
+            </Tooltip>
+          </Space>
+        );
+      },
     },
   ];
 
@@ -389,7 +463,17 @@ export default function LeaveRequestsPage() {
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
         footer={[
-          <Button key="close" type="primary" onClick={() => setDetailModalVisible(false)}>
+          <Button
+            key="notify"
+            type="primary"
+            ghost
+            icon={<SendOutlined />}
+            loading={sendingNotifId === selectedLeave?.id}
+            onClick={() => handleSendNotification(selectedLeave)}
+          >
+            Kirim Notifikasi Approver
+          </Button>,
+          <Button key="close" onClick={() => setDetailModalVisible(false)}>
             Tutup
           </Button>,
         ]}
@@ -438,6 +522,60 @@ export default function LeaveRequestsPage() {
                 </Paragraph>
               </Descriptions.Item>
             </Descriptions>
+
+            {/* Alur Persetujuan (Approval Steps) */}
+            <div>
+              <Text strong style={{ display: 'block', marginBottom: 8 }}>
+                <CheckCircleTwoTone twoToneColor="#4F46E5" style={{ marginRight: 6 }} />
+                Alur Persetujuan (Approval Steps):
+              </Text>
+              {loadingApprovers ? (
+                <div style={{ padding: '12px 0', textAlign: 'center' }}>
+                  <Text type="secondary">Memuat alur persetujuan...</Text>
+                </div>
+              ) : approvers.length === 0 ? (
+                <Text type="secondary" italic>Belum ada approver terdaftar untuk pengajuan ini.</Text>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                  {approvers.map((app) => {
+                    const isAppApproved = (app.status || '').toLowerCase() === 'approved';
+                    const isAppRejected = (app.status || '').toLowerCase() === 'rejected';
+                    const isAppPending = !isAppApproved && !isAppRejected;
+                    return (
+                      <div
+                        key={app.id || app.step_order}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '10px 14px',
+                          background: isAppApproved ? '#f6ffed' : (isAppRejected ? '#fff2f0' : '#f8fafc'),
+                          border: `1px solid ${isAppApproved ? '#b7eb8f' : (isAppRejected ? '#ffccc7' : '#e2e8f0')}`,
+                          borderRadius: 8,
+                        }}
+                      >
+                        <Space size={10}>
+                          <Tag color={app.step_order === 1 ? 'blue' : 'purple'} style={{ fontWeight: 700, margin: 0 }}>
+                            Step {app.step_order}
+                          </Tag>
+                          <div>
+                            <Text strong style={{ fontSize: 13 }}>{app.approver_name || 'Approver'}</Text>
+                            {app.approver_email && (
+                              <div style={{ fontSize: 11.5, color: '#64748b' }}>{app.approver_email}</div>
+                            )}
+                          </div>
+                        </Space>
+                        <div>
+                          {isAppApproved && <Tag color="success">Approved</Tag>}
+                          {isAppRejected && <Tag color="error">Rejected</Tag>}
+                          {isAppPending && <Tag color="gold">Menunggu</Tag>}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
 
             {/* Lampiran Bukti / Surat Dokter */}
             <div>
