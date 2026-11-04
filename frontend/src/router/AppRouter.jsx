@@ -19,6 +19,7 @@ export default function AppRouter() {
     isSuperAdmin,
     hasNoRole,
     isLoading,
+    isVerifying,
     firstAllowedPath,
     isRouteAllowed,
   } = useRoleAccess();
@@ -53,11 +54,6 @@ export default function AppRouter() {
 
   const element = useRoutes(routesList);
 
-  // If loading permissions for authenticated user
-  if (isLoading && currentAdmin?.username && !isSuperAdmin) {
-    return <PageLoader />;
-  }
-
   // 1. Public authenticated routes (e.g. /logout, /profile, /about, /login)
   if (['/logout', '/profile', '/about', '/login'].includes(location.pathname)) {
     return element;
@@ -66,6 +62,11 @@ export default function AppRouter() {
   // 2. Super Admin bypass (unrestricted access)
   if (isSuperAdmin) {
     return element;
+  }
+
+  // If loading permissions for authenticated user or waiting for fresh verification on unverified route
+  if ((isLoading || (isVerifying && !isRouteAllowed(location.pathname))) && currentAdmin?.username) {
+    return <PageLoader />;
   }
 
   // 3. User with NO assigned role group:

@@ -47,11 +47,16 @@ const getLeaveDocFullUrl = (docPath) => {
     return trimmed;
   }
   const cleanPath = trimmed.startsWith('/') ? trimmed : `/${trimmed}`;
-  return `${ATTENDANCE_FILES_BASE_URL}${cleanPath}`;
+  // Jika path dokumen mobile khusus dari attendance.delmargroup.co.id (/uploads/leave_docs/...)
+  if (cleanPath.startsWith('/uploads/leave_docs/')) {
+    return `${ATTENDANCE_FILES_BASE_URL}${cleanPath}`;
+  }
+  // File upload umum/lokal (/uploads/...) menggunakan origin aplikasi aktif (Vite proxy / backend)
+  return cleanPath;
 };
 
 const LEAVE_TYPE_MAP = {
-  PLANNED_ABSENCE: { label: 'Cuti / Izin Terencana', color: 'blue' },
+  PLANNED_ABSENCE: { label: 'Izin Terencana', color: 'blue' },
   UNPLANNED_ABSENCE: { label: 'Izin Mendadak', color: 'orange' },
   LEAVE_WORKPLACE: { label: 'Meninggalkan Kantor (LW)', color: 'geekblue' },
   LATE_ARRIVAL: { label: 'Datang Terlambat (LA)', color: 'warning' },
@@ -183,7 +188,7 @@ export default function LeaveRequestsPage() {
       render: (text) => text || '-',
     },
     {
-      title: 'Jenis Izin / Cuti',
+      title: 'Jenis Izin',
       dataIndex: 'leave_type',
       key: 'leave_type',
       render: (type) => {
@@ -192,7 +197,7 @@ export default function LeaveRequestsPage() {
       },
     },
     {
-      title: 'Periode Cuti',
+      title: 'Periode Izin',
       key: 'periode',
       render: (_, r) => {
         const start = r.start_date ? dayjs(r.start_date).format('DD MMM YYYY') : '-';
@@ -258,11 +263,11 @@ export default function LeaveRequestsPage() {
           <Space align="center" size={10}>
             <FileProtectOutlined style={{ fontSize: 24, color: '#fff' }} />
             <Title level={3} style={{ margin: 0, color: '#fff' }}>
-              Daftar Pengajuan Cuti & Izin Karyawan
+              Daftar Pengajuan Izin Karyawan
             </Title>
           </Space>
           <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 13 }}>
-            Monitoring dan riwayat seluruh pengajuan cuti, sakit, dan izin kerja karyawan (Hermes HRIS)
+            Monitoring dan riwayat seluruh pengajuan izin, sakit, dan dispensasi kerja karyawan (Hermes HRIS)
           </Text>
         </Space>
       </Card>
@@ -323,7 +328,7 @@ export default function LeaveRequestsPage() {
             />
             <Select
               allowClear
-              placeholder="Filter Jenis Cuti/Izin"
+              placeholder="Filter Jenis Izin"
               style={{ width: isMobile ? '100%' : 220 }}
               value={filterType}
               onChange={setFilterType}
@@ -367,7 +372,7 @@ export default function LeaveRequestsPage() {
             total: pagination.total,
             showSizeChanger: true,
             pageSizeOptions: ['10', '15', '25', '50'],
-            showTotal: (total) => `Total ${total} pengajuan cuti`,
+            showTotal: (total) => `Total ${total} pengajuan izin`,
             onChange: (p, ps) => fetchLeaveRequests(p, ps, search),
           }}
         />
@@ -378,7 +383,7 @@ export default function LeaveRequestsPage() {
         title={
           <Space>
             <FileProtectOutlined style={{ color: '#4F46E5' }} />
-            <span>Detail Pengajuan Izin / Cuti #{selectedLeave?.id}</span>
+            <span>Detail Pengajuan Izin #{selectedLeave?.id}</span>
           </Space>
         }
         open={detailModalVisible}

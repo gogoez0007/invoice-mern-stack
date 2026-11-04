@@ -8,6 +8,7 @@ import useLanguage from '@/locale/useLanguage';
 import { Form, Button } from 'antd';
 
 import { login } from '@/redux/auth/actions';
+import * as actionTypes from '@/redux/auth/types';
 import { selectAuth } from '@/redux/auth/selectors';
 import LoginForm from '@/forms/LoginForm';
 import Loading from '@/components/Loading';
@@ -17,16 +18,30 @@ const LoginPage = () => {
   const translate = useLanguage();
   const { isLoading, isSuccess } = useSelector(selectAuth);
   const navigate = useNavigate();
-  // const size = useSize();
 
   const dispatch = useDispatch();
   const onFinish = (values) => {
     dispatch(login({ loginData: values }));
   };
 
+  // Pastikan status loading selalu dimatikan saat halaman login dimuat
   useEffect(() => {
-    if (isSuccess) navigate('/');
-  }, [isSuccess]);
+    if (isLoading) {
+      dispatch({ type: actionTypes.REQUEST_FAILED });
+    }
+  }, []);
+
+  useEffect(() => {
+    if (isSuccess) {
+      const redirectPath = window.sessionStorage.getItem('last_redirect_path');
+      if (redirectPath) {
+        window.sessionStorage.removeItem('last_redirect_path');
+        navigate(redirectPath, { replace: true });
+      } else {
+        navigate('/', { replace: true });
+      }
+    }
+  }, [isSuccess, navigate]);
 
   const FormContainer = () => {
     return (

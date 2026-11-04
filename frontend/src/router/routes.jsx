@@ -78,7 +78,15 @@ const RoleAccess = lazy(() => import('@/pages/RoleAccess'));
 const LeaveRequests = lazy(() => import('@/pages/LeaveRequests'));
 const Perusahaan = lazy(() => import('@/pages/Perusahaan'));
 const Entitas = lazy(() => import('@/pages/Entitas'));
+const LeaveApprovalLines = lazy(() => import('@/pages/LeaveApprovalLines'));
+const LeaveEmailConfig = lazy(() => import('@/pages/LeaveEmailConfig'));
 const TarikAbsen = lazy(() => import('@/pages/TarikAbsen'));
+const RecruitmentJobs = lazy(() => import('@/pages/Recruitment'));
+const RecruitmentApplicants = lazy(() => import('@/pages/Recruitment/ApplicantsPage'));
+const RecruitmentApprovals = lazy(() => import('@/pages/Recruitment/ApprovalsPage'));
+const RecruitmentBroadcast = lazy(() => import('@/pages/Recruitment/EmailBroadcastPage'));
+const RecruitmentApprovalSettings = lazy(() => import('@/pages/Recruitment/ApprovalSettingsPage'));
+const RecruitmentEmailConfig = lazy(() => import('@/pages/Recruitment/EmailConfigPage'));
 
 let routes = {
   expense: [],
@@ -331,8 +339,40 @@ let routes = {
       element: <Entitas />,
     },
     {
+      path: '/leave-approval-lines',
+      element: <LeaveApprovalLines />,
+    },
+    {
+      path: '/leave-email-config',
+      element: <LeaveEmailConfig />,
+    },
+    {
       path: '/tarik-absen',
       element: <TarikAbsen />,
+    },
+    {
+      path: '/recruitment/jobs',
+      element: <RecruitmentJobs />,
+    },
+    {
+      path: '/recruitment/applicants',
+      element: <RecruitmentApplicants />,
+    },
+    {
+      path: '/recruitment/approvals',
+      element: <RecruitmentApprovals />,
+    },
+    {
+      path: '/recruitment/broadcast',
+      element: <RecruitmentBroadcast />,
+    },
+    {
+      path: '/recruitment/approval-settings',
+      element: <RecruitmentApprovalSettings />,
+    },
+    {
+      path: '/recruitment/email-config',
+      element: <RecruitmentEmailConfig />,
     },
     {
       path: '*',

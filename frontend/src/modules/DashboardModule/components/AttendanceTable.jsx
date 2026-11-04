@@ -37,8 +37,7 @@ dayjs.locale("id");
 
 const EmployeeAttendanceCard = memo(function EmployeeAttendanceCard({
   record,
-  daysInMonth,
-  date,
+  dateList,
   holidayIndex,
   handleToggleActive,
   togglingId,
@@ -49,12 +48,14 @@ const EmployeeAttendanceCard = memo(function EmployeeAttendanceCard({
   const stats = useMemo(() => {
     let hadir = 0;
     let telat = 0;
-    let cuti = 0;
+    let izin = 0;
     let offResmi = 0;
 
-    for (let i = 1; i <= daysInMonth; i++) {
-      const val = record[`day_${i}`];
-      const hol = holidayIndex[i];
+    for (let i = 0; i < (dateList?.length || 0); i++) {
+      const val = record[`day_${i + 1}`];
+      const d = dateList[i];
+      const dateStr = d ? d.format("YYYY-MM-DD") : "";
+      const hol = holidayIndex[dateStr];
       const holidayDay = !!hol?.isHoliday || hasHolidayCode(val);
       const leave = isLeaveCell(val);
       const bracketCodes = getBracketCodes(val);
@@ -63,7 +64,7 @@ const EmployeeAttendanceCard = memo(function EmployeeAttendanceCard({
       if (isBackendOff) {
         offResmi++;
       } else if (leave) {
-        cuti++;
+        izin++;
       } else if (val && val !== "-" && !holidayDay) {
         hadir++;
         const timeMatch = /^(\d{1,2}):(\d{2})/.exec(String(val).trim());
@@ -76,8 +77,8 @@ const EmployeeAttendanceCard = memo(function EmployeeAttendanceCard({
         }
       }
     }
-    return { hadir, telat, cuti, offResmi };
-  }, [record, daysInMonth, holidayIndex, hasHolidayCode, isLeaveCell, getBracketCodes]);
+    return { hadir, telat, izin, offResmi };
+  }, [record, dateList, holidayIndex, hasHolidayCode, isLeaveCell, getBracketCodes]);
 
   return (
     <Card
@@ -174,9 +175,9 @@ const EmployeeAttendanceCard = memo(function EmployeeAttendanceCard({
             🔵 Off Resmi: <b>{stats.offResmi}</b>
           </span>
         )}
-        {stats.cuti > 0 && (
+        {stats.izin > 0 && (
           <span style={{ fontSize: 11, color: "#d48806", fontWeight: 600 }}>
-            🟡 Izin/Cuti: <b>{stats.cuti}</b>
+            🟡 Izin: <b>{stats.izin}</b>
           </span>
         )}
       </div>
@@ -185,7 +186,9 @@ const EmployeeAttendanceCard = memo(function EmployeeAttendanceCard({
       <div>
         <div style={{ fontSize: 11, color: "#8c8c8c", marginBottom: 6, display: "flex", justifyContent: "space-between" }}>
           <span>📅 Riwayat Presensi (Geser ke kanan ➜)</span>
-          <span>{date.format("MMMM YYYY")}</span>
+          <span>
+            {dateList?.length > 0 && `${dateList[0].format("D MMM")} - ${dateList[dateList.length - 1].format("D MMM YYYY")}`}
+          </span>
         </div>
         <div
           style={{
@@ -196,14 +199,14 @@ const EmployeeAttendanceCard = memo(function EmployeeAttendanceCard({
             WebkitOverflowScrolling: "touch",
           }}
         >
-          {Array.from({ length: daysInMonth }, (_, idx) => {
+          {dateList.map((d, idx) => {
             const dayNum = idx + 1;
-            const d = date.date(dayNum);
+            const dateStr = d.format("YYYY-MM-DD");
             const raw = record[`day_${dayNum}`];
             const isSunday = d.day() === 0;
             const isSaturday = d.day() === 6;
             const isWeekend = isSunday || isSaturday;
-            const hol = holidayIndex[dayNum];
+            const hol = holidayIndex[dateStr];
             const holidayDay = !!hol?.isHoliday || hasHolidayCode(raw);
             const leave = isLeaveCell(raw);
             const bracketCodes = getBracketCodes(raw);
@@ -262,7 +265,7 @@ const EmployeeAttendanceCard = memo(function EmployeeAttendanceCard({
                 : isBackendOff
                 ? `Jadwal Off Resmi`
                 : leave
-                ? `Izin/Cuti: ${bracketCodes.join("+") || raw}`
+                ? `Izin: ${bracketCodes.join("+") || raw}`
                 : holidayDay
                 ? `Libur: ${hol?.names?.join(", ") || "Libur Nasional"}`
                 : isFuture
@@ -365,19 +368,42 @@ export default function AttendanceTable() {
   const [loading, setLoading] = useState(false);
   const [togglingId, setTogglingId] = useState(null);
   const [activeTab, setActiveTab] = useState("active");
-  const [date, setDate] = useState(dayjs()); // default: bulan ini
+  // Default: Tanggal 1 sampai akhir bulan ini (Bulan Penuh)
+  const [dateRange, setDateRange] = useState([dayjs().startOf("month"), dayjs().endOf("month")]);
+
+  // Presets range date filter
+  const RANGE_PRESETS = [
+    { label: "Bulan Ini (s/d Hari Ini)", value: [dayjs().startOf("month"), dayjs()] },
+    { label: "Bulan Penuh Ini", value: [dayjs().startOf("month"), dayjs().endOf("month")] },
+    { label: "7 Hari Terakhir", value: [dayjs().subtract(6, "day"), dayjs()] },
+    { label: "14 Hari Terakhir", value: [dayjs().subtract(13, "day"), dayjs()] },
+    { label: "Bulan Lalu", value: [dayjs().subtract(1, "month").startOf("month"), dayjs().subtract(1, "month").endOf("month")] },
+  ];
+
+  // List hari dinamis dari dateRange
+  const dateList = useMemo(() => {
+    if (!dateRange || !dateRange[0] || !dateRange[1]) return [];
+    const list = [];
+    let cur = dateRange[0].clone().startOf("day");
+    const end = dateRange[1].clone().startOf("day");
+    while (cur.isBefore(end) || cur.isSame(end, "day")) {
+      list.push(cur.clone());
+      cur = cur.add(1, "day");
+    }
+    return list;
+  }, [dateRange]);
 
   // === HOLIDAY META (dari backend) ===
   const [holidayMeta, setHolidayMeta] = useState([]); // [{date,isHoliday,codes,names}]
   const holidayIndex = useMemo(() => {
     const idx = {};
     for (const h of holidayMeta || []) {
-      const d = dayjs(h.date);
-      if (!d.isValid()) continue;
-      if (d.isSame(date, "month")) idx[d.date()] = h; // key = tanggal (1..n)
+      if (h.date) {
+        idx[dayjs(h.date).format("YYYY-MM-DD")] = h;
+      }
     }
     return idx;
-  }, [holidayMeta, date]);
+  }, [holidayMeta]);
 
   // ====== SCALE 1.2x untuk cell absensi ======
   const SCALE = 1.2;
@@ -407,7 +433,7 @@ export default function AttendanceTable() {
   // filter state
   const [nameFilter, setNameFilter] = useState("");
   const [searchInput, setSearchInput] = useState("");
-  const [entitasFilter, setEntitasFilter] = useState(undefined);
+  const [entitasFilter, setEntitasFilter] = useState([]);
   const [positionFilter, setPositionFilter] = useState(undefined);
   const [cardPage, setCardPage] = useState(1);
   const CARD_PAGE_SIZE = 10;
@@ -421,15 +447,20 @@ export default function AttendanceTable() {
     return () => clearTimeout(timer);
   }, [searchInput]);
 
-  const daysInMonth = useMemo(() => date.daysInMonth(), [date]);
+  // daysInMonth digantikan oleh dateList.length
 
-  const fetchData = async (selectedDate) => {
+  const fetchData = async (range = dateRange) => {
+    if (!range || !range[0] || !range[1]) return;
     setLoading(true);
     try {
-      // 1. Ambil summary absensi bulanan
+      const [start, end] = range;
+      const startDate = start.format("YYYY-MM-DD");
+      const endDate = end.format("YYYY-MM-DD");
+
+      // 1. Ambil summary absensi rentang tanggal
       const resp = await request.attendance_summary({
         entity: "attendance",
-        options: { bulan: selectedDate.format("MM"), tahun: selectedDate.format("YYYY") },
+        options: { startDate, endDate },
       });
 
       // 2. Ambil list karyawan untuk memastikan ID & is_active selalu terisi akurat
@@ -521,14 +552,14 @@ export default function AttendanceTable() {
   };
 
   useEffect(() => {
-    fetchData(date);
-    // reset filter saat ganti bulan
+    fetchData(dateRange);
+    // reset filter saat ganti rentang tanggal
     setSearchInput("");
     setNameFilter("");
-    setEntitasFilter(undefined);
+    setEntitasFilter([]);
     setPositionFilter(undefined);
     setCardPage(1);
-  }, [date]);
+  }, [dateRange]);
 
   // Handler untuk mengaktifkan / menonaktifkan status karyawan (Action ON/OFF)
   const handleToggleActive = async (record, nextStatus) => {
@@ -557,7 +588,7 @@ export default function AttendanceTable() {
             `Karyawan ${record.name} berhasil di-${nextStatus ? "aktifkan kembali" : "nonaktifkan"}.`
         );
         // Refresh data absensi
-        await fetchData(date);
+        await fetchData(dateRange);
       } else {
         message.error(res.data?.message || "Gagal mengubah status karyawan.");
       }
@@ -595,7 +626,7 @@ export default function AttendanceTable() {
   const filteredActiveData = useMemo(() => {
     const byName = (row) =>
       !nameFilter || (row.name || "").toString().toLowerCase().includes(nameFilter.toLowerCase());
-    const byEntitas = (row) => !entitasFilter || row.entitas === entitasFilter;
+    const byEntitas = (row) => !entitasFilter?.length || entitasFilter.includes(row.entitas);
     const byPosition = (row) => !positionFilter || row.position === positionFilter;
     return activeRows
       .filter((row) => byName(row) && byEntitas(row) && byPosition(row))
@@ -606,7 +637,7 @@ export default function AttendanceTable() {
   const filteredInactiveData = useMemo(() => {
     const byName = (row) =>
       !nameFilter || (row.name || "").toString().toLowerCase().includes(nameFilter.toLowerCase());
-    const byEntitas = (row) => !entitasFilter || row.entitas === entitasFilter;
+    const byEntitas = (row) => !entitasFilter?.length || entitasFilter.includes(row.entitas);
     const byPosition = (row) => !positionFilter || row.position === positionFilter;
     return inactiveRows
       .filter((row) => byName(row) && byEntitas(row) && byPosition(row))
@@ -616,7 +647,7 @@ export default function AttendanceTable() {
   const resetFilters = () => {
     setSearchInput("");
     setNameFilter("");
-    setEntitasFilter(undefined);
+    setEntitasFilter([]);
     setPositionFilter(undefined);
     setCardPage(1);
   };
@@ -832,11 +863,12 @@ export default function AttendanceTable() {
 
   // kolom hari: 1.2x lebih besar + styling: LEAVE > HOLIDAY > Weekend/Normal
   const dayColumns = useMemo(() => {
-    return Array.from({ length: daysInMonth }, (_, i) => {
-      const d = date.date(i + 1);
+    return dateList.map((d, i) => {
+      const dateStr = d.format("YYYY-MM-DD");
       const isWeekend = d.day() === 0 || d.day() === 6;
-      const hol = holidayIndex[d.date()];
-      const headStyle = getHeaderStyleByDay(d);
+      const hol = holidayIndex[dateStr];
+      const headStyle = getHeaderStyleByDay(d, hol);
+      const isToday = dayjs().isSame(d, "day");
 
       const titleContent = (
         <div style={{ lineHeight: 1.1, textAlign: "center" }}>
@@ -935,8 +967,7 @@ export default function AttendanceTable() {
     });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
-    daysInMonth,
-    date,
+    dateList,
     holidayIndex,
     DAY_CELL_WIDTH,
     DAY_CELL_PAD_Y,
@@ -1053,27 +1084,78 @@ export default function AttendanceTable() {
 
   return (
     <div style={{ padding: 12 }}>
-      {/* Header berwarna */}
+      {/* Header Elegan & Modern */}
       <div
         style={{
-          background: "linear-gradient(135deg, #1677ff 0%, #69b1ff 40%, #95de64 100%)",
+          background: "linear-gradient(135deg, #1e293b 0%, #0f172a 100%)",
           color: "#fff",
-          padding: "14px 16px",
-          borderRadius: 14,
+          padding: "16px 20px",
+          borderRadius: 16,
           marginBottom: 14,
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          boxShadow: "0 6px 18px rgba(22,119,255,0.25)",
+          boxShadow: "0 8px 24px -4px rgba(15, 23, 42, 0.25)",
+          border: "1px solid #334155",
         }}
       >
-        <div style={{ fontSize: 18, fontWeight: 700 }}>
-          Ringkasan Absensi — {date.format("MMMM YYYY")}
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            flexWrap: "wrap",
+            gap: 12,
+          }}
+        >
+          <div style={{ fontSize: 18, fontWeight: 700, display: "flex", alignItems: "center", gap: 8 }}>
+            <span>📋 Ringkasan Absensi Karyawan</span>
+          </div>
         </div>
-        <div style={{ opacity: 0.9, fontSize: 12 }}>
-          <Tooltip title="Hari Sabtu & Minggu ditandai berbeda. Libur LN/CB juga disorot.">
-            <span>Weekend & Holiday highlighted</span>
-          </Tooltip>
+
+        {/* Quick Summary Info di dalam Card Header */}
+        <div
+          style={{
+            marginTop: 12,
+            paddingTop: 10,
+            borderTop: "1px solid rgba(255, 255, 255, 0.12)",
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            gap: 12,
+            flexWrap: "wrap",
+            fontSize: 12.5,
+            color: "#cbd5e1",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", gap: 10, flexWrap: "wrap" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+              <TeamOutlined style={{ color: "#38bdf8" }} />
+              <span>
+                Karyawan Ditampilkan: <b style={{ color: "#ffffff" }}>{filteredActiveData.length}</b> dari {activeRows.length} aktif
+              </span>
+            </div>
+            <span style={{ color: "rgba(255, 255, 255, 0.25)" }}>•</span>
+            <div>
+              <span>
+                Filter Entitas: <b style={{ color: "#ffffff" }}>{entitasFilter.length > 0 ? entitasFilter.join(", ") : "Semua Entitas"}</b>
+              </span>
+            </div>
+            <span style={{ color: "rgba(255, 255, 255, 0.25)" }}>•</span>
+            <div>
+              <span>
+                Periode: <b style={{ color: "#38bdf8" }}>{dateRange[0]?.format("D MMM YYYY")} — {dateRange[1]?.format("D MMM YYYY")}</b>
+              </span>
+            </div>
+          </div>
+
+          <div style={{ display: "flex", alignItems: "center", gap: 8, flexWrap: "wrap" }}>
+            <Tag color="cyan" style={{ borderRadius: 6, fontWeight: 600, padding: "3px 10px", margin: 0, fontSize: 12 }}>
+              {dateList.length} Hari Aktif
+            </Tag>
+            <Tooltip title="Hari Sabtu & Minggu ditandai berbeda. Hari Libur Nasional & Cuti Bersama diberi sorotan khusus.">
+              <Tag color="default" style={{ borderRadius: 6, background: "rgba(255,255,255,0.12)", color: "#e2e8f0", border: "none", margin: 0, fontSize: 12 }}>
+                💡 Weekend & Libur Highlighted
+              </Tag>
+            </Tooltip>
+          </div>
         </div>
       </div>
 
@@ -1087,12 +1169,15 @@ export default function AttendanceTable() {
           alignItems: "center",
         }}
       >
-        <DatePicker
+        <DatePicker.RangePicker
           allowClear={false}
-          picker="month"
-          value={date}
-          onChange={(value) => value && setDate(value)}
-          style={{ width: screens.xs ? '100%' : 170 }}
+          presets={RANGE_PRESETS}
+          value={dateRange}
+          format="DD/MM/YYYY"
+          onChange={(val) => {
+            if (val && val[0] && val[1]) setDateRange(val);
+          }}
+          style={{ width: screens.xs ? "100%" : 260 }}
         />
 
         <Input
@@ -1103,17 +1188,19 @@ export default function AttendanceTable() {
           style={{ width: screens.xs ? '100%' : 170 }}
         />
         <Select
+          mode="multiple"
           allowClear
           showSearch
-          placeholder="Filter Entitas"
+          maxTagCount="responsive"
+          placeholder="🏢 Filter Entitas (Bisa Banyak)"
           optionFilterProp="label"
           value={entitasFilter}
           onChange={(v) => {
-            setEntitasFilter(v);
+            setEntitasFilter(v || []);
             setCardPage(1);
           }}
           options={entitasOptions}
-          style={{ width: screens.xs ? 'calc(50% - 4px)' : 150 }}
+          style={{ minWidth: screens.xs ? "100%" : 220, maxWidth: 340 }}
         />
         <Select
           allowClear
@@ -1132,7 +1219,6 @@ export default function AttendanceTable() {
           Reset
         </Button>
       </div>
-
 
       {/* Tabs untuk 2 Kategori: Data Absen Aktif vs Karyawan Tidak Aktif */}
       <Tabs
@@ -1174,7 +1260,7 @@ export default function AttendanceTable() {
                   <Space size="small" wrap>
                     <Tag color="red">Minggu</Tag>
                     <Tag color="geekblue">Sabtu</Tag>
-                    <Tag color="gold">Leave Request</Tag>
+                    <Tag color="gold">Izin</Tag>
                     <Tag color="magenta">LN</Tag>
                     <Tag color="gold">CB</Tag>
                   </Space>
@@ -1227,8 +1313,7 @@ export default function AttendanceTable() {
                         <EmployeeAttendanceCard
                           key={record.id || record.no}
                           record={record}
-                          daysInMonth={daysInMonth}
-                          date={date}
+                          dateList={dateList}
                           holidayIndex={holidayIndex}
                           handleToggleActive={handleToggleActive}
                           togglingId={togglingId}

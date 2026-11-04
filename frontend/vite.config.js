@@ -20,9 +20,7 @@ export default ({ mode }) => {
         '@': path.resolve(__dirname, 'src'),
       },
     },
-    server: {
-      port: 5173,
-      host: true,
+    server: {      port: 5173,      host: true,      hmr: {        clientPort: 443,      },
       proxy: {
         '/api': {
           target: proxy_url,

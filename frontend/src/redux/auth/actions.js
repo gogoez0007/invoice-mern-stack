@@ -5,25 +5,34 @@ import { request } from '@/request';
 export const login =
   ({ loginData }) =>
   async (dispatch) => {
-    dispatch({
-      type: actionTypes.REQUEST_LOADING,
-    });
-    const data = await authService.login({ loginData });
-
-    if (data.success === true) {
-      const auth_state = {
-        current: data.result,
-        isLoggedIn: true,
-        isLoading: false,
-        isSuccess: true,
-      };
-      window.localStorage.setItem('auth', JSON.stringify(auth_state));
-      window.localStorage.removeItem('isLogout');
+    try {
       dispatch({
-        type: actionTypes.REQUEST_SUCCESS,
-        payload: data.result,
+        type: actionTypes.REQUEST_LOADING,
       });
-    } else {
+      const data = await authService.login({ loginData });
+
+      if (data && data.success === true) {
+        const token = data.token || data.result?.token;
+        const currentData = { ...data.result, token };
+        const auth_state = {
+          current: currentData,
+          isLoggedIn: true,
+          isLoading: false,
+          isSuccess: true,
+        };
+        window.localStorage.setItem('auth', JSON.stringify(auth_state));
+        window.localStorage.removeItem('isLogout');
+        dispatch({
+          type: actionTypes.REQUEST_SUCCESS,
+          payload: currentData,
+        });
+      } else {
+        dispatch({
+          type: actionTypes.REQUEST_FAILED,
+        });
+      }
+    } catch (err) {
+      console.error('Login action error:', err);
       dispatch({
         type: actionTypes.REQUEST_FAILED,
       });

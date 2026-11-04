@@ -4,6 +4,7 @@ import { API_BASE_URL } from '@/config/serverApiConfig';
 import errorHandler from './errorHandler';
 import successHandler from './successHandler';
 import storePersist from '@/redux/storePersist';
+import { triggerAutoLogout } from '@/utils/authSession';
 
 function findKeyByPrefix(object, prefix) {
   for (var property in object) {
@@ -331,6 +332,31 @@ const request = {
       return response.data;
     } catch (error) {
       return errorHandler(error);
+    }
+  },
+
+  attendance_daily_detail: async ({ date, entitas_ids } = {}) => {
+    try {
+      includeToken();
+      let query = '?date=' + (date || '');
+      if (entitas_ids) {
+        query += '&entitas_ids=' + entitas_ids;
+      }
+      const response = await axios.get('attendance/daily_detail' + query);
+      return response.data;
+    } catch (error) {
+      return errorHandler(error);
+    }
+  },
+
+  get_entitas: async () => {
+    try {
+      includeToken();
+      const response = await axios.get('entitas');
+      return response.data || [];
+    } catch (error) {
+      console.warn('Failed to fetch entitas list:', error);
+      return [];
     }
   },
 

@@ -1,9 +1,9 @@
-import { useLayoutEffect } from 'react';
+import { useLayoutEffect, useState } from 'react';
 import { useEffect } from 'react';
 import { selectAppSettings } from '@/redux/settings/selectors';
 import { useDispatch, useSelector } from 'react-redux';
 
-import { Layout } from 'antd';
+import { Layout, Button } from 'antd';
 
 import { useAppContext } from '@/context/appContext';
 
@@ -30,6 +30,7 @@ export default function ErpCrmApp() {
   const { isNavMenuClose } = stateApp;
 
   const { isMobile } = useResponsive();
+  const [stagingBannerClosed, setStagingBannerClosed] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -56,6 +57,52 @@ export default function ErpCrmApp() {
         {isMobile ? (
           <Layout style={{ marginLeft: 0, minHeight: '100vh', width: '100%', background: '#f8fafc' }}>
             <HeaderContent />
+            {!stagingBannerClosed && (
+              <div
+                style={{
+                  background: 'linear-gradient(90deg, #b45309 0%, #d97706 100%)',
+                  color: '#ffffff',
+                  padding: '8px 20px',
+                  fontSize: 13,
+                  letterSpacing: '0.4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 2px 8px rgba(180, 83, 9, 0.25)',
+                  borderBottom: '2px solid #fde68a',
+                  zIndex: 899,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: 18, lineHeight: 1 }}>🧪</span>
+                  <span>
+                    TAHAP STAGING &bull; LINGKUNGAN UJI COBA (DATABASE: <strong>dummy_attendance</strong>) — Data di sini adalah data testing.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStagingBannerClosed(true)}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 1,
+                  }}
+                  title="Tutup banner staging"
+                >
+                  &times;
+                </button>
+              </div>
+            )}
             <Content
               style={{
                 margin: '12px auto 28px',
@@ -79,6 +126,52 @@ export default function ErpCrmApp() {
             }}
           >
             <HeaderContent />
+            {!stagingBannerClosed && (
+              <div
+                style={{
+                  background: 'linear-gradient(90deg, #b45309 0%, #d97706 100%)',
+                  color: '#ffffff',
+                  padding: '8px 20px',
+                  fontSize: 13,
+                  letterSpacing: '0.4px',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  boxShadow: '0 2px 8px rgba(180, 83, 9, 0.25)',
+                  borderBottom: '2px solid #fde68a',
+                  zIndex: 899,
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                  <span style={{ fontSize: 18, lineHeight: 1 }}>🧪</span>
+                  <span>
+                    TAHAP STAGING &bull; LINGKUNGAN UJI COBA (DATABASE: <strong>dummy_attendance</strong>) — Data di sini adalah data testing.
+                  </span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setStagingBannerClosed(true)}
+                  style={{
+                    background: 'rgba(255,255,255,0.2)',
+                    border: 'none',
+                    color: '#ffffff',
+                    fontSize: 18,
+                    fontWeight: 700,
+                    width: 24,
+                    height: 24,
+                    borderRadius: '50%',
+                    cursor: 'pointer',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    lineHeight: 1,
+                  }}
+                  title="Tutup banner staging"
+                >
+                  &times;
+                </button>
+              </div>
+            )}
             <Content
               style={{
                 margin: '24px auto 30px',

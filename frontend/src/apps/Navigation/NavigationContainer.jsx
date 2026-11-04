@@ -11,6 +11,7 @@ import {
   AccountBookTwoTone,
   BoxPlotTwoTone,
   SafetyCertificateTwoTone,
+  IdcardTwoTone,
 } from '@ant-design/icons';
 
 import { useAppContext } from '@/context/appContext';
@@ -188,7 +189,7 @@ const getMenuItems = (translate) => [
       },
       {
         key: 'leave_requests',
-        label: <Link to="/leave-requests">Pengajuan & Approval Cuti / Izin</Link>,
+        label: <Link to="/leave-requests">Izin Karyawan</Link>,
       },
       {
         key: 'perusahaan',
@@ -199,8 +200,47 @@ const getMenuItems = (translate) => [
         label: <Link to="/entitas">Master Entitas (Cabang/Unit)</Link>,
       },
       {
+        key: 'leave_approval_lines',
+        label: <Link to="/leave-approval-lines">Line Approval Izin</Link>,
+      },
+      {
+        key: 'leave_email_config',
+        label: <Link to="/leave-email-config">Setup Email Izin</Link>,
+      },
+      {
         key: 'tarik_absen',
-        label: <Link to="/tarik-absen">Tarik Absen (Excel)</Link>,
+        label: <Link to="/tarik-absen">Report HR</Link>,
+      },
+    ],
+  },
+  {
+    key: 'recruitment',
+    icon: <IdcardTwoTone />,
+    label: translate('Rekrutmen'),
+    children: [
+      {
+        key: 'recruitment_jobs',
+        label: <Link to="/recruitment/jobs">Lowongan Kerja</Link>,
+      },
+      {
+        key: 'recruitment_applicants',
+        label: <Link to="/recruitment/applicants">Data Pelamar</Link>,
+      },
+      {
+        key: 'recruitment_approvals',
+        label: <Link to="/recruitment/approvals">Approval</Link>,
+      },
+      {
+        key: 'recruitment_broadcast',
+        label: <Link to="/recruitment/broadcast">Broadcast Email</Link>,
+      },
+      {
+        key: 'recruitment_approval_settings',
+        label: <Link to="/recruitment/approval-settings">Alur Approval</Link>,
+      },
+      {
+        key: 'recruitment_email_config',
+        label: <Link to="/recruitment/email-config">Konfigurasi Email</Link>,
       },
     ],
   },
@@ -407,7 +447,7 @@ function Sidebar() {
   };
 
   const rawItems = syncLabelsFromDb(getMenuItems(translate), dbMenus);
-  const filteredItems = filterMenuByRole(rawItems, currentAdmin, dynamicCodes);
+  const filteredItems = filterMenuByRole(rawItems, currentAdmin, currentAdmin?.allowed_menu_codes);
   const styledItems = applyMenuStyles(filteredItems);
   const defaultOpenMenu = rawItems
     .filter((item) => item.children)
@@ -552,7 +592,7 @@ function MobileSidebar() {
   const onClose = () => setVisible(false);
 
   const rawItems = syncLabelsFromDb(getMenuItems(translate), dbMenus);
-  const filteredItems = filterMenuByRole(rawItems, currentAdmin, dynamicCodes);
+  const filteredItems = filterMenuByRole(rawItems, currentAdmin, currentAdmin?.allowed_menu_codes);
   const styledItems = applyMenuStyles(filteredItems);
   const defaultOpenMenu = rawItems
     .filter((item) => item.children)

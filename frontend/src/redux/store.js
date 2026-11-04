@@ -4,8 +4,7 @@ import lang from '@/locale/translation/en_us';
 
 import rootReducer from './rootReducer';
 import storePersist from './storePersist';
-
-// localStorageHealthCheck();
+import { isTokenExpired } from '@/utils/authSession';
 
 const AUTH_INITIAL_STATE = {
   current: {},
@@ -14,7 +13,23 @@ const AUTH_INITIAL_STATE = {
   isSuccess: false,
 };
 
-const auth_state = storePersist.get('auth') ? storePersist.get('auth') : AUTH_INITIAL_STATE;
+// Validate stored token before preloading state to prevent stale boot
+const savedAuth = storePersist.get('auth');
+const token = savedAuth?.current?.token;
+const hasValidSession = Boolean(savedAuth && savedAuth.isLoggedIn && token && !isTokenExpired(token));
+
+let auth_state = AUTH_INITIAL_STATE;
+if (hasValidSession) {
+  auth_state = {
+    ...savedAuth,
+    isLoading: false, // JANGAN PERNAH izinkan boot dengan status loading
+  };
+} else {
+  // Bersihkan data sampah/stale dari localStorage
+  storePersist.remove('auth');
+  storePersist.remove('x-auth-token');
+  auth_state = AUTH_INITIAL_STATE;
+}
 
 const initialState = { auth: auth_state };
 
@@ -23,9 +38,5 @@ const store = configureStore({
   preloadedState: initialState,
   devTools: import.meta.env.PROD === false, // Enable Redux DevTools in development mode
 });
-
-// console.log(
-//   '🚀 Welcome to IDURAR ERP CRM! Did you know that we also offer commercial customization services? Contact us at hello@idurarapp.com for more information.'
-// );
 
 export default store;

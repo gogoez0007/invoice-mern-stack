@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 
 import { Tag, Row, Col, Tabs, Segmented } from 'antd';
+import { CloseCircleOutlined, ClockCircleOutlined, TrophyOutlined } from '@ant-design/icons';
 import useLanguage from '@/locale/useLanguage';
 import useResponsive from '@/hooks/useResponsive';
 
@@ -15,8 +16,7 @@ import RecentTable from './components/RecentTable';
 import SummaryCard from './components/SummaryCard';
 import PreviewCard from './components/PreviewCard';
 import CustomerPreviewCard from './components/CustomerPreviewCard';
-import AttendancePieChart from './components/AttendancePieChart';
-import AttendanceLineChart from './components/AttendanceLineChart';
+import AttendanceAnalyticsSection from './components/AttendanceAnalyticsSection';
 import SummaryAttendance from './components/AttendanceTable';
 
 import { selectMoneyFormat } from '@/redux/settings/selectors';
@@ -154,65 +154,7 @@ export default function DashboardModule() {
   if (money_format_settings) {
     return (
       <>
-        {isMobile ? (
-          <div style={{ marginBottom: 20 }}>
-            <div style={{ marginBottom: 14 }}>
-              <Segmented
-                block
-                value={chartTabKey}
-                onChange={setChartTabKey}
-                options={[
-                  { label: '📈 Tren Absensi Bulanan', value: 'line' },
-                  { label: '🥧 Statistik Absensi', value: 'pie' },
-                ]}
-                style={{
-                  padding: 4,
-                  backgroundColor: '#ffffff',
-                  boxShadow: '0 2px 8px rgba(0, 0, 0, 0.08)',
-                  borderRadius: 12,
-                  fontWeight: 600,
-                  fontSize: 13,
-                }}
-              />
-            </div>
-
-            <div>
-              <div style={{ display: chartTabKey === 'line' ? 'block' : 'none', borderRadius: '16px', overflow: 'hidden' }}>
-                <AttendanceLineChart
-                  title="Tren Absensi Bulanan"
-                  isLoading={attendanceLineLoading}
-                  data={attendanceLineStatistics}
-                />
-              </div>
-              <div style={{ display: chartTabKey === 'pie' ? 'block' : 'none', borderRadius: '16px', overflow: 'hidden' }}>
-                <AttendancePieChart
-                  title="Statistik Absensi"
-                  isLoading={attendanceLoading}
-                  statistics={attendanceStatistics}
-                />
-              </div>
-            </div>
-          </div>
-        ) : (
-          <Row gutter={[32, 32]}>
-            <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 18 }}>
-              <div className="whiteBox shadow" style={{ height: 500, borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
-                <AttendanceLineChart
-                  title="Tren Absensi Bulanan"
-                  isLoading={attendanceLineLoading}
-                  data={attendanceLineStatistics}
-                />
-              </div>
-            </Col>
-            <Col className="gutter-row w-full" sm={{ span: 24 }} md={{ span: 24 }} lg={{ span: 6 }}>
-              <AttendancePieChart
-                title="Statistik Absensi"
-                isLoading={attendanceLoading}
-                statistics={attendanceStatistics}
-              />
-            </Col>
-          </Row>
-        )}
+        <AttendanceAnalyticsSection />
         <div className="space30"></div>
         {isMobile ? (
           <div
@@ -245,54 +187,212 @@ export default function DashboardModule() {
 
             <div style={{ padding: '0 4px' }}>
               <div style={{ display: recentTabKey === 'absen_today' ? 'block' : 'none' }}>
-                <h4 style={{ color: '#cf1322', margin: '0 0 10px', fontWeight: 700, fontSize: 15 }}>
-                  {translate('Karyawan Tidak Hadir (Today)')}
-                </h4>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <span style={{ color: '#ef4444', fontWeight: 700, fontSize: 14 }}>
+                    ❌ {translate('Karyawan Tidak Hadir')}
+                  </span>
+                  <Tag color="error">Hari Ini</Tag>
+                </div>
                 <RecentTable entity={'absen_today'} dataTableColumns={dataTableColumnsAbsen} />
               </div>
 
               <div style={{ display: recentTabKey === 'telat_today' ? 'block' : 'none' }}>
-                <h4 style={{ color: '#d46b08', margin: '0 0 10px', fontWeight: 700, fontSize: 15 }}>
-                  {translate('Karyawan Telat (Today)')}
-                </h4>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <span style={{ color: '#f59e0b', fontWeight: 700, fontSize: 14 }}>
+                    ⚠️ {translate('Karyawan Telat')}
+                  </span>
+                  <Tag color="warning">Hari Ini</Tag>
+                </div>
                 <RecentTable entity={'telat_today'} dataTableColumns={dataTableColumns} />
               </div>
 
               <div style={{ display: recentTabKey === 'top_telat_monthly' ? 'block' : 'none' }}>
-                <h4 style={{ color: '#0958d9', margin: '0 0 10px', fontWeight: 700, fontSize: 15 }}>
-                  {translate('Top Telat Absen Bulan ini')}
-                </h4>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <span style={{ color: '#3b82f6', fontWeight: 700, fontSize: 14 }}>
+                    🏆 {translate('Top Telat Absen')}
+                  </span>
+                  <Tag color="processing">Bulan Ini</Tag>
+                </div>
                 <RecentTable entity={'top_telat_monthly'} dataTableColumns={dataTableColumnsTop} />
               </div>
             </div>
           </div>
         ) : (
-          <Row gutter={[32, 32]}>
+          <Row gutter={[24, 24]}>
             <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
-              <div className="whiteBox shadow pad20" style={{ height: '100%', borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
-                <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
-                  {translate('Karyawan Tidak Hadir (Today)')}
-                </h3>
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: 18,
+                  padding: '20px',
+                  boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                  border: '1px solid #f1f5f9',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 16,
+                    paddingBottom: 14,
+                    borderBottom: '1px solid #f1f5f9',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        backgroundColor: '#fef2f2',
+                        color: '#ef4444',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 18,
+                      }}
+                    >
+                      <CloseCircleOutlined />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14.5, color: '#0f172a', lineHeight: 1.2 }}>
+                        {translate('Karyawan Tidak Hadir')}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>
+                        Belum check-in hari ini
+                      </div>
+                    </div>
+                  </div>
+                  <Tag color="error" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>
+                    Hari Ini
+                  </Tag>
+                </div>
 
-                <RecentTable entity={'absen_today'} dataTableColumns={dataTableColumnsAbsen} />
+                <div style={{ flex: 1 }}>
+                  <RecentTable entity={'absen_today'} dataTableColumns={dataTableColumnsAbsen} />
+                </div>
               </div>
             </Col>
 
             <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
-              <div className="whiteBox shadow pad20" style={{ height: '100%', borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
-                <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
-                  {translate('Karyawan Telat (Today)')}
-                </h3>
-                <RecentTable entity={'telat_today'} dataTableColumns={dataTableColumns} />
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: 18,
+                  padding: '20px',
+                  boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                  border: '1px solid #f1f5f9',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 16,
+                    paddingBottom: 14,
+                    borderBottom: '1px solid #f1f5f9',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        backgroundColor: '#fffbeb',
+                        color: '#f59e0b',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 18,
+                      }}
+                    >
+                      <ClockCircleOutlined />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14.5, color: '#0f172a', lineHeight: 1.2 }}>
+                        {translate('Karyawan Telat')}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>
+                        Masuk setelah jam kerja
+                      </div>
+                    </div>
+                  </div>
+                  <Tag color="warning" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>
+                    Hari Ini
+                  </Tag>
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <RecentTable entity={'telat_today'} dataTableColumns={dataTableColumns} />
+                </div>
               </div>
             </Col>
 
             <Col className="gutter-row w-full" sm={{ span: 24 }} lg={{ span: 8 }}>
-              <div className="whiteBox shadow pad20" style={{ height: '100%', borderRadius: '16px', boxShadow: '0 8px 16px rgba(0, 0, 0, 0.1)' }}>
-                <h3 style={{ color: '#22075e', marginBottom: 5, padding: '0 20px 20px' }}>
-                  {translate('Top Telat Absen Bulan ini')}
-                </h3>
-                <RecentTable entity={'top_telat_monthly'} dataTableColumns={dataTableColumnsTop} />
+              <div
+                style={{
+                  background: '#ffffff',
+                  borderRadius: 18,
+                  padding: '20px',
+                  boxShadow: '0 4px 20px -2px rgba(0, 0, 0, 0.05)',
+                  border: '1px solid #f1f5f9',
+                  height: '100%',
+                  display: 'flex',
+                  flexDirection: 'column',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    marginBottom: 16,
+                    paddingBottom: 14,
+                    borderBottom: '1px solid #f1f5f9',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div
+                      style={{
+                        width: 36,
+                        height: 36,
+                        borderRadius: 10,
+                        backgroundColor: '#eff6ff',
+                        color: '#3b82f6',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: 18,
+                      }}
+                    >
+                      <TrophyOutlined />
+                    </div>
+                    <div>
+                      <div style={{ fontWeight: 700, fontSize: 14.5, color: '#0f172a', lineHeight: 1.2 }}>
+                        {translate('Top Telat Absen')}
+                      </div>
+                      <div style={{ fontSize: 11.5, color: '#94a3b8', marginTop: 2 }}>
+                        Akumulasi bulan berjalan
+                      </div>
+                    </div>
+                  </div>
+                  <Tag color="processing" style={{ margin: 0, borderRadius: 6, fontWeight: 600, fontSize: 11 }}>
+                    Bulan Ini
+                  </Tag>
+                </div>
+
+                <div style={{ flex: 1 }}>
+                  <RecentTable entity={'top_telat_monthly'} dataTableColumns={dataTableColumnsTop} />
+                </div>
               </div>
             </Col>
           </Row>

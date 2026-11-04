@@ -34,9 +34,18 @@ const ROUTE_PERMISSIONS = [
   { prefix: '/driver', codes: ['driver', 'listDriver'], defaultPath: '/driver' },
   { prefix: '/role-access', codes: ['role_access'], defaultPath: '/role-access' },
   { prefix: '/leave-requests', codes: ['leave_requests', 'manageHR'], defaultPath: '/leave-requests' },
+  { prefix: '/leave-approval-lines', codes: ['leave_approval_lines', 'manageHR'], defaultPath: '/leave-approval-lines' },
+  { prefix: '/leave-email-config', codes: ['leave_email_config', 'manageHR'], defaultPath: '/leave-email-config' },
   { prefix: '/perusahaan', codes: ['perusahaan', 'manageHR'], defaultPath: '/perusahaan' },
   { prefix: '/entitas', codes: ['entitas', 'manageHR'], defaultPath: '/entitas' },
   { prefix: '/tarik-absen', codes: ['tarik_absen', 'manageHR'], defaultPath: '/tarik-absen' },
+  { prefix: '/recruitment/jobs', codes: ['recruitment_jobs', 'recruitment'], defaultPath: '/recruitment/jobs' },
+  { prefix: '/recruitment/applicants', codes: ['recruitment_applicants', 'recruitment'], defaultPath: '/recruitment/applicants' },
+  { prefix: '/recruitment/approvals', codes: ['recruitment_approvals', 'recruitment'], defaultPath: '/recruitment/approvals' },
+  { prefix: '/recruitment/broadcast', codes: ['recruitment_broadcast', 'recruitment'], defaultPath: '/recruitment/broadcast' },
+  { prefix: '/recruitment/approval-settings', codes: ['recruitment_approval_settings', 'recruitment'], defaultPath: '/recruitment/approval-settings' },
+  { prefix: '/recruitment/email-config', codes: ['recruitment_email_config', 'recruitment'], defaultPath: '/recruitment/email-config' },
+  { prefix: '/recruitment', codes: ['recruitment', 'recruitment_jobs', 'recruitment_applicants', 'recruitment_approvals'], defaultPath: '/recruitment/jobs' },
   { exact: '/', codes: ['dashboard_absen', 'dashboard'], defaultPath: '/' },
 ];
 
@@ -62,9 +71,16 @@ export default function useRoleAccess() {
     return localAuth?.current || {};
   }, [reduxAdmin]);
 
-  const [allowedCodes, setAllowedCodes] = useState(currentAdmin?.allowed_menu_codes || []);
-  const [roleGroup, setRoleGroup] = useState(currentAdmin?.role_group || null);
-  const [isLoading, setIsLoading] = useState(!currentAdmin?.username || currentAdmin?.allowed_menu_codes === undefined);
+  const [isVerifying, setIsVerifying] = useState(true);
+
+  // Directly derive from currentAdmin (synced with Redux & localStorage)
+  const allowedCodes = useMemo(() => {
+    return Array.isArray(currentAdmin?.allowed_menu_codes) ? currentAdmin.allowed_menu_codes : [];
+  }, [currentAdmin?.allowed_menu_codes]);
+
+  const roleGroup = useMemo(() => {
+    return currentAdmin?.role_group || null;
+  }, [currentAdmin?.role_group]);
 
   const isSuperAdmin = useMemo(() => {
     if (!currentAdmin?.username) return false;
@@ -81,10 +97,17 @@ export default function useRoleAccess() {
     return !roleId && allowedCodes.length === 0;
   }, [currentAdmin, roleGroup, isSuperAdmin, allowedCodes]);
 
+  const isLoading = useMemo(() => {
+    if (!currentAdmin?.username) return false;
+    if (isSuperAdmin) return false;
+    if (allowedCodes.length === 0 && isVerifying) return true;
+    return false;
+  }, [currentAdmin, isSuperAdmin, allowedCodes, isVerifying]);
+
   // Fetch or refresh permissions from backend
   useEffect(() => {
     if (!currentAdmin?.username) {
-      setIsLoading(false);
+      setIsVerifying(false);
       return;
     }
 
@@ -101,22 +124,22 @@ export default function useRoleAccess() {
         if (data.success && data.result) {
           const codes = data.result.allowed_menu_codes || [];
           const rg = data.result.role_group || null;
-          setAllowedCodes(codes);
-          setRoleGroup(rg);
 
           // Sync to localStorage and Redux
           try {
             const authState = storePersist.get('auth') || {};
-            if (authState.current) {
-              authState.current.allowed_menu_codes = codes;
-              authState.current.role_group = rg;
-              authState.current.entity_scope = data.result.entity_scope || null;
-              window.localStorage.setItem('auth', JSON.stringify(authState));
-              dispatch({
-                type: actionTypes.REQUEST_SUCCESS,
-                payload: authState.current,
-              });
-            }
+            const updatedCurrent = {
+              ...(authState.current || currentAdmin),
+              allowed_menu_codes: codes,
+              role_group: rg,
+              entity_scope: data.result.entity_scope || null,
+            };
+            authState.current = updatedCurrent;
+            window.localStorage.setItem('auth', JSON.stringify(authState));
+            dispatch({
+              type: actionTypes.REQUEST_SUCCESS,
+              payload: updatedCurrent,
+            });
           } catch (_) {}
         }
       })
@@ -124,7 +147,7 @@ export default function useRoleAccess() {
         console.error('Failed to sync permissions in useRoleAccess:', err);
       })
       .finally(() => {
-        if (isMounted) setIsLoading(false);
+        if (isMounted) setIsVerifying(false);
       });
 
     return () => {
@@ -190,6 +213,7 @@ export default function useRoleAccess() {
     isSuperAdmin,
     hasNoRole,
     isLoading,
+    isVerifying,
     firstAllowedPath,
     isRouteAllowed,
   };

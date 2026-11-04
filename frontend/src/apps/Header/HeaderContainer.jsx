@@ -1,6 +1,6 @@
 import { useSelector } from 'react-redux';
 import { Link, useNavigate } from 'react-router-dom';
-import { Avatar, Dropdown, Layout, Badge, Button } from 'antd';
+import { Avatar, Dropdown, Layout, Badge, Button, Tag } from 'antd';
 
 // import Notifications from '@/components/Notification';
 
@@ -163,15 +163,36 @@ export default function HeaderContent() {
           </Dropdown>
         </>
       ) : (
-        <Dropdown
-          menu={{
-            items,
-            onClick: handleMenuClick,
-          }}
-          trigger={['click']}
-          placement="bottomRight"
-          style={{ width: '280px', float: 'right' }}
-        >
+        <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          <Tag
+            color="warning"
+            style={{
+              fontWeight: 800,
+              fontSize: 13,
+              padding: '4px 14px',
+              borderRadius: 6,
+              border: '1.5px solid #d97706',
+              background: '#fffbeb',
+              color: '#b45309',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 6,
+              boxShadow: '0 1px 4px rgba(217, 119, 6, 0.15)',
+              margin: 0,
+            }}
+          >
+            <span>🧪</span>
+            <span>TAHAP STAGING (UJI COBA)</span>
+          </Tag>
+          <Dropdown
+            menu={{
+              items,
+              onClick: handleMenuClick,
+            }}
+            trigger={['click']}
+            placement="bottomRight"
+            style={{ width: '280px', float: 'right' }}
+          >
           <Avatar
             className="last"
             src={currentAdmin?.photo ? FILE_BASE_URL + currentAdmin?.photo : undefined}
@@ -187,6 +208,7 @@ export default function HeaderContent() {
             {currentAdmin?.name?.charAt(0)?.toUpperCase()}
           </Avatar>
         </Dropdown>
+        </div>
       )}
     </Header>
   );
