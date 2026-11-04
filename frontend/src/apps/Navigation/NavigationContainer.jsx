@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
-import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Button, Drawer, Layout, Menu } from 'antd';
+import { Link, useLocation } from 'react-router-dom';
+import { Drawer, Layout, Menu } from 'antd';
 import {
   MenuOutlined,
   BuildTwoTone,
@@ -12,6 +12,7 @@ import {
   BoxPlotTwoTone,
   SafetyCertificateTwoTone,
   IdcardTwoTone,
+  SettingTwoTone,
 } from '@ant-design/icons';
 
 import { useAppContext } from '@/context/appContext';
@@ -24,29 +25,77 @@ import { API_BASE_URL } from '@/config/serverApiConfig';
 
 const { Sider } = Layout;
 
-const isReviewer = ['cynthia', 'welli'];
-const isAdmin = ['hindri3578', 'dini3515', 'herry3515'];
-const isHR = ['silvya3515', 'jogi9104'];
-const isAdminCban = ['dewi3515'];
-const allowedReviewerKeys = ['dashboard', 'bongkar'];
+// Map pathname to active menu item key
+const pathToMenuKey = (pathname) => {
+  if (!pathname || pathname === '/') return 'dashboard_absen';
+  const cleanPath = pathname.startsWith('/') ? pathname.slice(1) : pathname;
+
+  const routes = [
+    { prefix: 'dashboard_panen', key: 'dashboard_panen' },
+    { prefix: 'dashboard_bongkar', key: 'dashboard_bongkar' },
+    { prefix: 'review/summary_percentage', key: 'summary_percentage' },
+    { prefix: 'dashboard_productivity', key: 'productivity' },
+    { prefix: 'dashboard_ponds', key: 'summary_ponds' },
+    { prefix: 'dashboard_sales', key: 'dashboard_sales' },
+
+    { prefix: 'tambak', key: 'tambak/list' },
+    { prefix: 'panen', key: 'panen' },
+    { prefix: 'kualitas', key: 'kualitas/list' },
+    { prefix: 'review/process', key: 'review_process' },
+    { prefix: 'review', key: 'review' },
+    { prefix: 'bongkar', key: 'bongkar/list' },
+    { prefix: 'spb', key: 'spb/list' },
+    { prefix: 'driver-loans', key: 'driver_loans' },
+    { prefix: 'driver', key: 'driver' },
+
+    { prefix: 'karyawan', key: 'karyawan' },
+    { prefix: 'kpi', key: 'kpi' },
+    { prefix: 'agreements', key: 'agreements' },
+    { prefix: 'shift/shift_schedule', key: 'shift_schedule' },
+    { prefix: 'shift', key: 'shift' },
+    { prefix: 'attendance/manage', key: 'manage_attendance' },
+    { prefix: 'employee/manage', key: 'manage_employee' },
+    { prefix: 'off_schedules', key: 'off_schedules' },
+    { prefix: 'holidays', key: 'holidays' },
+    { prefix: 'tarik-absen', key: 'tarik_absen' },
+    { prefix: 'leave-requests', key: 'leave_requests' },
+    { prefix: 'leave-approval-lines', key: 'leave_approval_lines' },
+    { prefix: 'leave-email-config', key: 'leave_email_config' },
+
+    { prefix: 'recruitment/jobs', key: 'recruitment_jobs' },
+    { prefix: 'recruitment/applicants', key: 'recruitment_applicants' },
+    { prefix: 'recruitment/approvals', key: 'recruitment_approvals' },
+    { prefix: 'recruitment/broadcast', key: 'recruitment_broadcast' },
+    { prefix: 'recruitment/approval-settings', key: 'recruitment_approval_settings' },
+    { prefix: 'recruitment/email-config', key: 'recruitment_email_config' },
+
+    { prefix: 'perusahaan', key: 'perusahaan' },
+    { prefix: 'entitas', key: 'entitas' },
+    { prefix: 'lokasi', key: 'lokasi' },
+    { prefix: 'role-access', key: 'role_access' },
+  ];
+
+  const matched = routes.find((r) => cleanPath === r.prefix || cleanPath.startsWith(r.prefix + '/'));
+  return matched ? matched.key : cleanPath;
+};
 
 const getMenuItems = (translate) => [
   {
     key: 'dashboard',
     icon: <DashboardTwoTone />,
-    label: translate('dashboard'),
+    label: translate('Dashboard & Analitik') || 'Dashboard & Analitik',
     style: {
       fontSize: 15,
       fontWeight: 600,
     },
     children: [
       {
-        key: 'dashboard_panen',
-        label: <Link to="/dashboard_panen">Panen</Link>,
-      },
-      {
         key: 'dashboard_absen',
         label: <Link to="/">Absen</Link>,
+      },
+      {
+        key: 'dashboard_panen',
+        label: <Link to="/dashboard_panen">Panen</Link>,
       },
       {
         key: 'dashboard_bongkar',
@@ -58,7 +107,7 @@ const getMenuItems = (translate) => [
       },
       {
         key: 'productivity',
-        label: <Link to="/dashboard_productivity">Produktivias Truck</Link>,
+        label: <Link to="/dashboard_productivity">Produktivitas Truck</Link>,
       },
       {
         key: 'summary_ponds',
@@ -71,152 +120,165 @@ const getMenuItems = (translate) => [
     ],
   },
   {
-    key: 'panen',
-    icon: <AccountBookTwoTone />,
-    label: <Link to="/panen">{translate('Data panen')}</Link>,
-  },
-  {
-    key: 'bongkar',
-    icon: <BoxPlotTwoTone />,
-    label: translate('Data Penjualan'),
-    children: [
-      {
-        key: 'bongkar/list',
-        label: <Link to="/bongkar">List Penjualan</Link>,
-      },
-      {
-        key: 'review',
-        label: <Link to="/review">Review</Link>,
-      },
-      {
-        key: 'review_process',
-        label: <Link to="/review/process">Proses Review</Link>,
-      },
-    ],
-  },
-  {
-    key: 'SPB',
-    icon: <BoxPlotTwoTone />,
-    label: translate('Permintaan Barang'),
-    children: [
-      {
-        key: 'spb/list',
-        label: <Link to="/spb">List SPB</Link>,
-      },
-    ],
-  },
-  {
-    key: 'tambak',
+    key: 'operasional',
     icon: <AppstoreTwoTone />,
-    label: translate('Data Tambak'),
+    label: translate('Operasional & Logistik') || 'Operasional Tambak & Logistik',
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+    },
     children: [
       {
-        key: 'tambak/list',
-        label: <Link to="/tambak">Daftar Tambak</Link>,
+        key: 'group_tambak_kualitas',
+        type: 'group',
+        label: 'TAMBAK & KUALITAS',
+        children: [
+          {
+            key: 'tambak/list',
+            label: <Link to="/tambak">Daftar Tambak</Link>,
+          },
+          {
+            key: 'panen',
+            label: <Link to="/panen">Data Panen</Link>,
+          },
+          {
+            key: 'kualitas/list',
+            label: <Link to="/kualitas">List Kualitas</Link>,
+          },
+        ],
       },
-    ],
-  },
-  {
-    key: 'kualitas',
-    icon: <ContainerTwoTone />,
-    label: translate('Data Kualitas'),
-    children: [
       {
-        key: 'kualitas/list',
-        label: <Link to="/kualitas">List Kualitas</Link>,
+        key: 'group_penjualan_bongkar',
+        type: 'group',
+        label: 'PENJUALAN & BONGKAR',
+        children: [
+          {
+            key: 'bongkar/list',
+            label: <Link to="/bongkar">List Penjualan</Link>,
+          },
+          {
+            key: 'review',
+            label: <Link to="/review">Review</Link>,
+          },
+          {
+            key: 'review_process',
+            label: <Link to="/review/process">Proses Review</Link>,
+          },
+          {
+            key: 'spb/list',
+            label: <Link to="/spb">Permintaan Barang (SPB)</Link>,
+          },
+        ],
       },
-    ],
-  },
-  {
-    key: 'listDriver',
-    icon: <CarTwoTone />,
-    label: translate('Data Driver'),
-    children: [
       {
-        key: 'driver',
-        label: <Link to="/driver">List Driver</Link>,
+        key: 'group_logistik_driver',
+        type: 'group',
+        label: 'LOGISTIK & DRIVER',
+        children: [
+          {
+            key: 'driver',
+            label: <Link to="/driver">List Driver</Link>,
+          },
+          {
+            key: 'driver_loans',
+            label: <Link to="/driver-loans">Pinjaman Driver</Link>,
+          },
+        ],
       },
     ],
   },
   {
     key: 'manageHR',
     icon: <BuildTwoTone />,
-    label: translate('Manajemen Karyawan'),
+    label: translate('Manajemen HR & Presensi') || 'Manajemen HR & Presensi',
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+    },
     children: [
       {
-        key: 'karyawan',
-        label: <Link to="/karyawan">Karyawan</Link>,
+        key: 'group_karyawan_kpi',
+        type: 'group',
+        label: 'DATA KARYAWAN & KPI',
+        children: [
+          {
+            key: 'karyawan',
+            label: <Link to="/karyawan">Karyawan</Link>,
+          },
+          {
+            key: 'kpi',
+            label: <Link to="/kpi">Daftar KPI</Link>,
+          },
+          {
+            key: 'agreements',
+            label: <Link to="/agreements">Daftar Agreements</Link>,
+          },
+        ],
       },
       {
-        key: 'kpi',
-        label: <Link to="/kpi">Daftar KPI</Link>,
+        key: 'group_presensi_jadwal',
+        type: 'group',
+        label: 'PRESENSI & JADWAL KERJA',
+        children: [
+          {
+            key: 'shift',
+            label: <Link to="/shift">Shift</Link>,
+          },
+          {
+            key: 'shift_schedule',
+            label: <Link to="/shift/shift_schedule">Schedule Shift</Link>,
+          },
+          {
+            key: 'manage_attendance',
+            label: <Link to="/attendance/manage">Manage Attendance</Link>,
+          },
+          {
+            key: 'manage_employee',
+            label: <Link to="/employee/manage">HR & Attendance</Link>,
+          },
+          {
+            key: 'off_schedules',
+            label: <Link to="/off_schedules">Libur Karyawan</Link>,
+          },
+          {
+            key: 'holidays',
+            label: <Link to="/holidays">Manage Hari Libur</Link>,
+          },
+          {
+            key: 'tarik_absen',
+            label: <Link to="/tarik-absen">Report HR</Link>,
+          },
+        ],
       },
       {
-        key: 'lokasi',
-        label: <Link to="/lokasi">Lokasi Office</Link>,
-      },
-      {
-        key: 'shift',
-        label: <Link to="/shift">Shift</Link>,
-      },
-      {
-        key: 'shift_schedule',
-        label: <Link to="/shift/shift_schedule">Schedule Shift</Link>,
-      },
-      {
-        key: 'manage_attendance',
-        label: <Link to="/attendance/manage">Manage Attendance</Link>,
-      },
-      {
-        key: 'manage_employee',
-        label: <Link to="/employee/manage">HR & Attendance</Link>,
-      },
-      {
-        key: 'off_schedules',
-        label: <Link to="/off_schedules">Libur Karyawan</Link>,
-      },
-      {
-        key: 'holidays',
-        label: <Link to="/holidays">Manage Hari Libur</Link>,
-      },
-      {
-        key: 'agreements',
-        label: <Link to="/agreements">Daftar Agreements</Link>,
-      },
-      {
-        key: 'driver_loans',
-        label: <Link to="/driver-loans">Daftar Pinjaman Driver</Link>,
-      },
-      {
-        key: 'leave_requests',
-        label: <Link to="/leave-requests">Izin Karyawan</Link>,
-      },
-      {
-        key: 'perusahaan',
-        label: <Link to="/perusahaan">Master Perusahaan (PT/Legal)</Link>,
-      },
-      {
-        key: 'entitas',
-        label: <Link to="/entitas">Master Entitas (Cabang/Unit)</Link>,
-      },
-      {
-        key: 'leave_approval_lines',
-        label: <Link to="/leave-approval-lines">Line Approval Izin</Link>,
-      },
-      {
-        key: 'leave_email_config',
-        label: <Link to="/leave-email-config">Setup Email Izin</Link>,
-      },
-      {
-        key: 'tarik_absen',
-        label: <Link to="/tarik-absen">Report HR</Link>,
+        key: 'group_izin_cuti',
+        type: 'group',
+        label: 'MANAJEMEN IZIN & CUTI',
+        children: [
+          {
+            key: 'leave_requests',
+            label: <Link to="/leave-requests">Izin Karyawan</Link>,
+          },
+          {
+            key: 'leave_approval_lines',
+            label: <Link to="/leave-approval-lines">Line Approval Izin</Link>,
+          },
+          {
+            key: 'leave_email_config',
+            label: <Link to="/leave-email-config">Setup Email Izin</Link>,
+          },
+        ],
       },
     ],
   },
   {
     key: 'recruitment',
     icon: <IdcardTwoTone />,
-    label: translate('Rekrutmen'),
+    label: translate('Rekrutmen') || 'Rekrutmen',
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+    },
     children: [
       {
         key: 'recruitment_jobs',
@@ -245,9 +307,31 @@ const getMenuItems = (translate) => [
     ],
   },
   {
-    key: 'role_access',
-    icon: <SafetyCertificateTwoTone />,
-    label: <Link to="/role-access">Hak Akses Role</Link>,
+    key: 'pengaturan',
+    icon: <SettingTwoTone />,
+    label: translate('Pengaturan & Master') || 'Pengaturan & Master Korporat',
+    style: {
+      fontSize: 15,
+      fontWeight: 600,
+    },
+    children: [
+      {
+        key: 'perusahaan',
+        label: <Link to="/perusahaan">Master Perusahaan (PT/Legal)</Link>,
+      },
+      {
+        key: 'entitas',
+        label: <Link to="/entitas">Master Entitas (Cabang/Unit)</Link>,
+      },
+      {
+        key: 'lokasi',
+        label: <Link to="/lokasi">Lokasi Office</Link>,
+      },
+      {
+        key: 'role_access',
+        label: <Link to="/role-access">Hak Akses Role</Link>,
+      },
+    ],
   },
 ];
 
@@ -263,44 +347,82 @@ const filterMenuByRole = (items, currentAdmin, dynamicAllowedCodes) => {
   const allowedCodes = dynamicAllowedCodes || currentAdmin?.allowed_menu_codes;
 
   if (Array.isArray(allowedCodes) && allowedCodes.length > 0) {
-    return items
-      .map((parent) => {
-        // Menu bercabang (punya children)
-        if (parent.children && parent.children.length > 0) {
-          const filteredChildren = parent.children.filter((child) =>
-            allowedCodes.includes(child.key) ||
-            allowedCodes.includes(child.key?.replace('/', '_'))
-          );
-          if (filteredChildren.length > 0 || allowedCodes.includes(parent.key)) {
+    const isAllowed = (key) => {
+      if (!key) return false;
+      return (
+        allowedCodes.includes(key) ||
+        allowedCodes.includes(key.replace('/', '_')) ||
+        allowedCodes.includes(key.replace('_', '/'))
+      );
+    };
+
+    const filterItem = (item) => {
+      if (item.children && item.children.length > 0) {
+        const filteredChildren = item.children
+          .map(filterItem)
+          .filter(Boolean);
+
+        // Group header: only display if it has at least one visible child
+        if (item.type === 'group') {
+          if (filteredChildren.length > 0) {
             return {
-              ...parent,
+              ...item,
               children: filteredChildren,
             };
           }
           return null;
         }
 
-        // Single Menu
-        if (allowedCodes.includes(parent.key) || allowedCodes.includes(parent.key?.replace('/', '_'))) {
-          return parent;
+        // Parent menu: display if it has visible children OR parent key itself is allowed
+        if (filteredChildren.length > 0 || isAllowed(item.key)) {
+          return {
+            ...item,
+            children: filteredChildren,
+          };
         }
-
         return null;
-      })
-      .filter(Boolean);
+      }
+
+      // Leaf menu item
+      if (isAllowed(item.key)) {
+        return item;
+      }
+
+      return null;
+    };
+
+    return items.map(filterItem).filter(Boolean);
   }
 
   // 3. User yang belum memiliki role group TIDAK boleh mendapatkan akses ke menu apapun (Security Default: Deny)
   return [];
 };
 
-const applyMenuStyles = (items) => {
+const applyMenuStyles = (items, isChild = false) => {
   return items.map((item) => {
+    if (item.type === 'group') {
+      return {
+        ...item,
+        style: {
+          fontSize: 11,
+          fontWeight: 700,
+          color: '#8c8c8c',
+          letterSpacing: '0.6px',
+          paddingTop: 8,
+          paddingBottom: 2,
+          paddingLeft: 12,
+          margin: 0,
+        },
+        children: item.children ? applyMenuStyles(item.children, true) : [],
+      };
+    }
+
     const styledItem = {
       ...item,
       style: {
-        fontSize: 14.5,
-        fontWeight: 600,
+        fontSize: isChild ? 13.5 : 14.5,
+        fontWeight: isChild ? 400 : 600,
+        color: isChild ? '#444444' : '#1f1f1f',
         height: 'auto',
         lineHeight: 1.35,
         whiteSpace: 'normal',
@@ -312,21 +434,7 @@ const applyMenuStyles = (items) => {
     };
 
     if (item.children) {
-      styledItem.children = item.children.map((child) => ({
-        ...child,
-        style: {
-          fontSize: 13.5,
-          fontWeight: 400,
-          color: '#555555',
-          height: 'auto',
-          lineHeight: 1.35,
-          whiteSpace: 'normal',
-          wordBreak: 'break-word',
-          paddingTop: 4,
-          paddingBottom: 4,
-          ...(child.style || {}),
-        },
-      }));
+      styledItem.children = applyMenuStyles(item.children, true);
     }
 
     return styledItem;
@@ -344,38 +452,27 @@ const syncLabelsFromDb = (items, dbMenus) => {
     }
   });
 
-  return items.map((item) => {
+  const syncItem = (item) => {
     let newItem = { ...item };
-    const mappedParentLabel = labelMap[item.key] || (item.key && labelMap[item.key.replace('/', '_')]);
-    if (mappedParentLabel) {
-      if (item.children && item.children.length > 0) {
-        newItem.label = mappedParentLabel;
-      } else if (item.label && item.label.props?.to) {
-        newItem.label = <Link to={item.label.props.to}>{mappedParentLabel}</Link>;
-      } else {
-        newItem.label = mappedParentLabel;
+    if (item.key && !item.type) {
+      const mappedLabel = labelMap[item.key] || labelMap[item.key.replace('/', '_')];
+      if (mappedLabel) {
+        if (item.children && item.children.length > 0) {
+          newItem.label = mappedLabel;
+        } else if (item.label && item.label.props?.to) {
+          newItem.label = <Link to={item.label.props.to}>{mappedLabel}</Link>;
+        } else {
+          newItem.label = mappedLabel;
+        }
       }
     }
     if (item.children && item.children.length > 0) {
-      newItem.children = item.children.map((child) => {
-        const mappedChildLabel = labelMap[child.key] || (child.key && labelMap[child.key.replace('/', '_')]);
-        if (mappedChildLabel) {
-          if (child.label && child.label.props?.to) {
-            return {
-              ...child,
-              label: <Link to={child.label.props.to}>{mappedChildLabel}</Link>,
-            };
-          }
-          return {
-            ...child,
-            label: mappedChildLabel,
-          };
-        }
-        return child;
-      });
+      newItem.children = item.children.map(syncItem);
     }
     return newItem;
-  });
+  };
+
+  return items.map(syncItem);
 };
 
 export default function Navigation() {
@@ -409,9 +506,6 @@ function Sidebar() {
     setCollapsed(isNavMenuClose);
   }, [isNavMenuClose]);
 
-  const [currentPath, setCurrentPath] = useState(
-    location.pathname === '/' ? 'dashboard' : location.pathname.slice(1)
-  );
   const translate = useLanguage();
 
   useEffect(() => {
@@ -437,21 +531,16 @@ function Sidebar() {
     }
   }, [currentAdmin?.username]);
 
-  useEffect(() => {
-    setCurrentPath(location.pathname === '/' ? 'dashboard' : location.pathname.slice(1));
-  }, [location]);
-
   const onCollapse = (value) => {
     setCollapsed(value);
     navMenu.collapse();
   };
 
   const rawItems = syncLabelsFromDb(getMenuItems(translate), dbMenus);
-  const filteredItems = filterMenuByRole(rawItems, currentAdmin, currentAdmin?.allowed_menu_codes);
+  const filteredItems = filterMenuByRole(rawItems, currentAdmin, dynamicCodes || currentAdmin?.allowed_menu_codes);
   const styledItems = applyMenuStyles(filteredItems);
-  const defaultOpenMenu = rawItems
-    .filter((item) => item.children)
-    .map((item) => item.key);
+  const defaultOpenMenu = ['dashboard', 'operasional', 'manageHR', 'recruitment', 'pengaturan'];
+  const activeMenuKey = pathToMenuKey(location.pathname);
 
   return (
     <Sider
@@ -518,7 +607,7 @@ function Sidebar() {
             mode="inline"
             theme="light"
             defaultOpenKeys={defaultOpenMenu}
-            selectedKeys={[currentPath]}
+            selectedKeys={[activeMenuKey]}
             style={{
               width: '100%',
               borderInlineEnd: 'none',
@@ -564,12 +653,7 @@ function MobileSidebar() {
     }
   }, [currentAdmin?.username]);
 
-  const [currentPath, setCurrentPath] = useState(
-    location.pathname === '/' ? 'dashboard' : location.pathname.slice(1)
-  );
-
   useEffect(() => {
-    setCurrentPath(location.pathname === '/' ? 'dashboard' : location.pathname.slice(1));
     setVisible(false);
   }, [location.pathname]);
 
@@ -592,11 +676,10 @@ function MobileSidebar() {
   const onClose = () => setVisible(false);
 
   const rawItems = syncLabelsFromDb(getMenuItems(translate), dbMenus);
-  const filteredItems = filterMenuByRole(rawItems, currentAdmin, currentAdmin?.allowed_menu_codes);
+  const filteredItems = filterMenuByRole(rawItems, currentAdmin, dynamicCodes || currentAdmin?.allowed_menu_codes);
   const styledItems = applyMenuStyles(filteredItems);
-  const defaultOpenMenu = rawItems
-    .filter((item) => item.children)
-    .map((item) => item.key);
+  const defaultOpenMenu = ['dashboard', 'operasional', 'manageHR', 'recruitment', 'pengaturan'];
+  const activeMenuKey = pathToMenuKey(location.pathname);
 
   return (
     <Drawer
@@ -634,7 +717,7 @@ function MobileSidebar() {
           mode="inline"
           theme="light"
           defaultOpenKeys={defaultOpenMenu}
-          selectedKeys={[currentPath]}
+          selectedKeys={[activeMenuKey]}
           onClick={onClose}
           style={{
             width: '100%',
