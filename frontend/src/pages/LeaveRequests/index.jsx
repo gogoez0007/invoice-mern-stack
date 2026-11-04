@@ -302,18 +302,20 @@ export default function LeaveRequestsPage() {
             >
               Detail
             </Button>
-            <Tooltip title={isPending ? "Kirim notifikasi email approval ke approver aktif" : "Kirim ulang notifikasi persetujuan"}>
-              <Button
-                size="small"
-                type="primary"
-                ghost
-                icon={<SendOutlined />}
-                loading={sendingNotifId === r.id}
-                onClick={() => handleSendNotification(r)}
-              >
-                Kirim Notif
-              </Button>
-            </Tooltip>
+            {isPending && (
+              <Tooltip title="Kirim notifikasi email approval ke approver aktif">
+                <Button
+                  size="small"
+                  type="primary"
+                  ghost
+                  icon={<SendOutlined />}
+                  loading={sendingNotifId === r.id}
+                  onClick={() => handleSendNotification(r)}
+                >
+                  Kirim Notif
+                </Button>
+              </Tooltip>
+            )}
           </Space>
         );
       },
@@ -463,16 +465,20 @@ export default function LeaveRequestsPage() {
         open={detailModalVisible}
         onCancel={() => setDetailModalVisible(false)}
         footer={[
-          <Button
-            key="notify"
-            type="primary"
-            ghost
-            icon={<SendOutlined />}
-            loading={sendingNotifId === selectedLeave?.id}
-            onClick={() => handleSendNotification(selectedLeave)}
-          >
-            Kirim Notifikasi Approver
-          </Button>,
+          ...(selectedLeave && (selectedLeave.status || 'pending').toLowerCase() === 'pending'
+            ? [
+                <Button
+                  key="notify"
+                  type="primary"
+                  ghost
+                  icon={<SendOutlined />}
+                  loading={sendingNotifId === selectedLeave?.id}
+                  onClick={() => handleSendNotification(selectedLeave)}
+                >
+                  Kirim Notifikasi Approver
+                </Button>,
+              ]
+            : []),
           <Button key="close" onClick={() => setDetailModalVisible(false)}>
             Tutup
           </Button>,
