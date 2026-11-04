@@ -31,6 +31,7 @@ export default function ErpCrmApp() {
 
   const { isMobile } = useResponsive();
   const [stagingBannerClosed, setStagingBannerClosed] = useState(false);
+  const isStaging = typeof window !== 'undefined' && window.location.hostname.includes('staging');
 
   const dispatch = useDispatch();
 
@@ -57,7 +58,7 @@ export default function ErpCrmApp() {
         {isMobile ? (
           <Layout style={{ marginLeft: 0, minHeight: '100vh', width: '100%', background: '#f8fafc' }}>
             <HeaderContent />
-            {!stagingBannerClosed && (
+            {isStaging && !stagingBannerClosed && (
               <div
                 style={{
                   background: 'linear-gradient(90deg, #b45309 0%, #d97706 100%)',
@@ -126,7 +127,7 @@ export default function ErpCrmApp() {
             }}
           >
             <HeaderContent />
-            {!stagingBannerClosed && (
+            {isStaging && !stagingBannerClosed && (
               <div
                 style={{
                   background: 'linear-gradient(90deg, #b45309 0%, #d97706 100%)',

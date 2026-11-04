@@ -522,9 +522,9 @@ export default function RecruitmentJobsPage() {
             <Button
               icon={<GlobalOutlined />}
               href={
-                window.location.hostname.includes('delmargroup.co.id')
+                window.location.hostname.includes('staging')
                   ? 'https://staging-wp.delmargroup.co.id/career/?refresh_jobs=1'
-                  : 'http://localhost/delmargroup/career/?refresh_jobs=1'
+                  : (window.location.hostname.includes('delmargroup.co.id') ? 'https://delmargroup.co.id/career/?refresh_jobs=1' : 'http://localhost/delmargroup/career/?refresh_jobs=1')
               }
               target="_blank"
             >

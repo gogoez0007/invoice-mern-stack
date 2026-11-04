@@ -21,6 +21,7 @@ export default function HeaderContent() {
   const { Header } = Layout;
   const { isMobile } = useResponsive();
   const navigate = useNavigate();
+  const isStaging = typeof window !== 'undefined' && window.location.hostname.includes('staging');
 
   const translate = useLanguage();
 
@@ -164,6 +165,7 @@ export default function HeaderContent() {
         </>
       ) : (
         <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
+          {isStaging && (
           <Tag
             color="warning"
             style={{
@@ -184,6 +186,7 @@ export default function HeaderContent() {
             <span>🧪</span>
             <span>TAHAP STAGING (UJI COBA)</span>
           </Tag>
+          )}
           <Dropdown
             menu={{
               items,
