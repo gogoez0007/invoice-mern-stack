@@ -14,6 +14,7 @@ import {
   Row,
   Col,
   Statistic,
+  Spin,
   Empty,
   Tooltip,
   notification,
@@ -260,7 +261,7 @@ export default function LeaveRequestsPage() {
         const start = r.start_date ? dayjs(r.start_date).format('DD MMM YYYY') : '-';
         const end = r.return_date ? dayjs(r.return_date).format('DD MMM YYYY') : '-';
         return (
-          <Space orientation="vertical" size={0}>
+          <Space direction="vertical" size={0}>
             <span>{start} s/d {end}</span>
           </Space>
         );
@@ -335,7 +336,7 @@ export default function LeaveRequestsPage() {
         }}
         bodyStyle={{ padding: 20 }}
       >
-        <Space orientation="vertical" size={4}>
+        <Space direction="vertical" size={4}>
           <Space align="center" size={10}>
             <FileProtectOutlined style={{ fontSize: 24, color: '#fff' }} />
             <Title level={3} style={{ margin: 0, color: '#fff' }}>
@@ -483,193 +484,217 @@ export default function LeaveRequestsPage() {
             Tutup
           </Button>,
         ]}
-        width={650}
+        width={840}
+        style={{ maxWidth: '95vw', top: 20 }}
         destroyOnClose
       >
         {selectedLeave && (
-          <Space orientation="vertical" size={16} style={{ width: '100%', marginTop: 8 }}>
-            <Descriptions bordered size="small" column={1}>
-              <Descriptions.Item label="Nama Karyawan">
-                <Text strong>{selectedLeave.full_name}</Text>
-              </Descriptions.Item>
-              <Descriptions.Item label="Departemen / Divisi">
-                {selectedLeave.department_division || '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Jenis Izin">
-                <Tag color={LEAVE_TYPE_MAP[selectedLeave.leave_type]?.color || 'default'}>
-                  {LEAVE_TYPE_MAP[selectedLeave.leave_type]?.label || selectedLeave.leave_type}
-                </Tag>
-              </Descriptions.Item>
-              <Descriptions.Item label="Tanggal Mulai">
-                {selectedLeave.start_date ? dayjs(selectedLeave.start_date).format('DD MMMM YYYY') : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Tanggal Kembali / Masuk">
-                {selectedLeave.return_date ? dayjs(selectedLeave.return_date).format('DD MMMM YYYY') : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Tanggal Diajukan">
-                {selectedLeave.submission_date ? dayjs(selectedLeave.submission_date).format('DD MMMM YYYY') : '-'}
-              </Descriptions.Item>
-              <Descriptions.Item label="Status Persetujuan">
-                {(() => {
-                  const s = (selectedLeave.status || 'pending').toLowerCase();
-                  if (s === 'approved') return <Tag color="success">Approved</Tag>;
-                  if (s === 'rejected') return <Tag color="error">Rejected</Tag>;
-                  return <Tag color="gold">Pending</Tag>;
-                })()}
-              </Descriptions.Item>
-              {selectedLeave.approved_at && (
-                <Descriptions.Item label="Waktu Disetujui">
-                  {dayjs(selectedLeave.approved_at).format('DD MMM YYYY HH:mm')} WIB
-                </Descriptions.Item>
-              )}
-              <Descriptions.Item label="Alasan / Keterangan">
-                <Paragraph style={{ margin: 0, whiteSpace: 'pre-line' }}>
-                  {selectedLeave.reason || 'Tidak ada alasan yang disertakan.'}
-                </Paragraph>
-              </Descriptions.Item>
-            </Descriptions>
+          <Row gutter={[20, 20]} style={{ marginTop: 12 }}>
+            {/* Kolom Kiri: Informasi Detail Pengajuan */}
+            <Col xs={24} md={13}>
+              <div style={{ background: '#ffffff' }}>
+                <Text strong style={{ fontSize: 13.5, color: '#1e293b', display: 'flex', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+                  <FileProtectOutlined style={{ color: '#4F46E5' }} />
+                  Informasi Pengajuan Izin
+                </Text>
+                <Descriptions
+                  bordered
+                  size="small"
+                  column={1}
+                  labelStyle={{ width: 145, fontWeight: 600, background: '#f8fafc', color: '#475569' }}
+                  contentStyle={{ background: '#ffffff' }}
+                >
+                  <Descriptions.Item label="Nama Karyawan">
+                    <Text strong style={{ color: '#0f172a' }}>{selectedLeave.full_name}</Text>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Departemen / Divisi">
+                    {selectedLeave.department_division || '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Jenis Izin">
+                    <Tag color={LEAVE_TYPE_MAP[selectedLeave.leave_type]?.color || 'default'} style={{ fontWeight: 600 }}>
+                      {LEAVE_TYPE_MAP[selectedLeave.leave_type]?.label || selectedLeave.leave_type}
+                    </Tag>
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Tanggal Mulai">
+                    {selectedLeave.start_date ? dayjs(selectedLeave.start_date).format('DD MMMM YYYY') : '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Tanggal Kembali / Masuk">
+                    {selectedLeave.return_date ? dayjs(selectedLeave.return_date).format('DD MMMM YYYY') : '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Tanggal Diajukan">
+                    {selectedLeave.submission_date ? dayjs(selectedLeave.submission_date).format('DD MMMM YYYY') : '-'}
+                  </Descriptions.Item>
+                  <Descriptions.Item label="Status Persetujuan">
+                    {(() => {
+                      const s = (selectedLeave.status || 'pending').toLowerCase();
+                      if (s === 'approved') return <Tag color="success" style={{ fontWeight: 600 }}>Approved</Tag>;
+                      if (s === 'rejected') return <Tag color="error" style={{ fontWeight: 600 }}>Rejected</Tag>;
+                      return <Tag color="gold" style={{ fontWeight: 600 }}>Pending</Tag>;
+                    })()}
+                  </Descriptions.Item>
+                  {selectedLeave.approved_at && (
+                    <Descriptions.Item label="Waktu Disetujui">
+                      {dayjs(selectedLeave.approved_at).format('DD MMM YYYY HH:mm')} WIB
+                    </Descriptions.Item>
+                  )}
+                  <Descriptions.Item label="Alasan / Keterangan">
+                    <Paragraph style={{ margin: 0, whiteSpace: 'pre-line', color: '#334155' }}>
+                      {selectedLeave.reason || 'Tidak ada alasan yang disertakan.'}
+                    </Paragraph>
+                  </Descriptions.Item>
+                </Descriptions>
+              </div>
+            </Col>
 
-            {/* Alur Persetujuan (Approval Steps) */}
-            <div>
-              <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                <CheckCircleTwoTone twoToneColor="#4F46E5" style={{ marginRight: 6 }} />
-                Alur Persetujuan (Approval Steps):
-              </Text>
-              {loadingApprovers ? (
-                <div style={{ padding: '12px 0', textAlign: 'center' }}>
-                  <Text type="secondary">Memuat alur persetujuan...</Text>
-                </div>
-              ) : approvers.length === 0 ? (
-                <Text type="secondary" italic>Belum ada approver terdaftar untuk pengajuan ini.</Text>
-              ) : (
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {approvers.map((app) => {
-                    const isAppApproved = (app.status || '').toLowerCase() === 'approved';
-                    const isAppRejected = (app.status || '').toLowerCase() === 'rejected';
-                    const isAppPending = !isAppApproved && !isAppRejected;
-                    return (
-                      <div
-                        key={app.id || app.step_order}
-                        style={{
-                          display: 'flex',
-                          alignItems: 'center',
-                          justifyContent: 'space-between',
-                          padding: '10px 14px',
-                          background: isAppApproved ? '#f6ffed' : (isAppRejected ? '#fff2f0' : '#f8fafc'),
-                          border: `1px solid ${isAppApproved ? '#b7eb8f' : (isAppRejected ? '#ffccc7' : '#e2e8f0')}`,
-                          borderRadius: 8,
-                        }}
-                      >
-                        <Space size={10}>
-                          <Tag color={app.step_order === 1 ? 'blue' : 'purple'} style={{ fontWeight: 700, margin: 0 }}>
-                            Step {app.step_order}
-                          </Tag>
-                          <div>
-                            <Text strong style={{ fontSize: 13 }}>{app.approver_name || 'Approver'}</Text>
-                            {app.approver_email && (
-                              <div style={{ fontSize: 11.5, color: '#64748b' }}>{app.approver_email}</div>
-                            )}
+            {/* Kolom Kanan: Alur Persetujuan & Lampiran Dokumen */}
+            <Col xs={24} md={11}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+                {/* Alur Persetujuan (Approval Steps) */}
+                <div style={{ background: '#f8fafc', padding: 14, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                  <Text strong style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, fontSize: 13, color: '#1e293b' }}>
+                    <CheckCircleTwoTone twoToneColor="#4F46E5" />
+                    Alur Persetujuan (Approval Steps)
+                  </Text>
+                  {loadingApprovers ? (
+                    <div style={{ padding: '16px 0', textAlign: 'center' }}>
+                      <Spin size="small" />
+                      <div style={{ fontSize: 12, color: '#64748b', marginTop: 6 }}>Memuat alur persetujuan...</div>
+                    </div>
+                  ) : approvers.length === 0 ? (
+                    <Text type="secondary" italic style={{ fontSize: 12 }}>Belum ada approver terdaftar untuk pengajuan ini.</Text>
+                  ) : (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {approvers.map((app) => {
+                        const isAppApproved = (app.status || '').toLowerCase() === 'approved';
+                        const isAppRejected = (app.status || '').toLowerCase() === 'rejected';
+                        const isAppPending = !isAppApproved && !isAppRejected;
+                        return (
+                          <div
+                            key={app.id || app.step_order}
+                            style={{
+                              display: 'flex',
+                              alignItems: 'center',
+                              justifyContent: 'space-between',
+                              padding: '10px 12px',
+                              background: isAppApproved ? '#f6ffed' : (isAppRejected ? '#fff2f0' : '#ffffff'),
+                              border: `1px solid ${isAppApproved ? '#b7eb8f' : (isAppRejected ? '#ffccc7' : '#e2e8f0')}`,
+                              borderRadius: 8,
+                              boxShadow: '0 1px 3px rgba(0,0,0,0.03)',
+                            }}
+                          >
+                            <Space size={8}>
+                              <Tag color={app.step_order === 1 ? 'blue' : 'purple'} style={{ fontWeight: 700, margin: 0 }}>
+                                Step {app.step_order}
+                              </Tag>
+                              <div>
+                                <Text strong style={{ fontSize: 12.5, color: '#0f172a' }}>{app.approver_name || 'Approver'}</Text>
+                                {app.approver_email && (
+                                  <div style={{ fontSize: 11, color: '#64748b' }}>{app.approver_email}</div>
+                                )}
+                              </div>
+                            </Space>
+                            <div>
+                              {isAppApproved && <Tag color="success" style={{ margin: 0, fontWeight: 600 }}>Approved</Tag>}
+                              {isAppRejected && <Tag color="error" style={{ margin: 0, fontWeight: 600 }}>Rejected</Tag>}
+                              {isAppPending && <Tag color="gold" style={{ margin: 0, fontWeight: 600 }}>Menunggu</Tag>}
+                            </div>
                           </div>
-                        </Space>
-                        <div>
-                          {isAppApproved && <Tag color="success">Approved</Tag>}
-                          {isAppRejected && <Tag color="error">Rejected</Tag>}
-                          {isAppPending && <Tag color="gold">Menunggu</Tag>}
-                        </div>
+                        );
+                      })}
+                    </div>
+                  )}
+                </div>
+
+                {/* Lampiran Bukti / Surat Dokter */}
+                <div style={{ background: '#f8fafc', padding: 14, borderRadius: 10, border: '1px solid #e2e8f0' }}>
+                  <Text strong style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, fontSize: 13, color: '#1e293b' }}>
+                    <PaperClipOutlined style={{ color: '#0284c7' }} />
+                    Lampiran Bukti Dokumen
+                  </Text>
+                  {(() => {
+                    const docs = parseSupportingDocs(selectedLeave.supporting_doc);
+                    if (docs.length === 0) {
+                      return <Text type="secondary" italic style={{ fontSize: 12 }}>Tidak ada lampiran dokumen pendukung.</Text>;
+                    }
+                    return (
+                      <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+                        {docs.map((docPath, idx) => {
+                          const fullUrl = getLeaveDocFullUrl(docPath);
+                          const isPdf = typeof fullUrl === 'string' && fullUrl.toLowerCase().endsWith('.pdf');
+                          return (
+                            <Card
+                              key={idx}
+                              size="small"
+                              hoverable
+                              style={{
+                                width: 145,
+                                borderRadius: 8,
+                                border: '1px solid #e2e8f0',
+                                overflow: 'hidden',
+                                background: '#ffffff',
+                                boxShadow: '0 2px 6px rgba(0,0,0,0.04)',
+                              }}
+                              bodyStyle={{ padding: 8, textAlign: 'center' }}
+                            >
+                              {isPdf ? (
+                                <div
+                                  style={{
+                                    height: 90,
+                                    display: 'flex',
+                                    flexDirection: 'column',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    background: '#fef2f2',
+                                    borderRadius: 6,
+                                    marginBottom: 6,
+                                    color: '#dc2626',
+                                  }}
+                                >
+                                  <FileTextOutlined style={{ fontSize: 28, marginBottom: 4 }} />
+                                  <span style={{ fontSize: 10.5, fontWeight: 600 }}>Dokumen PDF</span>
+                                </div>
+                              ) : (
+                                <div style={{ borderRadius: 6, overflow: 'hidden', marginBottom: 6, background: '#f1f5f9' }}>
+                                  <Image
+                                    src={fullUrl}
+                                    alt={`Lampiran #${idx + 1}`}
+                                    style={{ width: '100%', height: 90, objectFit: 'cover' }}
+                                    preview={{
+                                      mask: (
+                                        <div style={{ fontSize: 11, display: 'flex', alignItems: 'center', gap: 4 }}>
+                                          <EyeOutlined /> Lihat
+                                        </div>
+                                      ),
+                                    }}
+                                    fallback="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='90' fill='%23e2e8f0'><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-size='10' font-family='sans-serif'>Gagal Muat</text></svg>"
+                                  />
+                                </div>
+                              )}
+                              <div style={{ fontSize: 11, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
+                                Lampiran #{idx + 1}
+                              </div>
+                              <Button
+                                type="primary"
+                                size="small"
+                                ghost
+                                icon={<ExportOutlined />}
+                                href={fullUrl}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                style={{ width: '100%', fontSize: 10.5, borderRadius: 6, height: 26 }}
+                              >
+                                Buka Dokumen
+                              </Button>
+                            </Card>
+                          );
+                        })}
                       </div>
                     );
-                  })}
+                  })()}
                 </div>
-              )}
-            </div>
-
-            {/* Lampiran Bukti / Surat Dokter */}
-            <div>
-              <Text strong style={{ display: 'block', marginBottom: 8 }}>
-                <PaperClipOutlined style={{ marginRight: 6 }} />
-                Lampiran Bukti Dokumen / Surat Dokter:
-              </Text>
-              {(() => {
-                const docs = parseSupportingDocs(selectedLeave.supporting_doc);
-                if (docs.length === 0) {
-                  return <Text type="secondary" italic>Tidak ada lampiran dokumen pendukung.</Text>;
-                }
-                return (
-                  <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap' }}>
-                    {docs.map((docPath, idx) => {
-                      const fullUrl = getLeaveDocFullUrl(docPath);
-                      const isPdf = typeof fullUrl === 'string' && fullUrl.toLowerCase().endsWith('.pdf');
-                      return (
-                        <Card
-                          key={idx}
-                          size="small"
-                          hoverable
-                          style={{
-                            width: 160,
-                            borderRadius: 10,
-                            border: '1px solid #e2e8f0',
-                            overflow: 'hidden',
-                            boxShadow: '0 2px 8px rgba(0,0,0,0.06)',
-                          }}
-                          bodyStyle={{ padding: 10, textAlign: 'center' }}
-                        >
-                          {isPdf ? (
-                            <div
-                              style={{
-                                height: 100,
-                                display: 'flex',
-                                flexDirection: 'column',
-                                alignItems: 'center',
-                                justifyContent: 'center',
-                                background: '#fef2f2',
-                                borderRadius: 8,
-                                marginBottom: 8,
-                                color: '#dc2626',
-                              }}
-                            >
-                              <FileTextOutlined style={{ fontSize: 32, marginBottom: 4 }} />
-                              <span style={{ fontSize: 11, fontWeight: 600 }}>Dokumen PDF</span>
-                            </div>
-                          ) : (
-                            <div style={{ borderRadius: 8, overflow: 'hidden', marginBottom: 8, background: '#f8fafc' }}>
-                              <Image
-                                src={fullUrl}
-                                alt={`Lampiran #${idx + 1}`}
-                                style={{ width: '100%', height: 100, objectFit: 'cover' }}
-                                preview={{
-                                  mask: (
-                                    <div style={{ fontSize: 12, display: 'flex', alignItems: 'center', gap: 4 }}>
-                                      <EyeOutlined /> Lihat
-                                    </div>
-                                  ),
-                                }}
-                                fallback="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='120' height='100' fill='%23e2e8f0'><text x='50%25' y='50%25' dominant-baseline='middle' text-anchor='middle' fill='%2364748b' font-size='11' font-family='sans-serif'>Gagal Muat</text></svg>"
-                              />
-                            </div>
-                          )}
-                          <div style={{ fontSize: 11.5, fontWeight: 600, color: '#334155', marginBottom: 6 }}>
-                            Lampiran #{idx + 1}
-                          </div>
-                          <Button
-                            type="primary"
-                            size="small"
-                            ghost
-                            icon={<ExportOutlined />}
-                            href={fullUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            style={{ width: '100%', fontSize: 11, borderRadius: 6 }}
-                          >
-                            Buka Dokumen
-                          </Button>
-                        </Card>
-                      );
-                    })}
-                  </div>
-                );
-              })()}
-            </div>
-          </Space>
+              </div>
+            </Col>
+          </Row>
         )}
       </Modal>
     </div>

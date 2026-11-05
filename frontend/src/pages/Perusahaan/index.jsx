@@ -246,7 +246,7 @@ export default function PerusahaanPage() {
         }}
         bodyStyle={{ padding: 20 }}
       >
-        <Space orientation="vertical" size={4}>
+        <Space direction="vertical" size={4}>
           <Space align="center" size={10}>
             <ShopOutlined style={{ fontSize: 24, color: '#fff' }} />
             <Title level={3} style={{ margin: 0, color: '#fff' }}>

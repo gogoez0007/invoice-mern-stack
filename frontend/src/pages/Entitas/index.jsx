@@ -221,7 +221,7 @@ export default function EntitasPage() {
         }}
         bodyStyle={{ padding: 20 }}
       >
-        <Space orientation="vertical" size={4}>
+        <Space direction="vertical" size={4}>
           <Space align="center" size={10}>
             <ApartmentOutlined style={{ fontSize: 24, color: '#fff' }} />
             <Title level={3} style={{ margin: 0, color: '#fff' }}>
