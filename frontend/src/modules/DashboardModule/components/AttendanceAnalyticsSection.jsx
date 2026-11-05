@@ -254,7 +254,7 @@ function CustomLineTooltip({ active, payload, label, onOpenDetail }) {
   );
 }
 
-export default function AttendanceAnalyticsSection() {
+export default function AttendanceAnalyticsSection({ onEntitasChange }) {
   const screens = Grid.useBreakpoint();
   const isMobile = screens.xs || !screens.md;
 
@@ -708,7 +708,7 @@ export default function AttendanceAnalyticsSection() {
                 </span>
               }
               value={selectedEntitasIds}
-              onChange={(val) => setSelectedEntitasIds(val)}
+              onChange={(val) => { setSelectedEntitasIds(val); onEntitasChange?.(val); }}
               style={{ minWidth: screens.xs ? "100%" : 190, maxWidth: 280 }}
               size="middle"
             >

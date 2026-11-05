@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Table, Tag, Typography, Space, Empty, Spin, Avatar } from 'antd';
 import { request } from '@/request';
 import useFetch from '@/hooks/useFetch';
@@ -20,19 +20,51 @@ const getInitials = (name) => {
   return name.slice(0, 2).toUpperCase();
 };
 
-export default function RecentTable({ entity, dataTableColumns }) {
-  const asyncList = () => {
-    return request.summaryAbsen({ entity });
-  };
+export default function RecentTable({ entity, entitasIds, dataTableColumns }) {
+  const [data, setData] = useState([]);
+  const [isLoading, setIsLoading] = useState(true);
 
-  const { result, isLoading, isSuccess } = useFetch(asyncList);
+  useEffect(() => {
+    let isMounted = true;
+    setIsLoading(true);
+
+    const options = {};
+    if (Array.isArray(entitasIds) && entitasIds.length > 0) {
+      options.entitas_ids = entitasIds.join(',');
+    }
+
+    request
+      .summaryAbsen({ entity, options })
+      .then((res) => {
+        if (isMounted) {
+          if (res?.success && Array.isArray(res?.result)) {
+            setData(res.result);
+          } else if (Array.isArray(res)) {
+            setData(res);
+          } else {
+            setData([]);
+          }
+        }
+      })
+      .catch((err) => {
+        console.error(`Error fetching ${entity}:`, err);
+        if (isMounted) setData([]);
+      })
+      .finally(() => {
+        if (isMounted) setIsLoading(false);
+      });
+
+    return () => {
+      isMounted = false;
+    };
+  }, [entity, Array.isArray(entitasIds) ? entitasIds.join(',') : '']);
 
   const dataList = useMemo(() => {
-    if (isSuccess && Array.isArray(result)) {
-      return result.slice(0, 8); // Tampilkan 8 data teratas
+    if (Array.isArray(data)) {
+      return data.slice(0, 8); // Tampilkan 8 data teratas
     }
     return [];
-  }, [result, isSuccess]);
+  }, [data]);
 
   // Kolom Khusus Sesuai Tipe Entitas
   const columns = useMemo(() => {

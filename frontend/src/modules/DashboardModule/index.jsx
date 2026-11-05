@@ -27,6 +27,7 @@ export default function DashboardModule() {
   const { isMobile } = useResponsive();
   const [chartTabKey, setChartTabKey] = useState('line');
   const [recentTabKey, setRecentTabKey] = useState('absen_today');
+  const [selectedEntitasIds, setSelectedEntitasIds] = useState([]);
   const { moneyFormatter } = useMoney();
   const money_format_settings = useSelector(selectMoneyFormat);
 
@@ -154,7 +155,7 @@ export default function DashboardModule() {
   if (money_format_settings) {
     return (
       <>
-        <AttendanceAnalyticsSection />
+        <AttendanceAnalyticsSection onEntitasChange={setSelectedEntitasIds} />
         <div className="space30"></div>
         {isMobile ? (
           <div
@@ -193,7 +194,7 @@ export default function DashboardModule() {
                   </span>
                   <Tag color="error">Hari Ini</Tag>
                 </div>
-                <RecentTable entity={'absen_today'} dataTableColumns={dataTableColumnsAbsen} />
+                <RecentTable entity={'absen_today'} entitasIds={selectedEntitasIds} dataTableColumns={dataTableColumnsAbsen} />
               </div>
 
               <div style={{ display: recentTabKey === 'telat_today' ? 'block' : 'none' }}>
@@ -203,7 +204,7 @@ export default function DashboardModule() {
                   </span>
                   <Tag color="warning">Hari Ini</Tag>
                 </div>
-                <RecentTable entity={'telat_today'} dataTableColumns={dataTableColumns} />
+                <RecentTable entity={'telat_today'} entitasIds={selectedEntitasIds} dataTableColumns={dataTableColumns} />
               </div>
 
               <div style={{ display: recentTabKey === 'top_telat_monthly' ? 'block' : 'none' }}>
@@ -213,7 +214,7 @@ export default function DashboardModule() {
                   </span>
                   <Tag color="processing">Bulan Ini</Tag>
                 </div>
-                <RecentTable entity={'top_telat_monthly'} dataTableColumns={dataTableColumnsTop} />
+                <RecentTable entity={'top_telat_monthly'} entitasIds={selectedEntitasIds} dataTableColumns={dataTableColumnsTop} />
               </div>
             </div>
           </div>
@@ -273,7 +274,7 @@ export default function DashboardModule() {
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <RecentTable entity={'absen_today'} dataTableColumns={dataTableColumnsAbsen} />
+                  <RecentTable entity={'absen_today'} entitasIds={selectedEntitasIds} dataTableColumns={dataTableColumnsAbsen} />
                 </div>
               </div>
             </Col>
@@ -332,7 +333,7 @@ export default function DashboardModule() {
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <RecentTable entity={'telat_today'} dataTableColumns={dataTableColumns} />
+                  <RecentTable entity={'telat_today'} entitasIds={selectedEntitasIds} dataTableColumns={dataTableColumns} />
                 </div>
               </div>
             </Col>
@@ -391,7 +392,7 @@ export default function DashboardModule() {
                 </div>
 
                 <div style={{ flex: 1 }}>
-                  <RecentTable entity={'top_telat_monthly'} dataTableColumns={dataTableColumnsTop} />
+                  <RecentTable entity={'top_telat_monthly'} entitasIds={selectedEntitasIds} dataTableColumns={dataTableColumnsTop} />
                 </div>
               </div>
             </Col>
